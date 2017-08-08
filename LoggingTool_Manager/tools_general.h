@@ -1,0 +1,56 @@
+#ifndef TOOLS_GENERAL_H
+#define TOOLS_GENERAL_H
+
+#include "qextserialport.h"
+
+
+#define KMRK					(4)				// ID прибора КМРК
+#define NMKT					(3)				// ID прибора ЯМКТ
+
+struct ToolInfo
+{	
+	ToolInfo(int _id = 0, QString _type = "", QString _file_name = "")
+	{
+		id = _id;
+		type = _type;
+		file_name = _file_name;
+	}
+
+	int id;
+	QString type;
+	QString file_name;
+};
+
+
+#define NMR_SAMPLE_FREQ			(4*250000)		// частота дискретизации АЦП прибора ЯМР
+#define NMR_SAMPLE_FREQ_HALF	(NMR_SAMPLE_FREQ/2)	// половина частоты дискретизации АЦП прибота ЯМР
+
+
+#define DU_DATA_LEN				45				// длина данных телеметрии (в байтах), получаемых из устройства DU
+
+#define DIELECTR_MSG_LEN		20				// длина данных ответа диэлектрического прибора
+
+
+struct COM_PORT
+{
+	PortSettings COM_Settings;
+	QextSerialPort *COM_port;
+	bool connect_state;				// открыт/закрыт
+	bool auto_search;				// необходимо ли использовать процедуру автопоиска прибора ЯМР по COM-портам
+};
+
+
+struct Communication_Settings
+{
+	int packet_length;				// длина пакетов
+	int block_length;				// длина блоков
+	int errs_count;					// количество корректируемых ошибок в блоках данных
+	int packet_delay;				// задержка между пакетами (мс)
+	bool antinoise_coding;			// применять/не применять помехоустойчивое кодирование
+	bool packlen_autoadjust;		// оптимизация длины пакетов (вкл./выкл.)
+	bool noise_control;				// адаптивная подстройка параметров алгоритма помехоустойчивого кодирования в зависимости от помеховой обстановки (вкл./выкл.)
+	bool interleaving;				// применение/не применение алгоритма "интерливинга" (перемешивания байтов в пакетах) 
+};
+
+
+#endif // IO_GENERAL_H

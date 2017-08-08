@@ -37,3 +37,28 @@ Makefile*
 # QtCtreator CMake
 CMakeLists.txt.user*
 
+# VS2012
+*.log
+*.sdf
+*.pdb
+*.obj
+*.opensdf
+*.suo
+
+
+# LoggingTool_Manager
+LoggingTool_Manager/GeneratedFiles
+LoggingTool_Manager/Debug
+LoggingTool_Manager/Release
+LoggingTool_Manager/Temp
+LoggingTool_Manager/x64
+LoggingTool_Manager/Sequences
+
+DMDeconv/Debug
+DMDeconv/Release
+DMDeconv/ipch
+DMDeconv/DMDeconv/Debug
+DMDeconv/DMDeconv/Release
+
+*.ilk
+Impuls/

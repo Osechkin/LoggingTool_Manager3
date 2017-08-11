@@ -39,10 +39,65 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 
 	ui->treeWidget->header()->setFont(QFont("Arial", 10, 0, false));		
 	
+	script_debugger.attachTo(&engine);
+
 	readSequenceCmdIndex();
 	readSequenceInstrIndex();
+
+	QStringList lusi_elist;
+	QStringList js_elist;
+
+	lusi_engine.init(&engine, seq_cmd_index, seq_instr_index);
+
+	QString seq_path = QDir::currentPath() + "/Sequences";
+	bool res = findSequenceScripts(file_list, path_list, seq_path);
+	if (res)
+	{
+		QString file_name = path_list.first() + "/" + file_list.first();
+		QFile file(file_name);
+		QString str = "";
+		if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+		{
+			QTextStream text_stream(&file);
+			str = text_stream.readAll();
+			file.close();		
+		}
+
+		lusi_engine.setLUSIscript(str);
+		if (lusi_engine.evaluate(lusi_elist))
+		{
+			LUSI::ObjectList *obj_list_global = lusi_engine.getObjList();
+			if (obj_list_global->isEmpty())
+			{
+				int ret = QMessageBox::warning(this, tr("Warning!"), tr("Sequence program for Logging Tool was not foubd!"), QMessageBox::Ok, QMessageBox::Ok);
+				return;
+			}
+
+			QAction *pact = script_debugger.action(QScriptEngineDebugger::InterruptAction);
+			connect(pact, SIGNAL(triggered()), pact, SLOT(trigger()));
+			//pact->trigger();
+
+			QString js_script = lusi_engine.getJSscript();
+			QScriptValue qscrpt_value = engine.evaluate(js_script);
+
+			//LUSI::ObjectList *obj_list_global = lusi_engine.getObjList();
+			for (int i = 0; i < obj_list_global->size(); i++)
+			{
+				LUSI::Object *lusi_obj = qobject_cast<LUSI::Object*>(obj_list_global->at(i));
+				js_elist << lusi_obj->getErrorList();
+
+				LUSI::Definition::Type obj_type = lusi_obj->getType();
+				if (obj_type == LUSI::Definition::ProcPackage)
+				{
+					LUSI::ProcPackage *obj_param =  qobject_cast<LUSI::ProcPackage*>(obj_list_global->at(i));
+					QByteVector byte_code;
+					byte_code << obj_param->getProcProgram();
+				}
+			}
+		}
+	}
 	
-	sequence_proc = NULL;
+	/*sequence_proc = NULL;
 	QString seq_path = QDir::currentPath() + "/Sequences";
 	bool res = findSequenceScripts(file_list, path_list, seq_path);
 	if (res) 
@@ -56,7 +111,9 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 
 		showSeqParameters();
 		showSequenceMemo(curSeq);
-	}
+	}*/
+
+
 
 	app_settings = settings;
 	save_data.to_save = false;	
@@ -88,6 +145,7 @@ void SequenceWizard::setConnections()
 	connect(ui->treeWidget, SIGNAL(itemClicked(QTreeWidgetItem*,int)), this, SLOT(treeWidgetActivated(QTreeWidgetItem*,int)));
 
 }
+
 
 bool SequenceWizard::findSequenceScripts(QStringList &files, QStringList &pathes)
 {
@@ -152,25 +210,7 @@ QSettings* SequenceWizard::initSequenceScript(QString file_name)
 }
 
 void SequenceWizard::parseSequenceScript(QSettings *settings, Sequence &seq)
-{
-	/*
-	QScriptEngine engine1;
-
-	QString prg;
-	prg = "var a = true; var b = 1; if (a == true) 2; else 3";
-
-	QScriptValue qscr_val = engine1.evaluate(prg);
-	if (!qscr_val.isError()) 
-	{
-		int res = qscr_val.toInt32();
-		qDebug() << res;
-	}		
-	else
-	{
-		qDebug() << "Error !";
-	}
-	*/
-
+{	
 	seq.clear();
 
 	//QStringList all_keys = settings->allKeys();

@@ -81,8 +81,7 @@ private:
 	void addToDataSets(DataSet *ds) { dataset_storage->push_back(ds); }
 	void plotData(DataSets &_dss);	
 	void plotLoggingData(DataSets &_dss);
-	void exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<QVector<double> > &full_xdata);	
-	void sendCDiagData(DataSets &dss);
+	void exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<QVector<double> > &full_xdata);		
 	void prepareDataForNet(DataSets dss, QString &out_str);
 
 	void lockDataSet() { dataset_mutex->lock(); }
@@ -215,8 +214,7 @@ private slots:
 	void disconnectFromNMRTool();
 	void setCOMPortSettings();  	
 	void setCommunicationSettings();
-	void setTCPConnectionSettings();
-	void setCDiagConnectionSettings();
+	void setTCPConnectionSettings();	
 	void setDepthmeterSettings();
 	void setProcessingSettings();
 	void setSequenceChanged();
@@ -240,8 +238,7 @@ private slots:
 	void storeMsgData(MsgInfo* msg_info);
 	//void plotData(DeviceData *device_data);		
 	void sendDataToNetClients(const QString &sock_id, int index);
-	void sendToSDSP(QByteArray& arr);
-	void sendToCDiag(QVector<uint8_t>* arr);
+	void sendToSDSP(QByteArray& arr);	
 	void depthDepthMeterConnected(bool flag);
 	void placeInfoToStatusBar(QString& str);				// разместить инфо на StatusBar (lblStatusInfo)
 	void placeInfoToExpToolBar(QString& str_count, QString &str_time, QString& tool_info); // разместить инфо на панели эксперимента ExpToolBar (счетчик данных, время от начала измерений, название прибора)
@@ -263,6 +260,7 @@ private slots:
 
 private:
 	void loadToolsSettings();
+	void loadAppSettings();
 	void setToolChannels(QSettings *settings);
 	double getDepthDisplacement(uint8_t _channel_id, QVector<ToolChannel*> &_tool_channels);
 	void sendToolSettings();

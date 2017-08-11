@@ -40,8 +40,6 @@
 #include "Common/profiler.h"
 
 
-#define NO_CTDIAG
-
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {		
@@ -53,106 +51,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 		int ret = QMessageBox::warning(this, tr("Warning!"), tr("Cannot find tool settings file in /Tools folder!"), QMessageBox::Ok, QMessageBox::Ok);
 		exit(0);
 	}
-
-	app_settings = new QSettings("NMRTool_Communicator.ini", QSettings::IniFormat, this);
-	bool ok = false;
-	QString cur_tool_file = "";
-	QString cur_tool_type = "";
-	unsigned char tool_id = 0;
-	bool file_settings_ok = false;
-	if (app_settings->contains("Tool/Id") && app_settings->contains("Tool/CfgFile") && app_settings->contains("Tool/Type")) 
-	{		
-		tool_id = app_settings->value("Tool/Id").toInt(&ok);
-		cur_tool_type = app_settings->value("Tool/Type").toString();
-		cur_tool_file = app_settings->value("Tool/CfgFile").toString();
-
-		QFile file(cur_tool_file);
-		if(file.open(QIODevice::ReadOnly)) 
-		{
-			current_tool.file_name = cur_tool_file;
-			current_tool.id = tool_id;
-			current_tool.type = cur_tool_type;
-
-			file_settings_ok = true;
-		}
-		file.close();		
-	}
-	//else
-	if (!file_settings_ok)
-	{
-		QStringList tools_files;
-		for (int i = 0; i < tools_settings.count(); i++)
-		{
-			QString file_name = tools_settings[i]->fileName();
-			tools_files.append(file_name);
-		}
-
-		/////////////////////////////
-		QList<ToolInfo> tools;
-		for (int i = 0; i < tools_files.count(); i++)
-		{
-			QString tool_file = tools_files[i];
-			QSettings *settings = tools_settings[i];
-
-			int uid = 0; 
-			QString tool_type = "";
-			bool ok = false;
-			if (settings->contains("Tool/uid")) uid = settings->value("Tool/uid").toInt(&ok); 
-			else uid = 0;
-			if (settings->contains("Tool/type")) tool_type = settings->value("Tool/type").toString(); 
-
-			if (ok && uid > 0 && !tool_type.isEmpty()) 
-			{
-				bool tool_exist = false;
-				for (int j = 0; j < tools.count(); j++)
-				{
-					ToolInfo tool_info = tools[j];
-					if (tool_info.id == uid) tool_exist = true;
-				}
-
-				if (!tool_exist)
-				{
-					ToolInfo tool_info(uid, tool_type, tool_file); 
-					tools.append(tool_info);
-				}
-			}
-		}
-		/////////////////////////////
-		ToolsDialog *dlg = new ToolsDialog(tools);
-		if (dlg->exec())
-		{
-			cur_tool_file = dlg->getSelectedToolFile();
-			tool_id = dlg->getSelectedToolId();
-			cur_tool_type = dlg->getSelectedTool();
-
-			app_settings->setValue("Tool/Id", QVariant(tool_id));
-			app_settings->setValue("Tool/Type", QVariant(cur_tool_type));
-			app_settings->setValue("Tool/CfgFile", QVariant(cur_tool_file));
-
-			current_tool.file_name = cur_tool_file;
-			current_tool.id = tool_id;
-			current_tool.type = cur_tool_type;
-		}	
-		/*else
-		{
-			int ret = QMessageBox::warning(this, tr("Warning!"), tr("LoggingTool Manager program will be closed!"), QMessageBox::Ok, QMessageBox::Ok);
-			exit(0);
-		}*/
-
-		delete dlg;
-	}
-
-	if (!cur_tool_file.isEmpty() && tool_id > 0)
-	{
-		current_tool_settings = new QSettings(cur_tool_file, QSettings::IniFormat, this);
-		setToolChannels(current_tool_settings);
-	}
-	else
-	{
-		int ret = QMessageBox::warning(this, tr("Warning!"), tr("Cannot find info about current Tool!"), QMessageBox::Ok, QMessageBox::Ok);
-		return;
-	}
-
+		
+	loadAppSettings();	
 
 	gf_data = (GF_Data*)malloc(sizeof(GF_Data));
 	gfdata_init(gf_data,127);	// 127 -  максимально возможное число исправл€емых ошибок дл€ пол€ GP(256)
@@ -161,16 +61,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	gf_data->index_body = 1;
 	gf_data->index_ftr = 0;
 
-	loadCommSettings();
-	/*comm_settings = new Communication_Settings;
-	comm_settings->packet_length = 100;
-	comm_settings->block_length = 20;
-	comm_settings->errs_count = 2;
-	comm_settings->packet_delay = 0;
-	comm_settings->antinoise_coding = true;
-	comm_settings->packlen_autoadjust = true;
-	comm_settings->interleaving = false;
-	comm_settings->noise_control = false;*/
+	loadCommSettings();	
 
 	QString port_name = "COM5";
 	if (app_settings->contains("COMPort/PortName")) port_name = app_settings->value("COMPort/PortName").toString();
@@ -226,9 +117,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	
 	dataset_mutex = new QMutex(QMutex::Recursive);
 	tcp_data_manager = new TcpDataManager(dataset_mutex);
-#ifndef NO_CTDIAG
-	cdiag_data_manager = new CDiagDataManager(clocker);
-#endif
 
     dock_msgConnect = new QDockWidget(tr("Logging Tool Console"), this);
 	QFont fontConnect = dock_msgConnect->font();
@@ -514,10 +402,7 @@ MainWindow::~MainWindow()
 	}
 	msg_data_container->clear();
 	delete msg_data_container;*/
-
-#ifndef NO_CTDIAG
-	delete cdiag_data_manager;
-#endif
+	
 	delete tcp_data_manager;
 
 	qDeleteAll(msg_data_container->begin(), msg_data_container->end());
@@ -660,9 +545,7 @@ void MainWindow::setConnections()
 	connect(com_commander, SIGNAL(msg_state(int, int)), nmrtoolLinker, SLOT(showMsgTrafficReport(int, int)));
 
 	connect(tcp_data_manager, SIGNAL(get_data(const QString&, int)), this, SLOT(sendDataToNetClients(const QString&, int)));
-#ifndef NO_CTDIAG
-	connect(cdiag_data_manager, SIGNAL(send_to_sdsp(QByteArray&)), this, SLOT(sendToSDSP(QByteArray&)));
-#endif
+
 	//connect(depthMonitor, SIGNAL(connected(bool)), this, SLOT(depthDepthMeterConnected(bool)));
 	connect(depthTemplate, SIGNAL(connected(bool)), this, SLOT(depthDepthMeterConnected(bool)));
 
@@ -791,10 +674,7 @@ void MainWindow::initStatusBar()
 
 	TrafficWidget *traffic_widget = nmrtoolLinker->getTrafficWidget();
 	ConnectionWidget *conn_widget = nmrtoolLinker->getConnectionWidget();	
-#ifndef NO_CTDIAG
-	CDiagConnectionWidget *cdiag_conn_widget = cdiag_data_manager->getTcpConnectionWidget();
-	this->statusBar()->addPermanentWidget(cdiag_conn_widget, 10);
-#endif	
+
 	TcpConnectionWidget *tcp_conn_widget = tcp_data_manager->getTcpConnectionWidget();
 	this->statusBar()->addPermanentWidget(tcp_conn_widget, 10);
 	//ImpulsConnectionWidget *impuls_widget = depthMonitor->getConnectionWidget();
@@ -1224,81 +1104,102 @@ void MainWindow::setToolId(unsigned char id)
 }
 
 
+void MainWindow::loadAppSettings()
+{
+	app_settings = new QSettings("NMRTool_Communicator.ini", QSettings::IniFormat, this);
 
-/*
-void MainWindow::setToolId(unsigned char id)
-{	
-	if (id == current_tool.id) return;
-
-	//a_connect->setChecked(false);
-	//nmrtoolLinker->startConnection(false);
-	disconnect(COM_Port->COM_port, SIGNAL(readyRead()), com_commander, SLOT(onDataAvailable()));
-
-	loadToolsSettings();
-
-	bool tool_exist = false;
-	for (int i = 0; i < tools_settings.count(); i++)
+	bool ok = false;
+	QString cur_tool_file = "";
+	QString cur_tool_type = "";
+	unsigned char tool_id = 0;
+	bool file_settings_ok = false;
+	if (app_settings->contains("Tool/Id") && app_settings->contains("Tool/CfgFile") && app_settings->contains("Tool/Type")) 
 	{		
-		QSettings *settings = tools_settings[i];
-		QString tool_file = settings->fileName();
+		tool_id = app_settings->value("Tool/Id").toInt(&ok);
+		cur_tool_type = app_settings->value("Tool/Type").toString();
+		cur_tool_file = app_settings->value("Tool/CfgFile").toString();
 
-		int uid = 0; 
-		QString tool_type = "";
-		bool ok = false;
-		if (settings->contains("Tool/uid")) uid = settings->value("Tool/uid").toInt(&ok); 
-		else uid = 0;
-		if (settings->contains("Tool/type")) tool_type = settings->value("Tool/type").toString(); 
+		QFile file(cur_tool_file);
+		if(file.open(QIODevice::ReadOnly)) 
+		{
+			current_tool.file_name = cur_tool_file;
+			current_tool.id = tool_id;
+			current_tool.type = cur_tool_type;
 
-		if (ok && uid > 0 && !tool_type.isEmpty() && id > 0) 
-		{			
-			if (uid == id)
-			{
-				current_tool.id = id;
-				current_tool.file_name = tool_file;
-				current_tool.type = tool_type;
-
-				app_settings->setValue("Tool/Id", QVariant(current_tool.id));
-				app_settings->setValue("Tool/Type", QVariant(current_tool.type));
-				app_settings->setValue("Tool/CfgFile", QVariant(current_tool.file_name));
-
-				if (current_tool_settings != NULL) delete current_tool_settings;
-				current_tool_settings = new QSettings(current_tool.file_name, QSettings::IniFormat, this);
-				setToolChannels(current_tool_settings);
-				applyToolSettings();
-
-				tool_exist = true;
-			}			
-		}		
+			file_settings_ok = true;
+		}
+		file.close();		
 	}
-
-	if (!tool_exist)
+	//else
+	if (!file_settings_ok)
 	{
-		if (id <= 0) 
+		QStringList tools_files;
+		for (int i = 0; i < tools_settings.count(); i++)
 		{
-			QString msg = tr("Connected Logging Tool send incorrect id = %! Please, define a type of the Logging Tool:").arg(id);
-			int ret = QMessageBox::warning(this, tr("Warning!"), msg, QMessageBox::Ok, QMessageBox::Ok);
-			connect(COM_Port->COM_port, SIGNAL(readyRead()), com_commander, SLOT(onDataAvailable()));
-			a_connect->setChecked(false);
-			nmrtoolLinker->startConnection(false);
-			return;
+			QString file_name = tools_settings[i]->fileName();
+			tools_files.append(file_name);
 		}
-		else
+
+		/////////////////////////////
+		QList<ToolInfo> tools;
+		for (int i = 0; i < tools_files.count(); i++)
 		{
-			QString msg = QString("Logging Tool with id = %1 was found. Cannot find correct settings file for this tool in /Tools folder!").arg(id);
-			QMessageBox::warning(this, tr("Warning!"), msg, QMessageBox::Ok, QMessageBox::Ok);
-			connect(COM_Port->COM_port, SIGNAL(readyRead()), com_commander, SLOT(onDataAvailable()));		
-			a_connect->setChecked(false);
-			nmrtoolLinker->startConnection(false);
-			return;
+			QString tool_file = tools_files[i];
+			QSettings *settings = tools_settings[i];
+
+			int uid = 0; 
+			QString tool_type = "";
+			bool ok = false;
+			if (settings->contains("Tool/uid")) uid = settings->value("Tool/uid").toInt(&ok); 
+			else uid = 0;
+			if (settings->contains("Tool/type")) tool_type = settings->value("Tool/type").toString(); 
+
+			if (ok && uid > 0 && !tool_type.isEmpty()) 
+			{
+				bool tool_exist = false;
+				for (int j = 0; j < tools.count(); j++)
+				{
+					ToolInfo tool_info = tools[j];
+					if (tool_info.id == uid) tool_exist = true;
+				}
+
+				if (!tool_exist)
+				{
+					ToolInfo tool_info(uid, tool_type, tool_file); 
+					tools.append(tool_info);
+				}
+			}
 		}
+		/////////////////////////////
+		ToolsDialog *dlg = new ToolsDialog(tools);
+		if (dlg->exec())
+		{
+			cur_tool_file = dlg->getSelectedToolFile();
+			tool_id = dlg->getSelectedToolId();
+			cur_tool_type = dlg->getSelectedTool();
+
+			app_settings->setValue("Tool/Id", QVariant(tool_id));
+			app_settings->setValue("Tool/Type", QVariant(cur_tool_type));
+			app_settings->setValue("Tool/CfgFile", QVariant(cur_tool_file));
+
+			current_tool.file_name = cur_tool_file;
+			current_tool.id = tool_id;
+			current_tool.type = cur_tool_type;
+		}			
+		delete dlg;
 	}
 
-	connect(COM_Port->COM_port, SIGNAL(readyRead()), com_commander, SLOT(onDataAvailable()));
-	//a_connect->setChecked(true);
-	//nmrtoolLinker->startConnection(true);
+	if (!current_tool.file_name.isEmpty() && tool_id > 0)
+	{
+		current_tool_settings = new QSettings(cur_tool_file, QSettings::IniFormat, this);
+		setToolChannels(current_tool_settings);
+	}
+	else
+	{
+		int ret = QMessageBox::warning(this, tr("Warning!"), tr("Cannot find info about current Tool!"), QMessageBox::Ok, QMessageBox::Ok);
+		return;
+	}
 }
-*/
-
 
 void MainWindow::loadToolsSettings()
 {
@@ -1699,28 +1600,6 @@ void MainWindow::setTCPConnectionSettings()
 	}
 }
 
-void MainWindow::setCDiagConnectionSettings()
-{
-#ifndef NO_CTDIAG
-	CDiagServerDialog dlg(cdiag_data_manager->getCDiagCommunicator()->getPort(), this);
-	if (dlg.exec())
-	{
-		cdiag_data_manager->resetCDiagCommunicator(dlg.getPort());
-	}
-#endif
-}
-
-/*
-void MainWindow::setDepthmeterSettings()
-{	
-	DepthMeterSettingsDialog dlg(depthMonitor->getCOMPort());	
-	if (dlg.exec())
-	{
-		QString port_name = dlg.getCOMPortName();
-		depthTemplate->setCOMPortName(port_name);
-	}
-}
-*/
 
 void MainWindow::setDepthmeterSettings()
 {
@@ -2647,834 +2526,6 @@ void MainWindow::storeMsgData(MsgInfo* msg_info)
 }
 
 
-/*
-void MainWindow::treatNewData(DeviceData *device_data)
-{	
-	QString data_title = device_data->name;
-	QList<Field_Comm*> *fields = device_data->fields;
-
-	if (fields->count() == 0) return;	
-	if (device_data->comm_id != NMRTOOL_DATA) return;
-
-	obtained_data_counter++;
-
-	//profiler.tic(1, "MainWindow::treatNewData()");
-	//profiler.tic(2, "x_data, y_data creation");
-
-	DataSets dss;
-	DataSets forT2spec_dss;		// данные дл€ последующего расчета спектров времен “2 
-	forT2spec_dss.clear();
-	QList<QVector<uint8_t> > gap_list;
-	QList<QVector<double> > full_xdata_list;
-	for (int i = 0; i < fields->size(); i++)
-	{				
-		QVector<double> *y_data = new QVector<double>(fields->at(i)->value->size());		
-		QVector<double> *x_data = new QVector<double>(y_data->size());	
-		QVector<double> x_data_full(y_data->size());
-		QVector<uint8_t> *bad_map = new QVector<uint8_t>(fields->at(i)->bad_data->size());
-		QVector<uint8_t> gap_map(y_data->size());
-		
-		memset(y_data->data(), 0x00, y_data->size()*sizeof(double));
-		memset(x_data->data(), 0x00, x_data->size()*sizeof(double));
-		memset(x_data_full.data(), 0x00, x_data->size()*sizeof(double));
-		memcpy(bad_map->data(), fields->at(i)->bad_data->data(), fields->at(i)->bad_data->size()*sizeof(uint8_t));
-		memset(gap_map.data(), 0x00, gap_map.count()*sizeof(uint8_t));
-
-		uint8_t comm_id = fields->at(i)->code;
-		uint8_t channel_data_id = fields->at(i)->channel;
-		uint32_t msg_uid = device_data->uid;
-
-		QString ds_name_base = "";
-		switch (comm_id)
-		{
-		case DT_SGN_SE_ORG:			ds_name_base = "nmr_echo_sgn#%1"; break;
-		case DT_NS_SE_ORG:			ds_name_base = "nmr_echo_noise#%1"; break;
-		case DT_SGN_FID_ORG:		ds_name_base = "nmr_fid_sgn#%1"; break;
-		case DT_NS_FID_ORG:			ds_name_base = "nmr_fid_noise#%1"; break;
-		case DT_SGN_SE:				ds_name_base = "nmr_echo_sgn#%1"; break;
-		case DT_NS_SE:				ds_name_base = "nmr_echo_noise#%1"; break;
-		case DT_NS_QUAD_FID_RE:		ds_name_base = "nmr_fid_noise_re#%1"; break;
-		case DT_NS_QUAD_FID_IM:		ds_name_base = "nmr_fid_noise_im#%1"; break;
-		case DT_NS_QUAD_SE_RE:		ds_name_base = "nmr_se_noise_re#%1"; break;
-		case DT_NS_QUAD_SE_IM:		ds_name_base = "nmr_se_noise_im#%1"; break;
-		case DT_SGN_QUAD_FID_RE:	ds_name_base = "nmr_fid_sgn_re#%1"; break;
-		case DT_SGN_QUAD_FID_IM:	ds_name_base = "nmr_fid_sgn_im#%1"; break;
-		case DT_SGN_QUAD_SE_RE:		ds_name_base = "nmr_se_sgn_re#%1"; break;
-		case DT_SGN_QUAD_SE_IM:		ds_name_base = "nmr_se_sgn_im#%1"; break;
-		case DT_NS_FFT_FID_RE:		ds_name_base = "nmr_fid_noise_re#%1"; break;
-		case DT_NS_FFT_SE_RE:		ds_name_base = "nmr_se_noise_re#%1"; break;
-		case DT_SGN_FFT_FID_RE:		ds_name_base = "nmr_fid_sgn_re#%1"; break;
-		case DT_SGN_FFT_SE_RE:		ds_name_base = "nmr_se_sgn_re#%1"; break;
-		case DT_NS_FFT_FID_IM:		ds_name_base = "nmr_fid_noise_im#%1"; break;
-		case DT_NS_FFT_SE_IM:		ds_name_base = "nmr_se_noise_im#%1"; break;
-		case DT_SGN_FFT_FID_IM:		ds_name_base = "nmr_fid_sgn_im#%1"; break;
-		case DT_SGN_FFT_SE_IM:		ds_name_base = "nmr_se_sgn_im#%1"; break;
-		case DT_SGN_RELAX:			ds_name_base = "nmr_relax_sgn1#%1"; break;
-		case DT_SGN_RELAX2:			ds_name_base = "nmr_relax_sgn2#%1"; break;
-		case DT_SGN_RELAX3:			ds_name_base = "nmr_relax_sgn3#%1"; break;
-		case DT_SGN_POWER_SE:		ds_name_base = "nmr_se_power_sgn#%1"; break;
-		case DT_SGN_POWER_FID:		ds_name_base = "nmr_fft_power_sgn#%1"; break;
-		case DT_NS_POWER_SE:		ds_name_base = "nmr_se_power_ns#%1"; break;
-		case DT_NS_POWER_FID:		ds_name_base = "nmr_fft_power_ns#%1"; break;
-		case DT_SGN_FFT_FID_AM:		ds_name_base = "nmr_fid_sgn_ampl#%1"; break;
-		case DT_NS_FFT_FID_AM:		ds_name_base = "nmr_fid_ns_ampl#%1"; break;
-		case DT_SGN_FFT_SE_AM:		ds_name_base = "nmr_se_sgn_ampl#%1"; break;
-		case DT_NS_FFT_SE_AM:		ds_name_base = "nmr_se_ns_ampl#%1"; break;
-		case DT_GAMMA:				ds_name_base = "gamma#%1"; break;
-		case DT_DIEL:				ds_name_base = "dielectric#%1"; break;
-		case DT_DIEL_ADJUST:		ds_name_base = "dielectric_adjust#%1"; break;
-		case DT_AFR1_RX:			ds_name_base = "AFR1_RX#%1"; break;
-		case DT_AFR2_RX:			ds_name_base = "AFR2_RX#%1"; break;
-		case DT_AFR3_RX:			ds_name_base = "AFR3_RX#%1"; break;
-		case DT_AFR1_TX:			ds_name_base = "AFR1_TX#%1"; break;
-		case DT_AFR2_TX:			ds_name_base = "AFR2_TX#%1"; break;
-		case DT_AFR3_TX:			ds_name_base = "AFR3_TX#%1"; break;
-		case DT_RFP:				ds_name_base = "RFP#%1"; break;
-		case DT_RFP2:				ds_name_base = "RFP2#%1"; break;
-		case DT_DU:					ds_name_base = "telemetry_DU#%1"; break;
-		case DT_DU_T:				ds_name_base = "DU_T#%1"; break;
-		case DT_TU:					ds_name_base = "telemetry_PU#%1"; break;
-		case DT_TU_T:				ds_name_base = "TU_T#%1"; break;
-		case DT_PU:					ds_name_base = "telemetry_PU#%1"; break;
-		case DT_PU_T:				ds_name_base = "PU_T#%1"; break;
-
-		default: ds_name_base = "unknown_data#%1"; break;
-		}
-				
-		switch (comm_id)
-		{
-		case DT_SGN_RELAX:
-		case DT_SGN_RELAX2:
-		case DT_SGN_RELAX3:
-			{
-				//profiler.tic(3, "DT_SGN_RELAX");
-
-				int group_index = fields->at(i)->tag;
-				uint8_t channel_data_id = fields->at(i)->channel;
-				int full_size = 0;
-				if (group_index > 0)
-				{
-					//profiler.tic(5, "group_index == 0");
-
-					int data_index = 0; 
-					Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
-					full_size = arg->actual_points;
-					//int from = 0;	
-					//int to = 0;
-					//bool new_range = false;		// новый диапазон отсутствующих данных					
-					for (int j = 0; j < x_data->size(); j++)
-					{
-						//full_size++;
-						float val = fields->at(i)->value->at(j);
-						uint32_t *b = (uint32_t*)(&val);
-						uint32_t bb = *b;
-						if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-						else gap_map.data()[j] = DATA_OK;
-
-						bool ok = false;
-						//x_data_full.data()[j] = sequenceProc->calcArgument(j, arg, &ok);
-						x_data_full.data()[j] = arg->xdata.data()[j];
-						
-						if (bad_map->at(j) == DATA_OK)
-						{
-							bool ok = false;
-							*(x_data->data()+data_index) = x_data_full.data()[j]; //sequenceProc->calcArgument(j, arg, &ok);
-							*(y_data->data()+data_index) = fields->at(i)->value->at(j); ///512;		// 512 - количество точек после преобразовани€ фурье
-							data_index++;
-						}	
-						else gap_map.data()[j] = BAD_DATA;
-					}					
-					x_data->resize(data_index);
-					y_data->resize(data_index);
-					
-					//profiler.toc(5);
-				}
-				else
-				{
-					int data_index = 0;
-					for (int j = 0; j < x_data->size(); j++) 
-					{		
-						full_size++;
-						float val = fields->at(i)->value->at(j);
-						uint32_t *b = (uint32_t*)(&val);
-						uint32_t bb = *b;
-						if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-						else gap_map.data()[j] = DATA_OK;
-
-						bool ok = false;
-						x_data_full.data()[j] = (double)(j+1);
-						
-						if (bad_map->at(j) == DATA_OK)
-						{
-							*(x_data->data()+data_index) = (double)(j+1);
-							*(y_data->data()+data_index) = fields->at(i)->value->at(j); ///512;		// 512 - количество точек после преобразовани€ фурье
-							data_index++;
-						}
-						else gap_map.data()[j] = BAD_DATA;
-					}
-					x_data->resize(data_index);
-					y_data->resize(data_index);
-				}	
-				//profiler.toc(3);
-
-				bool data_ok = true;
-				if (processing_relax.is_quality_controlled) data_ok = doQualityControl(y_data);
-				if (!data_ok)
-				{
-					delete x_data;
-					delete y_data;
-					delete bad_map;
-
-					continue;
-				}
-
-				if (processing_relax.is_smoothed)
-				{
-					doSmoothing(y_data);
-				}
-				if (processing_relax.is_centered)
-				{
-					doZeroAdjustment(y_data);
-				}
-				//if (processing_relax.is_extrapolated)
-				//{
-				//	doExtrapolation(y_data);
-				//}
-				
-				static int num_data = 0;
-				DataSetWindow *data_set_window = 0;
-				if (group_index > data_set_windows.count()) 
-				{
-					for (int k = 0; k < group_index; k++)
-					{
-						data_set_windows.append(DataSetWindow(processing_relax.win_aver_len));
-					}
-				}
-				if (group_index > 0) data_set_window = &data_set_windows[group_index-1];
-				else data_set_window = &data_set_windows.first();
-				
-				if (data_set_window->is_on)
-				{
-					QVector<double> x_vec(x_data->size());
-					QVector<double> y_vec(y_data->size());
-					memcpy(x_vec.data(), x_data->data(), x_data->size()*sizeof(double));
-					memcpy(y_vec.data(), y_data->data(), y_data->size()*sizeof(double));
-
-					int k = data_set_window->y_vectors.count() - data_set_window->max_size;
-					//if (data_set_window->y_vectors.count() >= data_set_window->max_size) 
-					if (k >= 0)
-					{
-						while (k-- >= 0)
-						{
-							data_set_window->x_vectors.pop_front();
-							data_set_window->y_vectors.pop_front();
-						}
-						
-						//data_set_window->x_vectors.pop_front();
-						data_set_window->x_vectors.push_back(x_vec);
-
-						//data_set_window->y_vectors.pop_front();
-						data_set_window->y_vectors.push_back(y_vec);
-					}
-					else
-					{
-						data_set_window->x_vectors.push_back(x_vec);
-						data_set_window->y_vectors.push_back(y_vec);						
-					}
-
-					int max_index = -1;
-					int max_data_len = data_set_window->max_data_len(max_index);					
-					if (max_index >= 0)
-					{
-						QVector<double> *aver_y_vec = new QVector<double>(max_data_len);		
-						QVector<double> *aver_x_vec = new QVector<double>(max_data_len);
-						QVector<uint8_t> *aver_bad_vec = new QVector<uint8_t>(max_data_len);
-						memcpy(aver_x_vec->data(), data_set_window->x_vectors[max_index].data(), max_data_len*sizeof(double));
-						memset(aver_bad_vec->data(), DATA_OK, max_data_len*sizeof(uint8_t));
-						for (int k = 0; k < max_data_len; k++)
-						{						
-							double S = 0;
-							int cnt = 0;
-							for (int m = 0; m < data_set_window->count(); m++)
-							{
-								if (k < data_set_window->y_vectors[m].size())
-								{
-									double val = data_set_window->y_vectors[m].data()[k];
-									if (val != NAN && !isNAN(val))
-									{
-										S += val;
-										cnt++;
-									}
-									else 
-									{
-										aver_bad_vec->data()[k] = BAD_DATA;
-									}
-								}
-								
-							}
-							if (cnt != 0) aver_y_vec->data()[k] = S/cnt;
-						}
-							
-						// раскомментировать это, чтобы вернуть одновременный вывод усредненных и измеренных данных
-						//
-						//QString _ds_name_base = "nmr_relax_aver#%1";
-						//uint8_t aver_comm_id = DT_AVER_RELAX;
-						//if (comm_id == DT_SGN_RELAX2) aver_comm_id = DT_AVER_RELAX2;
-						//else if (comm_id == DT_SGN_RELAX3) aver_comm_id = DT_AVER_RELAX3;
-						//DataSet *ds = new DataSet(_ds_name_base.arg(++num_data), msg_uid, aver_comm_id, aver_x_vec, aver_y_vec, aver_bad_vec);
-						//ds->setInitialDataSize(full_size);	
-						//ds->setGroupIndex(group_index);
-						//QPair<bool,double> dpt = depthMonitor->getDepthData();
-						//ds->setDepth(dpt);
-						//ds->setExpId(experiment_id);
-						//dss.append(ds);
-						//gap_list.append(gap_map);
-						//full_xdata_list.append(x_data_full);
-						//
-
-						// убрать это, чтобы вернуть одновременный вывод усредненных и измеренных данных
-						DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, aver_y_vec, aver_bad_vec);
-						ds->setInitialDataSize(full_size);	
-						ds->setGroupIndex(group_index);
-						ds->setChannelId(channel_data_id);
-						double x_displ = getDepthDisplacement(comm_id, tool_channels);
-						QPair<bool,double> dpt = depthMonitor->getDepthData();
-						dpt.second = dpt.second + x_displ;
-						ds->setDepth(dpt);
-						ds->setExpId(experiment_id);
-						dss.append(ds);
-						gap_list.append(gap_map);
-						full_xdata_list.append(x_data_full);
-
-						forT2spec_dss.append(ds);
-					}					
-				}
-								
-				// раскомментировать это, чтобы вернуть одновременный вывод усредненных и измеренных данных
-				//DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				//ds->setInitialDataSize(full_size);	
-				//ds->setGroupIndex(group_index);
-				//QPair<bool,double> dpt = depthMonitor->getDepthData();
-				//ds->setDepth(dpt);
-				//ds->setExpId(experiment_id);
-				//dss.append(ds);
-				//gap_list.append(gap_map);
-				//full_xdata_list.append(x_data_full);
-				
-				// for spectrum of T2 times
-				//forT2spec_dss.append(ds);	
-	
-				break;
-			} 
-		case DT_SGN_SE_ORG:
-		case DT_SGN_FID_ORG:
-		case DT_NS_SE_ORG:
-		case DT_NS_FID_ORG:
-		case DT_SGN_SE:
-		case DT_NS_SE:
-		case DT_RFP:
-		case DT_RFP2:
-			{
-				int full_size = 0;
-				int data_index = 0;
-				uint8_t channel_data_id = fields->at(i)->channel;
-				for (int j = 0; j < x_data->size(); j++) 
-				{				
-					full_size++;
-					float val = fields->at(i)->value->at(j);
-					uint32_t *b = (uint32_t*)(&val);
-					uint32_t bb = *b;
-					if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-					else gap_map.data()[j] = DATA_OK;
-										
-					x_data_full.data()[j] = (double)(j)/NMR_SAMPLE_FREQ*1000000;
-					
-					if (bad_map->at(j) == DATA_OK)
-					{
-						*(x_data->data()+data_index) = (double)(j)/NMR_SAMPLE_FREQ*1000000;
-						*(y_data->data()+data_index) = fields->at(i)->value->at(j);
-						data_index++;
-					}
-					else gap_map.data()[j] = BAD_DATA;
-				}
-				x_data->resize(data_index);
-				y_data->resize(data_index);
-				
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);	
-				ds->setChannelId(channel_data_id);
-				double x_displ = getDepthDisplacement(comm_id, tool_channels);
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				dpt.second = dpt.second + x_displ;
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);
-				gap_list.append(gap_map);
-				full_xdata_list.append(x_data_full);
-				
-				break;
-			}				
-		case DT_NS_QUAD_FID_RE:
-		case DT_NS_QUAD_SE_RE:
-		case DT_SGN_QUAD_FID_RE:
-		case DT_SGN_QUAD_SE_RE:
-		case DT_NS_QUAD_FID_IM:		
-		case DT_NS_QUAD_SE_IM:
-		case DT_SGN_QUAD_FID_IM:		
-		case DT_SGN_QUAD_SE_IM:		
-			{		
-				int full_size = 0;
-				int data_index = 0;
-				for (int j = 0; j < x_data->size(); j++) 
-				{		
-					full_size++;
-					float val = fields->at(i)->value->at(j);
-					uint32_t *b = (uint32_t*)(&val);
-					uint32_t bb = *b;
-					if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-					else gap_map.data()[j] = DATA_OK;
-
-					x_data_full.data()[j] = (double)(j+1)*2.0/NMR_SAMPLE_FREQ*1000000;
-
-					if (bad_map->at(j) == DATA_OK)
-					{
-						*(x_data->data()+data_index) = (double)(j+1)*2.0/NMR_SAMPLE_FREQ*1000000;
-						*(y_data->data()+data_index) = fields->at(i)->value->at(j);
-						data_index++;
-					}
-					else gap_map.data()[j] = BAD_DATA;
-				}
-				x_data->resize(data_index);
-				y_data->resize(data_index);
-
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);				
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);	
-				gap_list.append(gap_map);
-				full_xdata_list.append(x_data_full);
-				
-				break;
-			}				
-		case DT_NS_FFT_FID_RE:
-		case DT_NS_FFT_SE_RE:
-		case DT_SGN_FFT_FID_RE:
-		case DT_SGN_FFT_SE_RE:	
-		case DT_NS_FFT_FID_IM:
-		case DT_NS_FFT_SE_IM:
-		case DT_SGN_FFT_FID_IM:
-		case DT_SGN_FFT_SE_IM:
-			{				
-				int full_size = 0;
-				int data_index = 0;
-				for (int j = 0; j < x_data->size(); j++) 
-				{
-					full_size++;
-					float val = fields->at(i)->value->at(j);
-					uint32_t *b = (uint32_t*)(&val);
-					uint32_t bb = *b;
-					if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-					else gap_map.data()[j] = DATA_OK;
-
-					x_data_full.data()[j] = (double)(j)*NMR_SAMPLE_FREQ/2.0/1000/x_data->size();
-
-					if (bad_map->at(j) == DATA_OK)
-					{
-						*(x_data->data()+data_index) = (double)(j)*NMR_SAMPLE_FREQ/2.0/1000/x_data->size();	
-						*(y_data->data()+data_index) = fields->at(i)->value->at(j)/y_data->size();
-						data_index++;
-					}
-					else gap_map.data()[j] = BAD_DATA;
-				}
-				x_data->resize(data_index);
-				y_data->resize(data_index);
-
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);				
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);
-				gap_list.append(gap_map);
-				full_xdata_list.append(x_data_full);
-
-				break;
-			}			
-		case DT_SGN_FFT_FID_AM:						
-		case DT_SGN_FFT_SE_AM:	
-		case DT_NS_FFT_FID_AM:
-		case DT_NS_FFT_SE_AM:
-			{
-				// построение данных на графике Data Preview...		
-				int full_size = 0;
-				int data_index = 0;
-				for (int j = 0; j < x_data->size(); j++) 
-				{		
-					full_size++;
-					float val = fields->at(i)->value->at(j);
-					uint32_t *b = (uint32_t*)(&val);
-					uint32_t bb = *b;
-					if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-					else gap_map.data()[j] = DATA_OK;
-
-					x_data_full.data()[j] = (double)(j)*NMR_SAMPLE_FREQ_HALF/1000/x_data->size();		// 1000 - перевод из √ц в к√ц
-
-					if (bad_map->at(j) == DATA_OK)
-					{
-						*(x_data->data()+data_index) = (double)(j)*NMR_SAMPLE_FREQ_HALF/1000/x_data->size();		// 1000 - перевод из √ц в к√ц
-						*(y_data->data()+data_index) = fields->at(i)->value->at(j)/y_data->size();
-						data_index++;
-					}
-					else gap_map.data()[j] = BAD_DATA;
-				}
-				x_data->resize(data_index);
-				y_data->resize(data_index);
-
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);
-				gap_list.append(gap_map);
-				full_xdata_list.append(x_data_full);
-
-				break;
-			}		
-		case DT_SGN_POWER_SE:
-		case DT_SGN_POWER_FID:	
-		case DT_NS_POWER_SE:
-		case DT_NS_POWER_FID:
-			{
-				// построение данных на графике Data Preview...		
-				int full_size = 0;
-				int data_index = 0;
-				for (int j = 0; j < x_data->size(); j++) 
-				{
-					full_size++;
-					float val = fields->at(i)->value->at(j);
-					uint32_t *b = (uint32_t*)(&val);
-					uint32_t bb = *b;
-					if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-					else gap_map.data()[j] = DATA_OK;
-
-					x_data_full.data()[j] = (double)(j)*NMR_SAMPLE_FREQ_HALF/1000/x_data->size();		// 1000 - перевод из √ц в к√ц
-
-					if (bad_map->at(j) == DATA_OK)
-					{
-						*(x_data->data()+data_index) = (double)(j)*NMR_SAMPLE_FREQ_HALF/1000/x_data->size();		// 1000 - перевод из √ц в к√ц
-						*(y_data->data()+data_index) = fields->at(i)->value->at(j)/y_data->size()/y_data->size();
-						data_index++;
-					}
-					else gap_map.data()[j] = BAD_DATA;
-				}
-				x_data->resize(data_index);
-				y_data->resize(data_index);
-
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);
-				gap_list.append(gap_map);
-				full_xdata_list.append(x_data_full);
-
-				break;
-			}		
-		case DT_AFR1_RX:
-		case DT_AFR2_RX:
-		case DT_AFR3_RX:
-			{
-				int full_size = 0;
-				int group_index = fields->at(i)->tag;
-				uint8_t channel_data_id = fields->at(i)->channel;
-				if (group_index > 0)
-				{
-					int data_index = 0;
-					Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
-					for (int j = 0; j < x_data->size(); j++)
-					{
-						full_size++;
-						float val = fields->at(i)->value->at(j);
-						uint32_t *b = (uint32_t*)(&val);
-						uint32_t bb = *b;
-						//if (bb == 0xffffffff) continue;
-						if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-						else gap_map.data()[j] = DATA_OK;
-
-						bool ok = false;
-						//x_data_full.data()[j] = sequenceProc->calcArgument(j, arg, &ok);
-						x_data_full.data()[j] = arg->xdata.data()[j];
-
-						if (bad_map->at(j) == DATA_OK)
-						{
-							bool ok = false;
-							//*(x_data->data()+data_index) = sequenceProc->calcArgument(j, arg, &ok);
-							*(x_data->data()+data_index) = arg->xdata.data()[j];
-							*(y_data->data()+data_index) = fields->at(i)->value->at(j)/512;		// 512 - количество точек после преобразовани€ фурье
-							data_index++;
-						}	
-						else gap_map.data()[j] = BAD_DATA;
-					}
-					x_data->resize(data_index);
-					y_data->resize(data_index);
-				}
-				else
-				{
-					int data_index = 0;
-					for (int j = 0; j < x_data->size(); j++) 
-					{		
-						full_size++;
-						float val = fields->at(i)->value->at(j);
-						uint32_t *b = (uint32_t*)(&val);
-						uint32_t bb = *b;
-						//if (bb == 0xffffffff) continue;
-						if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-						else gap_map.data()[j] = DATA_OK;
-												
-						x_data_full.data()[j] = (double)(j+1);
-
-						if (bad_map->at(j) == DATA_OK)
-						{
-							*(x_data->data()+data_index) = (double)(j+1);
-							*(y_data->data()+data_index) = fields->at(i)->value->at(j)/512;		// 512 - количество точек после преобразовани€ фурье
-							data_index++;
-						}
-						else gap_map.data()[j] = BAD_DATA;
-					}
-					x_data->resize(data_index);
-					y_data->resize(data_index);
-				}				
-
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);
-				ds->setChannelId(channel_data_id);
-				double x_displ = getDepthDisplacement(comm_id, tool_channels);
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				dpt.second = dpt.second + x_displ;
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);			
-				gap_list.append(gap_map);
-				full_xdata_list.append(x_data_full);
-
-				break;
-			} 
-		case DT_GAMMA:
-			{
-				int full_size = 1;
-				uint8_t channel_data_id = fields->at(i)->channel;
-				float val = fields->at(i)->value->at(0);
-				uint32_t *b = (uint32_t*)(&val);
-				uint32_t bb = *b;				
-				if (bb == 0xffffffff) gap_map.data()[0] = BAD_DATA;
-				else gap_map.data()[0] = DATA_OK;
-
-				x_data_full.data()[0] = 0;
-
-				int data_index = 0;
-				if (bad_map->at(0) == DATA_OK)
-				{
-					*(x_data->data()+data_index) = 0;		
-					*(y_data->data()+data_index) = fields->at(i)->value->at(0);
-					data_index++;
-				}
-				else gap_map.data()[0] = BAD_DATA;
-				x_data->resize(data_index);
-				y_data->resize(data_index);
-
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);
-				ds->setChannelId(channel_data_id);
-				double x_displ = getDepthDisplacement(comm_id, tool_channels);
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				dpt.second = dpt.second + x_displ;
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);
-				gap_list.append(gap_map);
-				full_xdata_list.append(x_data_full);
-
-				break;
-			}
-		case DT_DIEL:
-			{
-				int full_size = 0;
-				int data_index = 0;
-				uint8_t channel_data_id = fields->at(i)->channel;
-				for (int j = 0; j < y_data->size(); j++) 
-				{				
-					full_size++;
-					float val = fields->at(i)->value->at(j);
-					uint32_t *b = (uint32_t*)(&val);
-					uint32_t bb = *b;
-					if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-					else gap_map.data()[j] = DATA_OK;
-										
-					x_data_full.data()[j] = j+1;
-
-					if (bad_map->at(j) == DATA_OK)
-					{
-						*(x_data->data()+data_index) = j+1;
-						*(y_data->data()+data_index) = fields->at(i)->value->at(j);
-						data_index++;
-					}
-					else gap_map.data()[j] = BAD_DATA;
-				}
-				x_data->resize(data_index);
-				y_data->resize(data_index);
-
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);
-				ds->setChannelId(channel_data_id);
-				double x_displ = getDepthDisplacement(comm_id, tool_channels);
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				dpt.second = dpt.second + x_displ;
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);
-				gap_list.append(gap_map);
-				full_xdata_list.append(x_data_full);
-
-				break;
-			}
-		case DT_DIEL_ADJUST:
-			{
-				int full_size = 0;
-				int data_index = 0;
-				int group_index = fields->at(i)->tag;
-				uint8_t channel_data_id = fields->at(i)->channel;
-				Argument *arg = sdspProc->getCurrentSequence()->arg_list[group_index-1];
-				//full_size = arg->actual_points;
-				for (int j = 0; j < y_data->size(); j++) 
-				{				
-					full_size++;
-					float val = fields->at(i)->value->at(j);
-					uint32_t *b = (uint32_t*)(&val);
-					uint32_t bb = *b;
-					if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-					else gap_map.data()[j] = DATA_OK;
-
-					//x_data_full.data()[j] = j+1;
-					//x_data_full.data()[j] = arg->xdata.data()[j];
-					if (bad_map->at(j) == DATA_OK)
-					{
-						//*(x_data->data()+data_index) = j+1;
-						*(x_data->data()+data_index) = arg->xdata.data()[j/4];
-						*(y_data->data()+data_index) = fields->at(i)->value->at(j);
-						data_index++;
-					}
-					else gap_map.data()[j] = BAD_DATA;
-				}
-				x_data->resize(data_index);
-				y_data->resize(data_index);
-
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);
-				ds->setChannelId(channel_data_id);
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);
-				gap_list.append(gap_map);
-				//full_xdata_list.append(x_data_full);
-
-				emit control_sdsptool(false);		// больше не запрашивать даные из диэлектрического прибора
-				break;
-			}
-		case DT_DU_T:
-		case DT_PU_T:
-		case DT_TU_T:
-			{
-				// построение данных мониторинга...
-				double A = 405.5837;
-				double B = -69;
-				double C = 3.8222;
-				double D = -0.0885;
-
-				int full_size = 0;
-				int data_index = 0;
-				QDateTime cur_dtime = QDateTime::currentDateTime(); 
-				for (int j = 0; j < x_data->size(); j++) 
-				{			
-					full_size++;
-					float val = fields->at(i)->value->at(j);
-					uint32_t *b = (uint32_t*)(&val);
-					uint32_t bb = *b;
-					if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
-					else gap_map.data()[j] = DATA_OK;
-
-					bool ok = false;
-					x_data_full.data()[j] = (double)cur_dtime.toTime_t();
-
-					if (bad_map->at(j) == DATA_OK)
-					{
-						*(x_data->data()+data_index) = (double)cur_dtime.toTime_t();
-						
-						double y = fields->at(i)->value->at(j);
-						if (y > 0) 
-						{
-							double lnR = log(y);
-							y = D*lnR*lnR*lnR + C*lnR*lnR + B*lnR + A;
-						}
-						else y = NAN;	
-						
-						*(y_data->data()+data_index) = y;
-						data_index++;
-					}
-					else gap_map.data()[j] = BAD_DATA;
-				}
-				x_data->resize(data_index);
-				y_data->resize(data_index);
-
-				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);
-				QPair<bool,double> dpt = depthMonitor->getDepthData();
-				ds->setDepth(dpt);
-				ds->setExpId(experiment_id);
-				dss.append(ds);
-				gap_list.append(gap_map);
-				full_xdata_list.append(x_data_full);
-
-				break;
-			}			
-		default: break;
-		}		
-	}		
-
-	//profiler.toc(2);
-	//qDebug() << QString("decays for T2 spec: %1").arg(forT2spec_dss.count());
-	calcT2Spectra(forT2spec_dss);
-
-	plotData(dss);
-	plotLoggingData(dss);
-	exportData(dss, gap_list, full_xdata_list);
-#ifndef NO_CTDIAG
-	sendCDiagData(dss);
-#endif
-
-	lockDataSet();
-	dataset_storage->append(dss);
-	unlockDataSet();
-
-	//profiler.toc(1);
-}
-*/
-
-
 void MainWindow::treatNewData(DeviceData *device_data)
 {	
 	QString data_title = device_data->name;
@@ -4309,9 +3360,6 @@ void MainWindow::treatNewData(DeviceData *device_data)
 	plotData(dss);
 	plotLoggingData(dss);
 	exportData(dss, gap_list, full_xdata_list);
-#ifndef NO_CTDIAG
-	sendCDiagData(dss);
-#endif
 
 	lockDataSet();
 	dataset_storage->append(dss);
@@ -4734,29 +3782,6 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 	}
 }
 
-void MainWindow::sendCDiagData(DataSets &dss)
-{
-	if (nmrtool_state) return;
-
-	for (int i = 0; i < dss.count(); i++)
-	{
-		DataSet *ds = dss[i];
-		QVector<double> *data = ds->getYData();
-		if (data->size() > 0 && ds->getDataCode() == DT_DIEL_ADJUST)
-		{
-			QVector<uint8_t> *arr = new QVector<uint8_t>;
-			QString str_to_status_bar = "";
-			for (int j = 0; j < data->size(); j++)
-			{
-				arr->push_back(uint8_t(data->data()[j]));
-				str_to_status_bar += QString::number(data->data()[j]) + " ";
-			}
-			sendToCDiag(arr);
-			placeInfoToStatusBar(str_to_status_bar);
-		}		
-	}
-}
-
 void MainWindow::depthDepthMeterConnected(bool flag)
 {
 	ui->a_Depthmeter_Connection->setEnabled(!flag);
@@ -4813,14 +3838,6 @@ void MainWindow::sendToSDSP(QByteArray& arr)
 	nmrtoolLinker->sendDataToSDSP(arr);
 }
 
-void MainWindow::sendToCDiag(QVector<uint8_t>* arr)
-{
-#ifndef NO_CTDIAG
-	cdiag_data_manager->dataToSend(arr);
-#else
-	delete arr;
-#endif
-}
 
 void MainWindow::plotData(DataSets &_dss)
 {

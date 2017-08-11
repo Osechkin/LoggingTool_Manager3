@@ -6,12 +6,15 @@
 #include <QSettings>
 #include <QList>
 #include <QDateTime>
+#include <QScriptEngine>
+#include <QScriptEngineDebugger>
 
 //#include "../main_window.h"
 #include "../Common/app_settings.h"
 #include "../Common/settings_tree.h"
 #include "../io_general.h"
 #include "../Common/experiment_settings.h"
+#include "../LUSI/LUSI.h"
 
 #include "ui_sequence_wizard.h"
 
@@ -88,6 +91,10 @@ private:
 	QList<CTreeWidgetItem*> c_items;
 	QList<CTreeWidgetItem*> c_title_items;
 	CTreeWidgetItem *c_item_selected;
+
+	QScriptEngine engine;
+	QScriptEngineDebugger script_debugger;
+	LUSI::Engine lusi_engine;
 
 	DataSave save_data;
 

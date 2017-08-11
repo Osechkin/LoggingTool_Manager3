@@ -1238,3 +1238,172 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 
 	_js_script = js_script_list.join("\n");
 }
+
+
+LUSI::Sequence::Sequence()
+{
+	name = "";
+	author = "";
+	description = "";
+	datetime = "";
+
+	js_script = "";
+
+	main_object = NULL;
+}
+
+LUSI::Sequence::Sequence(ObjectList *_obj_list, QString _js_script, QStringList _elist)
+{			
+	js_script = _js_script;
+
+	seq_errors = _elist;
+
+	for (int i = 0; i < _obj_list->size(); i++)
+	{
+		LUSI::Object *lusi_obj = qobject_cast<LUSI::Object*>(_obj_list->at(i));
+		seq_errors << lusi_obj->getErrorList();
+
+		LUSI::Definition::Type obj_type = lusi_obj->getType();
+		switch (obj_type)
+		{
+		case LUSI::Definition::ProcPackage:
+			{
+				LUSI::ProcPackage *obj =  qobject_cast<LUSI::ProcPackage*>(_obj_list->at(i));
+				QByteVector byte_code;
+				byte_code << obj->getProcProgram();
+				proc_programs.append(byte_code);
+				break;
+			}
+		case LUSI::Definition::ComProgram:
+			{
+				LUSI::COMProgram *obj =  qobject_cast<LUSI::COMProgram*>(_obj_list->at(i));
+				QByteVector byte_code;
+				byte_code << obj->getComProgram();
+				com_programs.append(byte_code);
+				break;
+			}				
+		case LUSI::Definition::Section:
+			{
+				LUSI::Section *s_obj =  qobject_cast<LUSI::Section*>(_obj_list->at(i));
+				if (s_obj) section_list.append(s_obj);
+				break;						
+			}
+		case LUSI::Definition::Parameter:
+			{
+				LUSI::Parameter *p_obj =  qobject_cast<LUSI::Parameter*>(_obj_list->at(i));
+				if (p_obj) param_list.append(p_obj);
+				break;						
+			}
+		case LUSI::Definition::Argument:
+			{
+				LUSI::Argument *a_obj =  qobject_cast<LUSI::Argument*>(_obj_list->at(i));
+				if (a_obj) arg_list.append(a_obj);
+				break;						
+			}
+		case LUSI::Definition::Condition:
+			{
+				LUSI::Condition *c_obj =  qobject_cast<LUSI::Condition*>(_obj_list->at(i));
+				if (c_obj) cond_list.append(c_obj);
+				break;						
+			}
+		case LUSI::Definition::Main:
+			{
+				LUSI::Main *m_obj =  qobject_cast<LUSI::Main*>(_obj_list->at(i));
+				if (m_obj) main_object = m_obj;
+
+				name = main_object->getName();
+				author = main_object->getAuthor();
+				description = main_object->getDescription();
+				datetime = main_object->getDateTime();
+				break;						
+			}
+		}
+	}
+}
+
+void LUSI::Sequence::setObjects(LUSI::ObjectList *_obj_list)
+{
+	if (!_obj_list) return;
+
+	for (int i = 0; i < _obj_list->size(); i++)
+	{
+		LUSI::Object *lusi_obj = qobject_cast<LUSI::Object*>(_obj_list->at(i));
+		seq_errors << lusi_obj->getErrorList();
+
+		LUSI::Definition::Type obj_type = lusi_obj->getType();
+		switch (obj_type)
+		{
+		case LUSI::Definition::ProcPackage:
+			{
+				LUSI::ProcPackage *obj =  qobject_cast<LUSI::ProcPackage*>(_obj_list->at(i));
+				QByteVector byte_code;
+				byte_code << obj->getProcProgram();
+				proc_programs.append(byte_code);
+				break;
+			}
+		case LUSI::Definition::ComProgram:
+			{
+				LUSI::COMProgram *obj =  qobject_cast<LUSI::COMProgram*>(_obj_list->at(i));
+				QByteVector byte_code;
+				byte_code << obj->getComProgram();
+				com_programs.append(byte_code);
+				break;
+			}				
+		case LUSI::Definition::Section:
+			{
+				LUSI::Section *s_obj =  qobject_cast<LUSI::Section*>(_obj_list->at(i));
+				if (s_obj) section_list.append(s_obj);
+				break;						
+			}
+		case LUSI::Definition::Parameter:
+			{
+				LUSI::Parameter *p_obj =  qobject_cast<LUSI::Parameter*>(_obj_list->at(i));
+				if (p_obj) param_list.append(p_obj);
+				break;						
+			}
+		case LUSI::Definition::Argument:
+			{
+				LUSI::Argument *a_obj =  qobject_cast<LUSI::Argument*>(_obj_list->at(i));
+				if (a_obj) arg_list.append(a_obj);
+				break;						
+			}
+		case LUSI::Definition::Condition:
+			{
+				LUSI::Condition *c_obj =  qobject_cast<LUSI::Condition*>(_obj_list->at(i));
+				if (c_obj) cond_list.append(c_obj);
+				break;						
+			}
+		case LUSI::Definition::Main:
+			{
+				LUSI::Main *m_obj =  qobject_cast<LUSI::Main*>(_obj_list->at(i));
+				if (m_obj) main_object = m_obj;
+
+				name = main_object->getName();
+				author = main_object->getAuthor();
+				description = main_object->getDescription();
+				datetime = main_object->getDateTime();
+				break;						
+			}
+		}
+	}
+}
+
+void LUSI::Sequence::clear()
+{
+	name = "";
+	author = "";
+	datetime = "";
+	description = "";
+
+	js_script = "";
+	seq_errors.clear();
+
+	com_programs.clear();
+	proc_programs.clear();
+	param_list.clear();
+	section_list.clear();
+	arg_list.clear();
+	cond_list.clear();
+
+	main_object = NULL;
+}

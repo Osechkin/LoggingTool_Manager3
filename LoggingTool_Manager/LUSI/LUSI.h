@@ -37,9 +37,10 @@ namespace LUSI
 	static QStringList separate(QString _str, QString _separator, QString _ignore_list, bool _trim = true);
 
 
+	
 	struct Definition
 	{
-		enum Type { Section, Parameter, ProcPackage, ComProgram, Condition, Argument, Unknown };
+		enum Type { Main, Section, Parameter, ProcPackage, ComProgram, Condition, Argument, Unknown };
 
 		void clear() { type = Unknown; name = ""; fields.clear(); }
 
@@ -48,7 +49,7 @@ namespace LUSI
 		QStringPairList fields;
 	};
 
-
+	
 	class Object : public QObject
 	{
 		Q_OBJECT
@@ -70,6 +71,35 @@ namespace LUSI
 		QStringList elist;			// error list
 	};
 	
+
+	class Main : public Object
+	{
+		Q_OBJECT
+
+		Q_PROPERTY(QString name READ getName WRITE setName);
+		Q_PROPERTY(QString author READ getAuthor WRITE setAuthor);
+		Q_PROPERTY(QString description READ getDescription WRITE setDescription);
+		Q_PROPERTY(QString datetime READ getDateTime WRITE setDateTime);
+
+	public slots:
+		QString getName() const { return name; }
+		void setName(QString _name) { name = _name; }
+
+		QString getAuthor() const { return author; }
+		void setAuthor(QString _author) { author = _author; }
+
+		QString getDescription() const { return description; }
+		void setDescription(QString _description) { description = _description; }
+
+		QString getDateTime() const { return datetime; }
+		void setDateTime(QString _datetime) { datetime = _datetime; }
+
+	public:
+		QString name;
+		QString author;
+		QString description;
+		QString datetime;
+	};
 
 	class Section : public Object
 	{
@@ -416,158 +446,19 @@ namespace LUSI
 		QStringList error_list;
 	};
 	
-
-
-	struct Sequence
-	{
-		Sequence()
-		{
-			clear();
-		}
-
-		~Sequence()
-		{
-			qDeleteAll(param_list);
-			qDeleteAll(cmd_list);
-			qDeleteAll(instr_pack_list);
-			qDeleteAll(arg_list);
-			qDeleteAll(cond_list);
-		}
-
-		void clear()
-		{
-			name = "";
-			author = "";
-			date_time = QDateTime::currentDateTime();		
-			freq_count = 0;
-			interval_count = 0;
-			rf_pulse_count = 0;
-			counter_count = 0;
-			phase_count = 0;
-			constant_count = 0;
-			probe_count = 0;
-			commands_count = 0;
-			instr_packs_count = 0;
-			processing_count = 0;
-			output_count = 0;
-			args_count = 0;
-			conds_count = 0;
-
-			seq_errors.clear();
-
-			if (!param_list.isEmpty())
-			{
-				qDeleteAll(param_list);
-				param_list.clear();
-			}
-
-			if (!cmd_list.isEmpty())
-			{
-				qDeleteAll(cmd_list);
-				cmd_list.clear();
-			}
-
-			if (!arg_list.isEmpty())
-			{
-				qDeleteAll(arg_list);
-				arg_list.clear();
-			}
-
-			if (!cond_list.isEmpty())
-			{
-				qDeleteAll(cond_list);
-				cond_list.clear();
-			}
-
-			if (!instr_pack_list.isEmpty())
-			{
-				for (int i = 0; i < instr_pack_list.count(); i++)
-				{
-					Sequence_InstrPack* instr_pack = instr_pack_list[i];
-					delete instr_pack;
-				}	
-				instr_pack_list.clear();
-				instr_packs_count = 0;
-			}
-		}
-
-		QString name;						// название последовательности
-		QString author;						// автор последовательности
-		QDateTime date_time;				// дата и время создания последовательности	
-		QString description;				// описание последовательности
-		int freq_count;						// число параметров-частот в последовательности
-		int interval_count;					// число временных интервалов в последовательности
-		int rf_pulse_count;					// число радиочастотных импульсов
-		int counter_count;					// число счетчиков
-		int phase_count;					// число фазовых параметров
-		int constant_count;					// число параметров-констант
-		int probe_count;					// число датчиков
-		int commands_count;					// число команд (параметр 'Commands_Number' в скрипте) в последовательности 
-		int instr_packs_count;				// число пакетов инструкций (параметр 'Instructions_Packs_Number' в скрипте) в последовательности
-		int processing_count;				// число параметров для обработки сигнала ЯМР 
-		int output_count;					// число выходных наборов данных, присылаемых каротажным прибором
-		int args_count;						// число параметров-аргументов для вычисления отсчетов по оси Ox (является необязательным)
-		int conds_count;					// число условий проверки правильности написания последовательности
-		QList<Sequence_Param*> param_list;	// список параметров последовательности
-		QList<Sequence_Cmd*> cmd_list;		// список команд последовательности (в списке следуют строго по порядку)
-		QList<Sequence_InstrPack*> instr_pack_list;	// список пакетов инструкций для обработки сигнала ЯМР программой сигнального процессора 
-		QList<Argument*> arg_list;			// список параметров-аргументов для построения оси Ох для входящих данных. Обязателен для релаксационых спадов 
-		QList<Condition*> cond_list;		// список проверочных праметров, проверяющих правильность задания параметров последовательности
-		QList<SeqErrors> seq_errors;		// ошибки, обнаруженные при разборе файла последовательности	 
-	};
+		
 
 	struct Sequence
 	{		
-		Sequence()
-		{
-			name = "";
-			author = "";
-			description = "";
-		}
-		Sequence(Engine *_lusi_engine)
-		{
-			name = "";
-			author = "";
-			description = "";
+		Sequence();
+		Sequence(ObjectList *_obj_list, QString _js_script, QStringList _elist = QStringList());
 
-			LUSI::ObjectList *obj_list_global = _lusi_engine->getObjList();
-			for (int i = 0; i < obj_list_global->size(); i++)
-			{
-				LUSI::Object *lusi_obj = qobject_cast<LUSI::Object*>(obj_list_global->at(i));
-				seq_errors << lusi_obj->getErrorList();
-
-				LUSI::Definition::Type obj_type = lusi_obj->getType();
-				switch (obj_type)
-				{
-				case LUSI::Definition::ProcPackage:
-					{
-						LUSI::ProcPackage *obj =  qobject_cast<LUSI::ProcPackage*>(obj_list_global->at(i));
-						QByteVector byte_code;
-						byte_code << obj->getProcProgram();
-						proc_programs.append(byte_code);
-						break;
-					}
-				case LUSI::Definition::ComProgram:
-					{
-						LUSI::COMProgram *obj =  qobject_cast<LUSI::COMProgram*>(obj_list_global->at(i));
-						QByteVector byte_code;
-						byte_code << obj->getComProgram();
-						com_programs.append(byte_code);
-						break;
-					}
-				case LUSI::Definition::Argument:
-					{
-
-					}
-			}
-		}
-
-		void setObjects(ObjectList *_obj_list);
+		void setObjects(LUSI::ObjectList *_obj_list);
 		void clear();
 
 		QString name;						// название последовательности
 		QString author;						// автор последовательности
-		QDateTime date_time;				// дата и время создания последовательности	
+		QString datetime;					// дата и время создания последовательности	
 		QString description;				// описание последовательности
 
 		QString js_script;					// программа последовательности на JavaScript
@@ -575,9 +466,10 @@ namespace LUSI
 		QList<QByteVector> com_programs;	// список программ для интервального программатора (обычно одна)
 		QList<QByteVector> proc_programs;	// список пакетов обработки данных для программы NMR_Tool на DSP
 		QList<LUSI::Parameter*> param_list;	// список параметров последовательности
-		QList<LUSI::Section*> cmd_list;		// список команд последовательности (в списке следуют строго по порядку)		
+		QList<LUSI::Section*> section_list;		// список команд последовательности (в списке следуют строго по порядку)		
 		QList<LUSI::Argument*> arg_list;	// список параметров-аргументов для построения оси Ох для входящих данных. Обязателен для релаксационых спадов 
 		QList<LUSI::Condition*> cond_list;	// список проверочных праметров, проверяющих правильность задания параметров последовательности
+		LUSI::Main *main_object;			// объект LUSI::Main
 		QStringList seq_errors;				// ошибки, обнаруженные при разборе файла последовательности
 	};
 }

@@ -518,8 +518,49 @@ namespace LUSI
 
 	struct Sequence
 	{		
-		Sequence();
-		Sequence(Engine *_lusi_engine);
+		Sequence()
+		{
+			name = "";
+			author = "";
+			description = "";
+		}
+		Sequence(Engine *_lusi_engine)
+		{
+			name = "";
+			author = "";
+			description = "";
+
+			LUSI::ObjectList *obj_list_global = _lusi_engine->getObjList();
+			for (int i = 0; i < obj_list_global->size(); i++)
+			{
+				LUSI::Object *lusi_obj = qobject_cast<LUSI::Object*>(obj_list_global->at(i));
+				seq_errors << lusi_obj->getErrorList();
+
+				LUSI::Definition::Type obj_type = lusi_obj->getType();
+				switch (obj_type)
+				{
+				case LUSI::Definition::ProcPackage:
+					{
+						LUSI::ProcPackage *obj =  qobject_cast<LUSI::ProcPackage*>(obj_list_global->at(i));
+						QByteVector byte_code;
+						byte_code << obj->getProcProgram();
+						proc_programs.append(byte_code);
+						break;
+					}
+				case LUSI::Definition::ComProgram:
+					{
+						LUSI::COMProgram *obj =  qobject_cast<LUSI::COMProgram*>(obj_list_global->at(i));
+						QByteVector byte_code;
+						byte_code << obj->getComProgram();
+						com_programs.append(byte_code);
+						break;
+					}
+				case LUSI::Definition::Argument:
+					{
+
+					}
+			}
+		}
 
 		void setObjects(ObjectList *_obj_list);
 		void clear();
@@ -532,7 +573,7 @@ namespace LUSI
 		QString js_script;					// программа последовательности на JavaScript
 
 		QList<QByteVector> com_programs;	// список программ для интервального программатора (обычно одна)
-		QList<QByteVector> proc_program;	// список пакетов обработки данных для программы NMR_Tool на DSP
+		QList<QByteVector> proc_programs;	// список пакетов обработки данных для программы NMR_Tool на DSP
 		QList<LUSI::Parameter*> param_list;	// список параметров последовательности
 		QList<LUSI::Section*> cmd_list;		// список команд последовательности (в списке следуют строго по порядку)		
 		QList<LUSI::Argument*> arg_list;	// список параметров-аргументов для построения оси Ох для входящих данных. Обязателен для релаксационых спадов 

@@ -35,12 +35,12 @@ typedef QVector<uint8_t>				QByteVector;
 namespace LUSI
 {
 	static QStringList separate(QString _str, QString _separator, QString _ignore_list, bool _trim = true);
-
+	static bool getStrName(QString &_str);
 
 	
 	struct Definition
 	{
-		enum Type { Main, Section, Parameter, ProcPackage, ComProgram, Condition, Argument, Unknown };
+		enum Type { Main, Section, Output, Parameter, ProcPackage, ComProgram, Condition, Argument, Unknown };
 
 		void clear() { type = Unknown; name = ""; fields.clear(); }
 
@@ -80,6 +80,9 @@ namespace LUSI
 		Q_PROPERTY(QString author READ getAuthor WRITE setAuthor);
 		Q_PROPERTY(QString description READ getDescription WRITE setDescription);
 		Q_PROPERTY(QString datetime READ getDateTime WRITE setDateTime);
+
+	public:
+		Main(QString _obj_name) { setObjName(_obj_name); type = Definition::Main; }
 
 	public slots:
 		QString getName() const { return name; }
@@ -133,6 +136,39 @@ namespace LUSI
 		QObjectList parameters;
 	};
 
+
+	class Output : public Object
+	{
+		Q_OBJECT
+
+		Q_PROPERTY(QString title READ getTitle WRITE setTitle);
+		Q_PROPERTY(QObject* last_parameter READ last WRITE append);
+
+	public:
+		Output(QString _obj_name) { setObjName(_obj_name); type = Definition::Output; }
+
+		QString getTitle() const { return title; }
+		void setTitle(QString _title) { title = _title; }
+
+		QObjectList getParameters() { return parameters; }		
+
+		int size() const { return parameters.size(); }
+
+		bool setField(QString _name, QString _value);
+		bool setField(QString _value, int _index);
+
+		public slots:
+			void append(QObject* _obj) { parameters.append(_obj); last_parameter = _obj; }
+			QObject* last() const { return parameters.last(); }
+
+	public:
+		QString title;
+
+	private:
+		QObject* last_parameter;
+		QObjectList parameters;
+	};
+
 	
 	class Parameter : public Object
 	{
@@ -161,7 +197,7 @@ namespace LUSI
 			ron = false;
 			app_value = (int)value; 
 			type = Definition::Parameter;
-			uitype = "SpinBox";
+			uitype = "spinbox";
 		}
 		Parameter(QString _obj_name, QString _title) 
 		{ 
@@ -175,7 +211,7 @@ namespace LUSI
 			ron = false;
 			app_value = (int)value; 
 			type = Definition::Parameter;
-			uitype = "SpinBox";
+			uitype = "spinbox";
 		}	
 		Parameter(QString _obj_name, QString _title, double _value) 
 		{ 
@@ -189,7 +225,7 @@ namespace LUSI
 			ron = false;
 			app_value = (int)value; 
 			type = Definition::Parameter;
-			uitype = "SpinBox";
+			uitype = "spinbox";
 		}		
 
 	public slots:
@@ -234,7 +270,7 @@ namespace LUSI
 		QString comment;		// Комментарии (отображаются в виде ToolTip)
 		QString units;			// Единицы измерения
 		QString formula;		// формула расчета примененного для интервального программатора значения (не используется на практике) 
-		QString uitype;			// тип визуального элемента ввода значения параметра : 'SpinBox', 'CheckBox', 'ComboBox'
+		QString uitype;			// тип визуального элемента ввода значения параметра : 'spinbox', 'checkbox', 'combobox'
 		bool ron;				// Изменяемый/неизменяемый параметр
 
 	private:
@@ -466,7 +502,8 @@ namespace LUSI
 		QList<QByteVector> com_programs;	// список программ для интервального программатора (обычно одна)
 		QList<QByteVector> proc_programs;	// список пакетов обработки данных для программы NMR_Tool на DSP
 		QList<LUSI::Parameter*> param_list;	// список параметров последовательности
-		QList<LUSI::Section*> section_list;		// список команд последовательности (в списке следуют строго по порядку)		
+		QList<LUSI::Section*> section_list;	// список разделов параметров		
+		QList<LUSI::Output*> output_list;	// список разделов выходных параметров
 		QList<LUSI::Argument*> arg_list;	// список параметров-аргументов для построения оси Ох для входящих данных. Обязателен для релаксационых спадов 
 		QList<LUSI::Condition*> cond_list;	// список проверочных праметров, проверяющих правильность задания параметров последовательности
 		LUSI::Main *main_object;			// объект LUSI::Main

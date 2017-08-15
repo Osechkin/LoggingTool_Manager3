@@ -51,13 +51,27 @@ QStringList LUSI::separate(QString _str, QString _separator, QString _ignore_lis
 	return out;
 }
 
+bool LUSI::getStrName(QString &_str)
+{
+	int len = _str.length();
+	if (len > 1)
+	{
+		if (_str.at(0) == "\"" && _str.at(len-1) == "\"") _str = _str.mid(1, len-2);
+		else if (_str.at(0) == "'" && _str.at(len-1) == "'") _str = _str.mid(1, len-2);
+		else return false;
+	}
+	else false;
+
+	return true;
+}
+
 
 // ********************* Section in Sequence Manager *************************
 bool LUSI::Section::setField(QString _name, QString _value)
 {	
 	if (_name.isEmpty()) return false;
 
-	if (_name == "title") title = _value;	
+	if (_name == "title") if (LUSI::getStrName(_value)) title = _value;	else return false;
 	else return false;
 
 	return true;
@@ -65,7 +79,28 @@ bool LUSI::Section::setField(QString _name, QString _value)
 
 bool LUSI::Section::setField(QString _value, int _index)
 {
-	if (_index == 0) title = _value; 
+	if (_index == 0) if (LUSI::getStrName(_value)) title = _value; else return false; 
+	else return false;
+
+	return true;
+}
+// ***************************************************************************
+
+
+// ***************** Output section in Sequence Manager **********************
+bool LUSI::Output::setField(QString _name, QString _value)
+{	
+	if (_name.isEmpty()) return false;
+
+	if (_name == "title") if (LUSI::getStrName(_value)) title = _value;	else return false;
+	else return false;
+
+	return true;
+}
+
+bool LUSI::Output::setField(QString _value, int _index)
+{
+	if (_index == 0) if (LUSI::getStrName(_value)) title = _value; else return false;
 	else return false;
 
 	return true;
@@ -79,13 +114,13 @@ bool LUSI::Parameter::setField(QString _name, QString _value)
 	bool ok;
 	if (_name.isEmpty()) return false;
 	
-	if (_name == "title") title = _value;
+	if (_name == "title") if (LUSI::getStrName(_value)) title = _value; else return false;
 	else if (_name == "value") value = _value.toDouble(&ok); if (!ok) return false;
 	else if (_name == "min") min = _value.toDouble(&ok); if (!ok) return false;
 	else if (_name == "max") max = _value.toDouble(&ok); if (!ok) return false;
-	else if (_name == "units") units = _value;
-	else if (_name == "uitype") uitype = _value;
-	else if (_name == "comment") comment = _value;	
+	else if (_name == "units") if (LUSI::getStrName(_value)) units = _value; else return false;
+	else if (_name == "uitype") if (LUSI::getStrName(_value)) uitype = _value; else return false;
+	else if (_name == "comment") if (LUSI::getStrName(_value)) comment = _value; else return false;
 	else if (_name == "ron") 
 	{
 		int _ron = _value.toInt(&ok); 
@@ -97,7 +132,7 @@ bool LUSI::Parameter::setField(QString _name, QString _value)
 			else return false;
 		}
 	}
-	else if (_name == "formula") formula = _value;
+	else if (_name == "formula") if (LUSI::getStrName(_value)) formula = _value; else return false;
 	else return false;
 	
 	return true;
@@ -108,13 +143,13 @@ bool LUSI::Parameter::setField(QString _value, int _index)
 	bool ok;
 	switch (_index)
 	{
-	case 0: title = _value; break;
+	case 0: if (LUSI::getStrName(_value)) title = _value; else return false; break;
 	case 1: value = _value.toDouble(&ok); if (!ok) return false; break;
 	case 2: min = _value.toDouble(&ok); if (!ok) return false; break;
 	case 3: max = _value.toDouble(&ok); if (!ok) return false; break;
-	case 4: units = _value; break;
-	case 5: uitype = _value; break;
-	case 6: comment = _value; break;
+	case 4: if (LUSI::getStrName(_value)) units = _value; else return false; break;
+	case 5: if (LUSI::getStrName(_value)) uitype = _value; else return false; break;
+	case 6: if (LUSI::getStrName(_value)) comment = _value; else return false; break;
 	case 7: 
 		{
 			int _ron = _value.toInt(&ok); 
@@ -127,7 +162,7 @@ bool LUSI::Parameter::setField(QString _value, int _index)
 			}
 			break;
 		}
-	case 8: formula = _value; break;
+	case 8: if (LUSI::getStrName(_value)) formula = _value; else return false; break;
 	default: return false;
 	}
 
@@ -148,7 +183,7 @@ bool LUSI::ProcPackage::setField(QString _name, QString _value)
 {	
 	if (_name.isEmpty()) return false;
 
-	if (_name == "title") title = _value;	
+	if (_name == "title") if (LUSI::getStrName(_value)) title = _value;	else return false;
 	else return false;
 
 	return true;
@@ -156,7 +191,7 @@ bool LUSI::ProcPackage::setField(QString _name, QString _value)
 
 bool LUSI::ProcPackage::setField(QString _value, int _index)
 {
-	if (_index == 0) title = _value; 
+	if (_index == 0) if (LUSI::getStrName(_value)) title = _value; else return false;
 	else return false;
 
 	return true;
@@ -240,7 +275,7 @@ bool LUSI::COMProgram::setField(QString _name, QString _value)
 {	
 	if (_name.isEmpty()) return false;
 
-	if (_name == "title") title = _value;	
+	if (_name == "title") if (LUSI::getStrName(_value)) title = _value;	else return false;
 	else return false;
 
 	return true;
@@ -248,7 +283,7 @@ bool LUSI::COMProgram::setField(QString _name, QString _value)
 
 bool LUSI::COMProgram::setField(QString _value, int _index)
 {
-	if (_index == 0) title = _value; 
+	if (_index == 0) if (LUSI::getStrName(_value)) title = _value; else return false; 
 	else return false;
 
 	return true;
@@ -328,9 +363,9 @@ bool LUSI::Condition::setField(QString _name, QString _value)
 {	
 	if (_name.isEmpty()) return false;
 
-	if (_name == "title") title = _value;
-	else if (_name == "msg") msg = _value;
-	else if (_name == "hint") hint = _value;
+	if (_name == "title") if (LUSI::getStrName(_value)) title = _value; else return false;
+	else if (_name == "msg") if (LUSI::getStrName(_value)) msg = _value; else return false;
+	else if (_name == "hint") if (LUSI::getStrName(_value)) hint = _value; else return false;
 	else return false;
 	
 	return true;
@@ -340,9 +375,9 @@ bool LUSI::Condition::setField(QString _value, int _index)
 {	
 	switch (_index)
 	{
-	case 0: title = _value; break;
-	case 1: msg = _value; break;
-	case 2: hint = _value; break;	
+	case 0: if (LUSI::getStrName(_value)) title = _value; else return false; break;
+	case 1: if (LUSI::getStrName(_value)) msg = _value; else return false; break;
+	case 2: if (LUSI::getStrName(_value)) hint = _value; else return false; break;	
 	default: return false;
 	}
 
@@ -357,9 +392,9 @@ bool LUSI::Argument::setField(QString _name, QString _value)
 	bool ok;
 	if (_name.isEmpty()) return false;
 
-	if (_name == "title") title = _value;
-	else if (_name == "comment") comment = _value;
-	else if (_name == "units") units = _value;
+	if (_name == "title") if (LUSI::getStrName(_value)) title = _value; else return false;
+	else if (_name == "comment") if (LUSI::getStrName(_value)) comment = _value; else return false;
+	else if (_name == "units") if (LUSI::getStrName(_value)) units = _value; else return false;
 	else if (_name == "size") size = _value.toInt(&ok); if (!ok) return false;	
 	else return false;
 
@@ -371,10 +406,10 @@ bool LUSI::Argument::setField(QString _value, int _index)
 	bool ok;
 	switch (_index)
 	{
-	case 0: title = _value; break;
+	case 0: if (LUSI::getStrName(_value)) title = _value; else return false; break;
 	case 1: size = _value.toInt(&ok); if (!ok) return false; break;
-	case 2: comment = _value; break;
-	case 3: units = _value; break;	
+	case 2: if (LUSI::getStrName(_value)) comment = _value; else return false; break;
+	case 3: if (LUSI::getStrName(_value)) units = _value; else return false; break;	
 	default: return false;
 	}
 
@@ -696,7 +731,7 @@ bool LUSI::Engine::findLUSIDefinition(QString &_str, Definition &_def, QString &
 	//_str = removeComments(_str);
 
 	// проверка на соответствие строки макроопределению LUSI
-	QRegExp rx("^(@section|@parameter|@proc|@comm|@condition|@arg)\\s+.*$");	
+	QRegExp rx("^(@section|@output|@parameter|@proc|@comm|@condition|@arg)\\s+.*$");	
 	int pos = 0;
 	if ((pos = rx.indexIn(_str, pos)) != -1)    
 	{
@@ -732,6 +767,20 @@ bool LUSI::Engine::findLUSIDefinition(QString &_str, Definition &_def, QString &
 			else
 			{
 				_e = tr("Wrong section name!");
+				return false;
+			}
+		}
+		else if (_str.indexOf("@output") == 0) 
+		{			
+			QString def_name = left_part.split("@output").last().simplified();
+			if ((pos = rx_var.indexIn(def_name,0)) != -1)
+			{
+				_def.type = Definition::Output;
+				_def.name = def_name;
+			}
+			else
+			{
+				_e = tr("Wrong output section name!");
 				return false;
 			}
 		}
@@ -965,6 +1014,11 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 	QStringList str_lines = _script.split("\n");
 	QStringList js_script_list;
 	
+	LUSI::Main *seqMain = new LUSI::Main("main");
+	QScriptValue objectValue = qscript_engine->newQObject(seqMain);
+	qscript_engine->globalObject().setProperty(seqMain->getObjName(), objectValue);
+	obj_list.append(seqMain);
+
 	int str_count = 0;
 	while (str_count < str_lines.count())
 	{
@@ -1007,6 +1061,24 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 					qscript_engine->globalObject().setProperty(def_name, objectValue);
 
 					obj_list.append(seqSection);
+					break;
+				}	
+			case LUSI::Definition::Output:
+				{
+					LUSI::Output *seqOutput = new LUSI::Output(def_name);
+
+					int cnt = 0;
+					for (int i = 0; i < field_list.count(); i++)
+					{
+						QPair<QString, QString> field = field_list[i];
+						if (field.first.isEmpty()) seqOutput->setField(field.second, cnt++);
+						else seqOutput->setField(field.first, field.second);
+					}
+
+					QScriptValue objectValue = qscript_engine->newQObject(seqOutput);
+					qscript_engine->globalObject().setProperty(def_name, objectValue);
+
+					obj_list.append(seqOutput);
 					break;
 				}	
 			case LUSI::Definition::Parameter:
@@ -1288,6 +1360,12 @@ LUSI::Sequence::Sequence(ObjectList *_obj_list, QString _js_script, QStringList 
 				if (s_obj) section_list.append(s_obj);
 				break;						
 			}
+		case LUSI::Definition::Output:
+			{
+				LUSI::Output *o_obj =  qobject_cast<LUSI::Output*>(_obj_list->at(i));
+				if (o_obj) output_list.append(o_obj);
+				break;						
+			}
 		case LUSI::Definition::Parameter:
 			{
 				LUSI::Parameter *p_obj =  qobject_cast<LUSI::Parameter*>(_obj_list->at(i));
@@ -1353,6 +1431,12 @@ void LUSI::Sequence::setObjects(LUSI::ObjectList *_obj_list)
 			{
 				LUSI::Section *s_obj =  qobject_cast<LUSI::Section*>(_obj_list->at(i));
 				if (s_obj) section_list.append(s_obj);
+				break;						
+			}
+		case LUSI::Definition::Output:
+			{
+				LUSI::Output *o_obj =  qobject_cast<LUSI::Output*>(_obj_list->at(i));
+				if (o_obj) output_list.append(o_obj);
 				break;						
 			}
 		case LUSI::Definition::Parameter:

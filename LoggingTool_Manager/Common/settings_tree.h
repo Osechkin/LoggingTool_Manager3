@@ -19,7 +19,7 @@ enum CDataType { String_Data, Double_Data, Int_Data, Bool_Data };
 
 struct CSettings
 {
-    CSettings(QString _type, QVariant _value, QString obj_name = "");
+	CSettings(QString _type, QVariant _value, QString obj_name = "");
 
 	QString name; 
 

@@ -62,6 +62,11 @@ protected:
 	QStringList path_list;
 	Sequence curSeq;	
 
+	QScriptEngine engine;
+	QScriptEngineDebugger script_debugger;
+	LUSI::Engine lusi_engine;
+	LUSI::Sequence cur_lusi_Seq;
+
 protected:
 	void readSequenceCmdIndex();
 	void readSequenceInstrIndex();
@@ -73,6 +78,7 @@ protected:
 
 	void showSeqParameters();
 	void showSequenceMemo(Sequence &seq);	
+	void showLUSISeqParameters();
 
 private:
 	void setConnections();
@@ -90,12 +96,8 @@ private:
 		
 	QList<CTreeWidgetItem*> c_items;
 	QList<CTreeWidgetItem*> c_title_items;
-	CTreeWidgetItem *c_item_selected;
-
-	QScriptEngine engine;
-	QScriptEngineDebugger script_debugger;
-	LUSI::Engine lusi_engine;
-
+	CTreeWidgetItem *c_item_selected;	
+	
 	DataSave save_data;
 
 private slots:		
@@ -110,6 +112,7 @@ private slots:
 	void viewCode();
 	void setExportSettings();
 	void showSequenceInfo();
+	void triggerJSerror();
 	
 signals:
 	void sequence_changed();

@@ -839,7 +839,6 @@ void CWidget::setFrameSize(QSize _size)
 }*/
 
 
-
 CSettings::CSettings(QString _type, QVariant _value, QString obj_name)
 {
 	name = obj_name;
@@ -861,7 +860,7 @@ CSettings::CSettings(QString _type, QVariant _value, QString obj_name)
     alter_background_color = QColor(Qt::lightGray);
 
     title_flag = false;
-    checkable = false;
+    checkable = true;
     check_state = false;
 
     frame_width = 70;
@@ -917,7 +916,6 @@ void CTreeWidgetItem::initObjects()
             lbl->setBackgroundColor(c_settings[i].background_color);
             lbl->setAlterBackgroundColor(c_settings[i].alter_background_color);
             sub_twi->setIcon(i,c_settings[i].icon);
-            if (c_settings[i].checkable) sub_twi->setCheckState(i,c_settings[i].check_state ? Qt::Checked : Qt::Unchecked);
             lbl->setFrameSize(QSize(c_settings[i].frame_width, c_settings[i].frame_height));
 			lbl->setToolTip(c_settings[i].hint);
 			lbl->setFrame(c_settings[i].set_frame);

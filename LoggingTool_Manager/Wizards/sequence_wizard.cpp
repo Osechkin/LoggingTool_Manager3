@@ -74,14 +74,18 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 			}
 
 			QAction *pact = script_debugger.action(QScriptEngineDebugger::InterruptAction);
-			connect(pact, SIGNAL(triggered()), pact, SLOT(trigger()));
+			connect(pact, SIGNAL(triggered()), this, SLOT(triggerJSerror()));
+			//connect(pact, SIGNAL(triggered()), pact, SLOT(trigger()));
 			//pact->trigger();
 
 			QString js_script = lusi_engine.getJSscript();
 			QScriptValue qscrpt_value = engine.evaluate(js_script);
 
+			cur_lusi_Seq.clear();
+			cur_lusi_Seq.setObjects(obj_list_global);
+
 			//LUSI::ObjectList *obj_list_global = lusi_engine.getObjList();
-			for (int i = 0; i < obj_list_global->size(); i++)
+			/*for (int i = 0; i < obj_list_global->size(); i++)
 			{
 				LUSI::Object *lusi_obj = qobject_cast<LUSI::Object*>(obj_list_global->at(i));
 				js_elist << lusi_obj->getErrorList();
@@ -93,7 +97,11 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 					QByteVector byte_code;
 					byte_code << obj_param->getProcProgram();
 				}
-			}
+			}*/
+			showLUSISeqParameters();
+
+			ui->cboxSequences->addItems(file_list);
+			ui->ledSeqName->setText(cur_lusi_Seq.name);
 		}
 	}
 	
@@ -183,7 +191,7 @@ bool SequenceWizard::findSequenceScripts(QStringList &files, QStringList &pathes
 	QStringList res;
 	for (int i = 0; i < file_list.count(); i++)
 	{
-		if (file_list[i].split(".").last().toLower() == QString("seq")) 
+		if (file_list[i].split(".").last().toLower() == QString("jseq")) 
 		{
 			files.append(file_list[i]);
 			//pathes.append(path);
@@ -1308,6 +1316,121 @@ void SequenceWizard::showSeqParameters()
 		default: break;	
 		}		
 	} 
+}
+
+void SequenceWizard::showLUSISeqParameters()
+{
+	clearCTreeWidget();
+	ui->treeWidget->clear();
+
+	for (int i = 0; i < cur_lusi_Seq.section_list.count(); i++)
+	{
+		LUSI::Section *sec = cur_lusi_Seq.section_list[i];
+		if (sec)
+		{
+			QString title = sec->getTitle();
+
+			QList<CSettings> title_settings_list;
+			CSettings title_settings_probe("label", title);
+			title_settings_probe.title_flag = true;
+			title_settings_probe.text_color = QColor(Qt::darkRed);
+			title_settings_probe.background_color = QColor(Qt::blue).lighter(170);
+			title_settings_list.append(title_settings_probe);
+			
+			CTreeWidgetItem *c_title = new CTreeWidgetItem(ui->treeWidget, 0, title_settings_list);
+			c_title_items.append(c_title);
+			c_title->show();
+
+			for (int j = 0; j < sec->getParameters().count(); j++)
+			{
+				LUSI::Parameter *param = qobject_cast<LUSI::Parameter*>(sec->getParameters()[j]);
+				if (param)
+				{
+					QList<CSettings> item_settings_list;
+
+					CSettings item_settings1("label", param->getTitle());
+					item_settings1.hint = param->getComment();
+					item_settings1.text_color = QColor(Qt::darkBlue);		
+					item_settings1.background_color = QColor(Qt::blue).lighter(190);
+				
+					QString ui_type = param->getUIType();
+					CSettings item_settings3(ui_type.toLower(), param->getValue());
+					QString str_minmax = QString("[ %1 ... %2 ]").arg(param->getMin()).arg(param->getMax());	
+					item_settings3.hint = str_minmax;
+					double d_min = (double)param->getMin();
+					double d_max = (double)param->getMax();		
+					item_settings3.min_max = QPair<double,double>(d_min,d_max);		
+					item_settings3.read_only = param->getReadOnly();
+					item_settings3.text_color = QColor(Qt::darkMagenta);
+					item_settings3.background_color = QColor(Qt::blue).lighter(190);
+
+					CSettings item_settings4("label", " " + param->units);		
+					item_settings4.text_color = QColor(Qt::darkBlue);		
+					item_settings4.background_color = QColor(Qt::blue).lighter(190);
+				
+					item_settings_list << item_settings1 << item_settings3 << item_settings4;
+					CTreeWidgetItem *c_item = new CTreeWidgetItem(ui->treeWidget, c_title->getQSubTreeWidgetItem(), item_settings_list);
+					connect(c_item, SIGNAL(editing_finished(QObject*)), this, SLOT(paramEditingFinished(QObject*)));
+					c_item->linkObject(param);
+					c_items.append(c_item);
+					c_item->show();
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < cur_lusi_Seq.output_list.count(); i++)
+	{
+		LUSI::Output *output_sec = cur_lusi_Seq.output_list[i];
+		if (output_sec)
+		{
+			QString title = output_sec->getTitle();
+
+			QList<CSettings> title_settings_list;
+			CSettings title_settings_probe("label", title);
+			title_settings_probe.title_flag = true;
+			title_settings_probe.text_color = QColor(Qt::darkRed);
+			title_settings_probe.background_color = QColor(Qt::blue).lighter(170);
+			title_settings_list.append(title_settings_probe);
+
+			CTreeWidgetItem *c_title = new CTreeWidgetItem(ui->treeWidget, 0, title_settings_list);
+			c_title_items.append(c_title);
+			c_title->show();
+
+			for (int j = 0; j < output_sec->getParameters().count(); j++)
+			{
+				LUSI::Parameter *param = qobject_cast<LUSI::Parameter*>(output_sec->getParameters()[j]);
+				if (param)
+				{
+					QList<CSettings> item_settings_list;
+
+					CSettings item_settings1("label", param->getTitle());
+					item_settings1.hint = param->getComment();
+					item_settings1.text_color = QColor(Qt::darkBlue);		
+					item_settings1.background_color = QColor(Qt::blue).lighter(190);
+
+					QString ui_type = param->getUIType();
+					CSettings item_settings2(ui_type.toLower(), param->getValue());
+					if (ui_type.toLower() == "checkbox") item_settings2.value = QVariant("");
+					QString str_minmax = QString("[ %1 ... %2 ]").arg(param->getMin()).arg(param->getMax());	
+					item_settings2.hint = str_minmax;
+					double d_min = (double)param->getMin();
+					double d_max = (double)param->getMax();		
+					item_settings2.min_max = QPair<double,double>(d_min,d_max);		
+					item_settings2.read_only = param->getReadOnly();
+					item_settings2.text_color = QColor(Qt::darkMagenta);
+					item_settings2.background_color = QColor(Qt::blue).lighter(190);
+
+					item_settings_list << item_settings1 << item_settings2;
+					CTreeWidgetItem *c_item = new CTreeWidgetItem(ui->treeWidget, c_title->getQSubTreeWidgetItem(), item_settings_list);
+					connect(c_item, SIGNAL(editing_finished(QObject*)), this, SLOT(paramEditingFinished(QObject*)));
+					c_item->linkObject(param);
+					c_items.append(c_item);
+					c_item->show();
+				}
+			}
+		}
+	}
 }
 
 void SequenceWizard::redrawSeqParameters()
@@ -2496,4 +2619,12 @@ void SequenceWizard::showSequenceInfo()
 
 	SequenceInfoDialog dlg(memo);
 	dlg.exec();
+}
+
+void SequenceWizard::triggerJSerror()
+{
+	QAction *pact = (QAction*)sender();
+	if (!pact) return;
+
+	pact->trigger();
 }

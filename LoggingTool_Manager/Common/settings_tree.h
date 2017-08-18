@@ -177,16 +177,16 @@ private:
 
 
 
-class CSpinBox : public QSpinBox
+class CSpinBox : public QDoubleSpinBox
 {
     Q_OBJECT
 
 public:
     CSpinBox(QWidget *parent = 0);
-    CSpinBox(int _val, QWidget *parent = 0);
-    CSpinBox(int _val, QString _name, QWidget *parent = 0);
+    CSpinBox(double _val, QWidget *parent = 0);
+    CSpinBox(double _val, QString _name, QWidget *parent = 0);
     CSpinBox(QSize _size, QWidget *parent = 0);
-    CSpinBox(int _val, QSize _size, QWidget *parent = 0);
+    CSpinBox(double _val, QSize _size, QWidget *parent = 0);
 
     QSize sizeHint() const;
     void setTextColor(QColor _color);
@@ -320,6 +320,7 @@ private:
 
 private slots:
 	void valueChanged(int value);
+	void valueChanged(double value);
 	void valueChanged(QString value);
 	void valueChanged(bool value);
 	void changingFinished();

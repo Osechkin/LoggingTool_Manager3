@@ -77,8 +77,11 @@ protected:
 	void parseSequenceScript(QSettings *settings, Sequence &seq);	
 
 	void showSeqParameters();
-	void showSequenceMemo(Sequence &seq);	
+	void showSequenceMemo(Sequence &seq);
+
 	void showLUSISeqParameters();
+	void showLUSISeqMemo();
+	void executeJSsequence();
 
 private:
 	void setConnections();

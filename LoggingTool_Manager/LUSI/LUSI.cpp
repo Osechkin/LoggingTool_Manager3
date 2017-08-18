@@ -258,7 +258,8 @@ void LUSI::ProcPackage::exec(QVariantList _params_array)
 		}
 		proc_program << val;
 	}	
-	params_array = _params_array; 
+	params_array == _params_array; 
+	var_proc_program.append(_params_array);
 }
 // ***************************************************************************
 
@@ -322,6 +323,7 @@ void LUSI::COMProgram::exec(QVariantList _params_array)
 		return;
 	}
 		
+	QVariantList varray;
 	if (_params_array.count() == 2)
 	{
 		uint32_t new_value = _params_array.last().toUInt(&_ok);
@@ -331,6 +333,7 @@ void LUSI::COMProgram::exec(QVariantList _params_array)
 			uint8_t byte3 = (uint8_t)((new_value & 0xFF00) >> 8);
 			uint8_t byte2 = (uint8_t)((new_value & 0xFF0000) >> 16);
 			com_program << com_code << byte2 << byte3 << byte4;	
+			varray << _params_array.first() << byte2 << byte3 << byte4;
 		}
 		else 
 		{
@@ -345,6 +348,7 @@ void LUSI::COMProgram::exec(QVariantList _params_array)
 		uint8_t byte3 = (uint8_t)(_params_array[2].toUInt(&_ok));
 		uint8_t byte4 = (uint8_t)(_params_array[3].toUInt(&_ok));
 		com_program << com_code << byte2 << byte3 << byte4;	
+		varray << _params_array.first() << byte2 << byte3 << byte4;
 	}
 	else
 	{
@@ -354,6 +358,7 @@ void LUSI::COMProgram::exec(QVariantList _params_array)
 	}
 	
 	params_array = _params_array; 
+	var_com_program.append(varray);
 }
 // ***************************************************************************
 
@@ -1321,6 +1326,12 @@ LUSI::Sequence::Sequence()
 
 	js_script = "";
 
+	comprg_errors.clear();
+	procdsp_errors.clear();
+	seq_errors.clear();
+	cond_errors.clear();
+	js_error = false;
+
 	main_object = NULL;
 }
 
@@ -1340,54 +1351,62 @@ LUSI::Sequence::Sequence(ObjectList *_obj_list, QString _js_script, QStringList 
 		{
 		case LUSI::Definition::ProcPackage:
 			{
-				LUSI::ProcPackage *obj =  qobject_cast<LUSI::ProcPackage*>(_obj_list->at(i));
+				LUSI::ProcPackage *obj = qobject_cast<LUSI::ProcPackage*>(_obj_list->at(i));
 				QByteVector byte_code;
 				byte_code << obj->getProcProgram();
-				proc_programs.append(byte_code);
+				proc_programs.append(byte_code);				
+				if (!obj->getErrorList().isEmpty()) procdsp_errors << obj->getErrorList();
 				break;
 			}
 		case LUSI::Definition::ComProgram:
 			{
-				LUSI::COMProgram *obj =  qobject_cast<LUSI::COMProgram*>(_obj_list->at(i));
+				LUSI::COMProgram *obj = qobject_cast<LUSI::COMProgram*>(_obj_list->at(i));
 				QByteVector byte_code;
 				byte_code << obj->getComProgram();
-				com_programs.append(byte_code);
+				com_programs.append(byte_code);				
+				if (!obj->getErrorList().isEmpty()) comprg_errors << obj->getErrorList();
 				break;
 			}				
 		case LUSI::Definition::Section:
 			{
-				LUSI::Section *s_obj =  qobject_cast<LUSI::Section*>(_obj_list->at(i));
-				if (s_obj) section_list.append(s_obj);
+				LUSI::Section *s_obj = qobject_cast<LUSI::Section*>(_obj_list->at(i));
+				section_list.append(s_obj);
+				if (!s_obj->getErrorList().isEmpty()) seq_errors << s_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Output:
 			{
-				LUSI::Output *o_obj =  qobject_cast<LUSI::Output*>(_obj_list->at(i));
-				if (o_obj) output_list.append(o_obj);
+				LUSI::Output *o_obj = qobject_cast<LUSI::Output*>(_obj_list->at(i));
+				output_list.append(o_obj);
+				if (!o_obj->getErrorList().isEmpty()) seq_errors << o_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Parameter:
 			{
-				LUSI::Parameter *p_obj =  qobject_cast<LUSI::Parameter*>(_obj_list->at(i));
-				if (p_obj) param_list.append(p_obj);
+				LUSI::Parameter *p_obj = qobject_cast<LUSI::Parameter*>(_obj_list->at(i));
+				param_list.append(p_obj);
+				if (!p_obj->getErrorList().isEmpty()) seq_errors << p_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Argument:
 			{
-				LUSI::Argument *a_obj =  qobject_cast<LUSI::Argument*>(_obj_list->at(i));
-				if (a_obj) arg_list.append(a_obj);
+				LUSI::Argument *a_obj = qobject_cast<LUSI::Argument*>(_obj_list->at(i));
+				arg_list.append(a_obj);
+				if (!a_obj->getErrorList().isEmpty()) seq_errors << a_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Condition:
 			{
-				LUSI::Condition *c_obj =  qobject_cast<LUSI::Condition*>(_obj_list->at(i));
-				if (c_obj) cond_list.append(c_obj);
+				LUSI::Condition *c_obj = qobject_cast<LUSI::Condition*>(_obj_list->at(i));
+				cond_list.append(c_obj);
+				if (!c_obj->getErrorList().isEmpty()) cond_errors << c_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Main:
 			{
-				LUSI::Main *m_obj =  qobject_cast<LUSI::Main*>(_obj_list->at(i));
-				if (m_obj) main_object = m_obj;
+				LUSI::Main *m_obj = qobject_cast<LUSI::Main*>(_obj_list->at(i));
+				main_object = m_obj;
+				if (!m_obj->getErrorList().isEmpty()) seq_errors << m_obj->getErrorList();
 
 				name = main_object->getName();
 				author = main_object->getAuthor();
@@ -1413,54 +1432,64 @@ void LUSI::Sequence::setObjects(LUSI::ObjectList *_obj_list)
 		{
 		case LUSI::Definition::ProcPackage:
 			{
-				LUSI::ProcPackage *obj =  qobject_cast<LUSI::ProcPackage*>(_obj_list->at(i));
+				LUSI::ProcPackage *obj = qobject_cast<LUSI::ProcPackage*>(_obj_list->at(i));				
 				QByteVector byte_code;
 				byte_code << obj->getProcProgram();
-				proc_programs.append(byte_code);
+				proc_programs.append(byte_code);		
+				procdsp_list.append(obj);
+				if (!obj->getErrorList().isEmpty()) procdsp_errors << obj->getErrorList();
 				break;
 			}
 		case LUSI::Definition::ComProgram:
 			{
-				LUSI::COMProgram *obj =  qobject_cast<LUSI::COMProgram*>(_obj_list->at(i));
+				LUSI::COMProgram *obj = qobject_cast<LUSI::COMProgram*>(_obj_list->at(i));
 				QByteVector byte_code;
 				byte_code << obj->getComProgram();
-				com_programs.append(byte_code);
+				com_programs.append(byte_code);		
+				comprg_list.append(obj);
+				if (!obj->getErrorList().isEmpty()) comprg_errors << obj->getErrorList();
 				break;
 			}				
 		case LUSI::Definition::Section:
 			{
-				LUSI::Section *s_obj =  qobject_cast<LUSI::Section*>(_obj_list->at(i));
-				if (s_obj) section_list.append(s_obj);
+				LUSI::Section *s_obj = qobject_cast<LUSI::Section*>(_obj_list->at(i));
+				section_list.append(s_obj);
+				if (!s_obj->getErrorList().isEmpty()) seq_errors << s_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Output:
 			{
-				LUSI::Output *o_obj =  qobject_cast<LUSI::Output*>(_obj_list->at(i));
-				if (o_obj) output_list.append(o_obj);
+				LUSI::Output *o_obj = qobject_cast<LUSI::Output*>(_obj_list->at(i));
+				output_list.append(o_obj);
+				if (!o_obj->getErrorList().isEmpty()) seq_errors << o_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Parameter:
 			{
-				LUSI::Parameter *p_obj =  qobject_cast<LUSI::Parameter*>(_obj_list->at(i));
-				if (p_obj) param_list.append(p_obj);
+				LUSI::Parameter *p_obj = qobject_cast<LUSI::Parameter*>(_obj_list->at(i));
+				param_list.append(p_obj);
+				if (!p_obj->getErrorList().isEmpty()) seq_errors << p_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Argument:
 			{
-				LUSI::Argument *a_obj =  qobject_cast<LUSI::Argument*>(_obj_list->at(i));
-				if (a_obj) arg_list.append(a_obj);
+				LUSI::Argument *a_obj = qobject_cast<LUSI::Argument*>(_obj_list->at(i));
+				arg_list.append(a_obj);
+				if (!a_obj->getErrorList().isEmpty()) seq_errors << a_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Condition:
 			{
-				LUSI::Condition *c_obj =  qobject_cast<LUSI::Condition*>(_obj_list->at(i));
-				if (c_obj) cond_list.append(c_obj);
+				LUSI::Condition *c_obj = qobject_cast<LUSI::Condition*>(_obj_list->at(i));
+				cond_list.append(c_obj);
+				if (!c_obj->getErrorList().isEmpty()) cond_errors << c_obj->getErrorList();
 				break;						
 			}
 		case LUSI::Definition::Main:
 			{
-				LUSI::Main *m_obj =  qobject_cast<LUSI::Main*>(_obj_list->at(i));
-				if (m_obj) main_object = m_obj;
+				LUSI::Main *m_obj = qobject_cast<LUSI::Main*>(_obj_list->at(i));
+				main_object = m_obj;
+				if (!m_obj->getErrorList().isEmpty()) seq_errors << m_obj->getErrorList();
 
 				name = main_object->getName();
 				author = main_object->getAuthor();
@@ -1470,6 +1499,18 @@ void LUSI::Sequence::setObjects(LUSI::ObjectList *_obj_list)
 			}
 		}
 	}
+}
+
+QList<QVariantList> LUSI::Sequence::getVarComProgram(int index)
+{
+	LUSI::COMProgram *obj = comprg_list[index];	
+	return obj->getVarComProgram();	
+}
+
+QList<QVariantList> LUSI::Sequence::getVarProcProgram(int index)
+{	
+	LUSI::ProcPackage *obj = procdsp_list[index];
+	return obj->getVarProcProgram();	
 }
 
 void LUSI::Sequence::clear()
@@ -1483,7 +1524,10 @@ void LUSI::Sequence::clear()
 	seq_errors.clear();
 
 	com_programs.clear();
-	proc_programs.clear();
+	proc_programs.clear();	
+	comprg_list.clear();
+	procdsp_list.clear();
+	
 	param_list.clear();
 	section_list.clear();
 	arg_list.clear();

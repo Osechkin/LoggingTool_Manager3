@@ -529,11 +529,13 @@ CSpinBox::CSpinBox(QWidget *parent)
     frame_width = 70;
 
     this->setFont(QFont("Arial", 10));
+	this->setDecimals(1);
+	this->setSingleStep(1.0);
 
     repaintAll();
 }
 
-CSpinBox::CSpinBox(int _val, QWidget *parent)
+CSpinBox::CSpinBox(double _val, QWidget *parent)
 {
     this->setParent(parent);
     //this->setStyle(new QPlastiqueStyle);
@@ -545,6 +547,9 @@ CSpinBox::CSpinBox(int _val, QWidget *parent)
 
     this->setFont(QFont("Arial", 10));
 
+	this->setDecimals(1);
+	this->setSingleStep(1.0);
+
 	if (_val < this->minimum()) this->setMinimum(_val);
 	if (_val > this->maximum()) this->setMaximum(_val);
     this->setValue(_val);
@@ -552,7 +557,7 @@ CSpinBox::CSpinBox(int _val, QWidget *parent)
     repaintAll();
 }
 
-CSpinBox::CSpinBox(int _val, QString _name, QWidget *parent)
+CSpinBox::CSpinBox(double _val, QString _name, QWidget *parent)
 {
     this->setParent(parent);
     this->setObjectName(_name);
@@ -565,6 +570,9 @@ CSpinBox::CSpinBox(int _val, QString _name, QWidget *parent)
 
     this->setFont(QFont("Arial", 10));
 
+	this->setDecimals(1);
+	this->setSingleStep(1.0);
+
 	if (_val < this->minimum()) this->setMinimum(_val);
 	if (_val > this->maximum()) this->setMaximum(_val);
     this->setValue(_val);
@@ -572,7 +580,7 @@ CSpinBox::CSpinBox(int _val, QString _name, QWidget *parent)
     repaintAll();
 }
 
-CSpinBox::CSpinBox(int _val, QSize _size, QWidget *parent)
+CSpinBox::CSpinBox(double _val, QSize _size, QWidget *parent)
 {
     this->setParent(parent);
     //this->setStyle(new QPlastiqueStyle);
@@ -583,6 +591,9 @@ CSpinBox::CSpinBox(int _val, QSize _size, QWidget *parent)
     frame_width = _size.width();
 
     this->setFont(QFont("Arial", 10));
+
+	this->setDecimals(1);
+	this->setSingleStep(1.0);
 
 	if (_val < this->minimum()) this->setMinimum(_val);
 	if (_val > this->maximum()) this->setMaximum(_val);
@@ -601,7 +612,12 @@ CSpinBox::CSpinBox(QSize _size, QWidget *parent)
     frame_height = _size.height();
     frame_width = _size.width();
 
+	this->setDecimals(1);
+	this->setSingleStep(1.0);
+
     this->setFont(QFont("Arial", 10));
+	this->setDecimals(1);
+	this->setSingleStep(1.0);
 
     repaintAll();
 }
@@ -930,7 +946,7 @@ void CTreeWidgetItem::initObjects()
         }
         else if (c_settings[i].type == "spinbox")
         {
-            CSpinBox *sbx = new CSpinBox(c_settings[i].value.toInt());
+            CSpinBox *sbx = new CSpinBox(c_settings[i].value.toDouble());
 			sbx->setObjectName(QString("spinbox%1").arg(obj_number++));
 			if (!c_settings[i].name.isEmpty()) sbx->setObjectName(sbx->objectName() + QString("_%1").arg(c_settings[i].name));
 			sbx->setToolTip(c_settings[i].hint);
@@ -944,7 +960,7 @@ void CTreeWidgetItem::initObjects()
             sbx->setFrameSize(QSize(c_settings[i].frame_width, c_settings[i].frame_height));
 			sub_twi->setIcon(i,c_settings[i].icon);
 
-			connect(sbx, SIGNAL(valueChanged(int)), this, SLOT(valueChanged(int)));
+			connect(sbx, SIGNAL(valueChanged(double)), this, SLOT(valueChanged(double)));
 			connect(sbx, SIGNAL(editingFinished()), this, SLOT(changingFinished()));
 
             c_objects.append(sbx);
@@ -1037,19 +1053,22 @@ void CTreeWidgetItem::valueChanged(QString value)
 
 void CTreeWidgetItem::valueChanged(int value)
 {
-	CSpinBox *sbox = qobject_cast<CSpinBox*>(sender());
-	if (sbox) 
-	{
-		QVariant v_value = QVariant(value);
-		emit value_changed(qobject_cast<QObject*>(sbox), v_value);
-		return;
-	}
-
 	CCheckBox *chbox = qobject_cast<CCheckBox*>(sender());
 	if (chbox) 
 	{
 		QVariant v_value = QVariant(value);
 		emit value_changed(qobject_cast<QObject*>(chbox), v_value);
+		return;
+	}
+}
+
+void CTreeWidgetItem::valueChanged(double value)
+{
+	CSpinBox *sbox = qobject_cast<CSpinBox*>(sender());
+	if (sbox) 
+	{
+		QVariant v_value = QVariant(value);
+		emit value_changed(qobject_cast<QObject*>(sbox), v_value);
 		return;
 	}
 }

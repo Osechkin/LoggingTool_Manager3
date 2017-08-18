@@ -10,6 +10,7 @@
 #include "../Common/settings_tree.h"
 #include "../io_general.h"
 #include "../Common/experiment_settings.h"
+#include "../LUSI/LUSI.h"
 
 #include "ui_sdsp_wizard.h"
 
@@ -56,6 +57,7 @@ protected:
 	QStringList file_list;
 	QStringList path_list;
 	Sequence curSeq;	
+	LUSI::Sequence cur_lusi_Seq;
 
 protected:
 	void readSequenceCmdIndex();

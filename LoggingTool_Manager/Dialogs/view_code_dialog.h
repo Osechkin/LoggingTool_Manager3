@@ -13,20 +13,27 @@ class ViewCodeDialog : public QDialog, public Ui::ViewCodeDialog
 	Q_OBJECT
 
 public:
-	explicit ViewCodeDialog(Sequence *seq, QWidget *parent = 0);	
+	//explicit ViewCodeDialog(Sequence *seq, QWidget *parent = 0);
+	explicit ViewCodeDialog(LUSI::Sequence *seq, QWidget *parent = 0);	
 	
 	enum Mode { Dec, Hex};
 	Mode getMode() { return mode; }
 	void setMode(Mode _mode);
 
 private:
-	void showSeqProgram();
-	QString cmdToString(Sequence_Cmd *cmd);
-	QString cmdToByteCode(Sequence_Cmd *cmd);
-	QString instrToString(Sequence_Instr *instr);
-	QString instrToByteCode(Sequence_Instr *instr);
+	//void showSeqProgram();
+	void showLUSISeqProgram();
+	//QString cmdToString(Sequence_Cmd *cmd);
+	//QString cmdToByteCode(Sequence_Cmd *cmd);
+	//QString instrToString(Sequence_Instr *instr);
+	//QString instrToByteCode(Sequence_Instr *instr);
+	QString comPrgToString(int index);
+	QString comPrgToByteCodeString(int index);
+	QString procPrgToString(int index);
+	QString procPrgToByteCodeString(int index);
 
-	Sequence *seq;
+	//Sequence *seq;
+	LUSI::Sequence *lusi_seq;
 	Mode mode;
 	bool view_bytecode;
 

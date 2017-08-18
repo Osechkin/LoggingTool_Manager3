@@ -265,8 +265,7 @@ namespace LUSI
 	public:
 		QString title;			// Название параметра (отображается в виджете последовательностей) 
 		double min;				// Минимальное значение value
-		double max;				// Максимальное значение value
-		double value;			// Значение параметра (отображаемое и редактируемое значение)
+		double max;				// Максимальное значение value		
 		QString comment;		// Комментарии (отображаются в виде ToolTip)
 		QString units;			// Единицы измерения
 		QString formula;		// формула расчета примененного для интервального программатора значения (не используется на практике) 
@@ -274,6 +273,7 @@ namespace LUSI
 		bool ron;				// Изменяемый/неизменяемый параметр
 
 	private:
+		double value;			// Значение параметра (отображаемое и редактируемое значение)
 		int app_value;			// Значение параметра, применяемое в программах для интервального программатора и сигнального процессора
 	};
 
@@ -293,6 +293,7 @@ namespace LUSI
 
 		QByteVector getProcProgram() const { return proc_program; }
 		QVariantList getParamsArray() const { return params_array; }
+		QList<QVariantList> getVarProcProgram() const { return var_proc_program; }
 		QStringList getErrorList() const { return elist; }
 
 	public slots:
@@ -309,6 +310,7 @@ namespace LUSI
 					
 	private:		
 		QByteVector proc_program;
+		QList<QVariantList> var_proc_program;
 		QVariantList params_array;
 		QList<SeqInstrInfo> instr_list;
 	};
@@ -327,8 +329,10 @@ namespace LUSI
 		bool setField(QString _name, QString _value);
 		bool setField(QString _value, int _index);		
 
+		uint8_t findCmdCode(const QString &_str, bool &_flag);
 		QByteVector getComProgram() const { return com_program; }
 		QVariantList getParamsArray() const { return params_array; }
+		QList<QVariantList> getVarComProgram() const { return var_com_program; }
 		QStringList getErrorList() const { return elist; }
 
 	public slots:
@@ -340,11 +344,9 @@ namespace LUSI
 	public:
 		QString title;
 
-	private:
-		uint8_t findCmdCode(const QString &_str, bool &_flag);
-
 	private:		
 		QByteVector com_program;
+		QList<QVariantList> var_com_program;
 		QVariantList params_array;
 		QList<SeqCmdInfo> com_list; 		
 	};
@@ -490,24 +492,32 @@ namespace LUSI
 		Sequence(ObjectList *_obj_list, QString _js_script, QStringList _elist = QStringList());
 
 		void setObjects(LUSI::ObjectList *_obj_list);
+		QList<QVariantList> getVarComProgram(int index); // программа для интервального программатора 
+		QList<QVariantList> getVarProcProgram(int index); // программа обработки данных для сигнального процессора 
 		void clear();
 
-		QString name;						// название последовательности
-		QString author;						// автор последовательности
-		QString datetime;					// дата и время создания последовательности	
-		QString description;				// описание последовательности
+		QString name;							// название последовательности
+		QString author;							// автор последовательности
+		QString datetime;						// дата и время создания последовательности	
+		QString description;					// описание последовательности
 
-		QString js_script;					// программа последовательности на JavaScript
+		QString js_script;						// программа последовательности на JavaScript
 
-		QList<QByteVector> com_programs;	// список программ для интервального программатора (обычно одна)
-		QList<QByteVector> proc_programs;	// список пакетов обработки данных для программы NMR_Tool на DSP
-		QList<LUSI::Parameter*> param_list;	// список параметров последовательности
-		QList<LUSI::Section*> section_list;	// список разделов параметров		
-		QList<LUSI::Output*> output_list;	// список разделов выходных параметров
-		QList<LUSI::Argument*> arg_list;	// список параметров-аргументов для построения оси Ох для входящих данных. Обязателен для релаксационых спадов 
-		QList<LUSI::Condition*> cond_list;	// список проверочных праметров, проверяющих правильность задания параметров последовательности
-		LUSI::Main *main_object;			// объект LUSI::Main
-		QStringList seq_errors;				// ошибки, обнаруженные при разборе файла последовательности
+		QList<QByteVector> com_programs;		// список программ для интервального программатора (обычно одна)
+		QList<QByteVector> proc_programs;		// список пакетов обработки данных для программы NMR_Tool на DSP
+		QList<LUSI::Parameter*> param_list;		// список параметров последовательности
+		QList<LUSI::Section*> section_list;		// список разделов параметров		
+		QList<LUSI::Output*> output_list;		// список разделов выходных параметров
+		QList<LUSI::Argument*> arg_list;		// список параметров-аргументов для построения оси Ох для входящих данных. Обязателен для релаксационых спадов 
+		QList<LUSI::Condition*> cond_list;		// список проверочных праметров, проверяющих правильность задания параметров последовательности
+		QList<LUSI::COMProgram*> comprg_list;	// список программ для интервального программатора
+		QList<LUSI::ProcPackage*> procdsp_list;	// список пакетов обработки данных сигнальным процессором
+		LUSI::Main *main_object;				// объект LUSI::Main
+		QStringList seq_errors;					// ошибки, обнаруженные при разборе файла последовательности (без ошибок comprg_errors и procdsp_errors !)
+		QStringList comprg_errors;				// ошибки, обнаруженные при разборе программы для интервального программатора
+		QStringList procdsp_errors;				// ошибки, обнаруженные при разборе пакетов обработки данных для DSP
+		QStringList cond_errors;				// ошибки, возникающие при невыполнении условий правильности значений параметров в последовательности
+		bool js_error;							// ошибка, возникшая при исполнении кода JavaScript
 	};
 }
 

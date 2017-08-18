@@ -1857,7 +1857,7 @@ QList<uint8_t> SDSPWizard::findInstrValue(const QString &str, const Sequence &se
 
 void SDSPWizard::viewCode()
 {
-	ViewCodeDialog view_code_dlg(&curSeq);
+	ViewCodeDialog view_code_dlg(&cur_lusi_Seq);
 	if (view_code_dlg.exec());	
 }
 

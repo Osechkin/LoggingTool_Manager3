@@ -55,6 +55,7 @@ LoggingTool_Manager/x64
 LoggingTool_Manager/Sequences
 LoggingTool_Manager/Sequences_old
 LoggingTool_Manager/Win32
+Win32
 
 DMDeconv/Debug
 DMDeconv/Release

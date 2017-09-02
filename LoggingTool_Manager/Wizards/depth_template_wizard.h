@@ -11,6 +11,7 @@
 #include "../Widgets/depth_emul_widget.h"
 #include "../Widgets/depth_impulsustye_widget.h"
 #include "../Widgets/depth_internal_widget.h"
+#include "../Widgets/distance_meter_widget.h"
 
 #include "ui_depth_template_wizard.h"
 

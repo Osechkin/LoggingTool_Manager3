@@ -100,7 +100,7 @@ private:
 	bool dataIsExportingToFile(uint8_t data_code);
 	bool getExportingStateToFile(DataType &dt);
 
-	void applyFPGAandDSPPrg();
+	//void applyFPGAandDSPPrg();
 
 	void initExperimentalInfo();
 	void loadProcessingSettings();

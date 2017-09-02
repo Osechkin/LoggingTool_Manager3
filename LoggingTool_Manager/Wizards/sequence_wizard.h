@@ -30,7 +30,7 @@ public:
 	explicit SequenceWizard(QWidget *parent = 0) { }
 	~SequenceWizard();
 
-	Sequence *getCurrentSequence() { return &curSeq; }
+	LUSI::Sequence *getCurrentSequence() { return &cur_lusi_Seq; }
 	bool getDSPPrg(QVector<uint8_t> &_prg, QVector<uint8_t> &_instr);
 
 	QList<SeqCmdInfo> *getSeqCmdInfo() { return &seq_cmd_index; }
@@ -40,7 +40,7 @@ public:
 	QStringList *getSeqFileList() { return &file_list; }
 	QStringList *getSeqPathList() { return &path_list; }
 
-	void refreshArgFormula();
+	//void refreshArgFormula();
 	
 	static QString simplifyFormula(QString _formula, Sequence *_seq);	
 	static double calcArgument(double index, Argument* arg, bool *_ok);
@@ -57,10 +57,10 @@ protected:
 	QList<SeqInstrInfo> seq_instr_index;		// "словарь" инструкций для обработки данных сигнальным процессором интервального программатора
 	QList<SeqDataTypeInfo> seq_datatype_index;	// "словарь" типов данных для обработки сигнальным процессором интервального программатора
 
-	QSettings *sequence_proc;
+	//QSettings *sequence_proc;
 	QStringList file_list;
 	QStringList path_list;
-	Sequence curSeq;	
+	//Sequence curSeq;	
 
 	QScriptEngine engine;
 	QScriptEngineDebugger script_debugger;
@@ -74,10 +74,10 @@ protected:
 
 	bool findSequenceScripts(QStringList &files, QStringList &pathes, QString &seq_path);
 	QSettings *initSequenceScript(QString file_name);
-	void parseSequenceScript(QSettings *settings, Sequence &seq);	
+	//void parseSequenceScript(QSettings *settings, Sequence &seq);	
 
-	void showSeqParameters();
-	void showSequenceMemo(Sequence &seq);
+	//void showSeqParameters();
+	//void showSequenceMemo(Sequence &seq);
 
 	void showLUSISeqParameters();
 	void showLUSISeqMemo();
@@ -86,7 +86,7 @@ protected:
 private:
 	void setConnections();
 
-	void redrawSeqParameters();
+	//void redrawSeqParameters();
 	void clearCTreeWidget();
 	
 	uint8_t findCmdCode(const QString &str, bool &flag);
@@ -111,7 +111,7 @@ private slots:
 	void paramEditingFinished(QObject *obj);
 	void addSequence();
 	void refreshSequence();
-	void refreshSequenceList();
+	//void refreshSequenceList();
 	void viewCode();
 	void setExportSettings();
 	void showSequenceInfo();

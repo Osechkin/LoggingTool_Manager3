@@ -257,6 +257,7 @@ namespace LUSI
 		void setReadOnly(bool _ron) { ron = _ron; }
 
 		void exec(double _avalue) { app_value = (int)_avalue; }
+		int getAppValue() const { return app_value; }
 
 	public:
 		bool setField(QString _name, QString _value);
@@ -398,7 +399,7 @@ namespace LUSI
 		Q_PROPERTY(QString comment READ getComment WRITE setComment);
 		Q_PROPERTY(QString units READ getUnits WRITE setUnits);
 		Q_PROPERTY(int size READ getSize WRITE setSize);
-		Q_PROPERTY(QVector<double> points READ getPoints WRITE setPoints);
+		Q_PROPERTY(QVariantList points READ getPoints WRITE setPoints);
 
 	public:
 		Argument(QString _obj_name) { setObjName(_obj_name); type = Definition::Argument; }
@@ -415,20 +416,20 @@ namespace LUSI
 		int getSize() const { return size; }
 		void setSize(int _size) { size = _size; }
 
-		QVector<double> getPoints() const { return points; }
+		QVariantList getPoints() const { return points; }
 
 		bool setField(QString _name, QString _value);
 		bool setField(QString _value, int _index);
 		
 	public slots:
-		void setPoints(QVector<double> _points) { points = _points; }
+		void setPoints(QVariantList _points) { points = _points; }
 
 	public:
 		QString title;
 		QString comment;
 		QString units;
 		int size;
-		QVector<double> points;
+		QVariantList points;
 	};
 
 	
@@ -443,9 +444,11 @@ namespace LUSI
 	public:
 		Engine(QObject *parent = NULL) { }
 		Engine(QScriptEngine *_qsript_engine, QList<SeqCmdInfo> _cmd_list, QList<SeqInstrInfo> _instr_list, QObject *parent = NULL);
+		~Engine();
 
 		void init(QScriptEngine *_qsript_engine, QList<SeqCmdInfo> _cmd_list, QList<SeqInstrInfo> _instr_list);
 		bool evaluate(QStringList &_elist);
+		void clear();
 		void setLUSIscript(QString _script) { lusi_script = _script; }
 		QString getLUSIscript() const { return lusi_script; }
 		QString getJSscript() const { return js_script; }

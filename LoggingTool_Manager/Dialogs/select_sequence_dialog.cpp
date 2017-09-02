@@ -37,34 +37,6 @@ SelectSequenceDialog::SelectSequenceDialog(QWidget *parent) : QDialog(parent), u
 		ui->lblLoading->setVisible(true);
 		ui->progressBar->setVisible(true);
 		ui->progressBar->setValue(0);
-
-		for (int i = 0; i < file_list->count(); i++)
-		{
-			//QString file_name = path_list[i] + "/" + file_list[i];
-			//QSettings *sequence_proc = initSequenceScript(file_name);
-			//parseSequenceScript(sequence_proc, curSeq);
-
-
-		}
-		/*QString file_name = path_list.first() + "/" + file_list.first();
-		sequence_proc = initSequenceScript(file_name);
-		parseSequenceScript(sequence_proc, curSeq);
-
-		bool errs = false;
-		if (!curSeq.seq_errors.isEmpty()) errs = true;
-		for (int i = 0; i < curSeq.param_list.count(); i++) if (!curSeq.param_list[i]->flag) errs = true;
-
-		ui->cboxSequences->addItems(file_list);
-		ui->ledSeqName->setText(curSeq.name);
-
-		QString memo = "<font color = darkblue>Author:</font> " + curSeq.author + "<br>";
-		memo += "<font color = darkblue>Created:</font> " + curSeq.date_time.toString("dd.MM.yyyy hh:mm:ss") + "<br>";
-		memo += "<font color = darkblue>Description:</font> " + curSeq.description + "<br><br>";
-
-		memo += "<font color = darkblue>Errors:</font> " + QString(errs ? "<a href=#parse_error><font color=red><b><u>Found!</u></b></font></a>" : "<font color=darkgreen>Not Found.</font>");
-
-		ui->lblDescription->setOpenExternalLinks(false);
-		ui->lblDescription->setText(memo);*/
 	}
 
 	ui->lblLoading->setVisible(false);

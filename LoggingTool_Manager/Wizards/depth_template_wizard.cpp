@@ -28,15 +28,16 @@ DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, Clocker *clocker, Q
 	DepthEmulatorWidget *depth_emulator = new DepthEmulatorWidget(clocker);
 	DepthImpulsUstyeWidget *depth_impulsustye = new DepthImpulsUstyeWidget(clocker, COM_Port);
 	DepthInternalWidget *depth_internal = new DepthInternalWidget(clocker, COM_Port);
+	LeuzeDistanceMeterWidget *distance_meter = new LeuzeDistanceMeterWidget(clocker, COM_Port);
 	connect(depth_impulsustye, SIGNAL(connected(bool)), this, SIGNAL(connected(bool)));
 
 	ui->gridLayoutFrame->addWidget(depth_emulator);
 
 	QStringList depth_meters_str; 
-	depth_meters_str << depth_emulator->getTitle() << depth_impulsustye->getTitle() << depth_internal->getTitle();
+	depth_meters_str << depth_emulator->getTitle() << depth_impulsustye->getTitle() << depth_internal->getTitle() << distance_meter->getTitle();
 	ui->cboxDepthMeter->addItems(depth_meters_str);
 	
-	depth_meters << depth_emulator << depth_impulsustye << depth_internal;
+	depth_meters << depth_emulator << depth_impulsustye << depth_internal << distance_meter;
 	current_depth_meter = depth_emulator;
 	
 	setConnection();	

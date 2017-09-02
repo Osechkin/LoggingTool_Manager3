@@ -22,7 +22,6 @@
         <file>images/Orange Ball.png</file>
         <file>images/pause.png</file>
         <file>images/play.png</file>
-        <file>images/play_all.png</file>
         <file>images/plot_settings.png</file>
         <file>images/Red Ball.png</file>
         <file>images/Refresh.png</file>
@@ -87,6 +86,9 @@
         <file>images/minus.png</file>
         <file>images/plus.png</file>
         <file>images/save_settings.png</file>
+        <file>images/play_begin.png</file>
+        <file>images/play_end.png</file>
+        <file>images/play_back.png</file>
     </qresource>
     <qresource prefix="/text_files">
         <file>sequence_datatypes.txt</file>

@@ -41,7 +41,7 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 	readSequenceInstrIndex();
 
 	QStringList lusi_elist;
-	QStringList js_elist;
+	//QStringList js_elist;
 
 	lusi_engine.init(&engine, seq_cmd_index, seq_instr_index);
 
@@ -84,6 +84,10 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 			ui->cboxSequences->addItems(file_list);
 			ui->ledSeqName->setText(cur_lusi_Seq.name);
 		}
+		else
+		{
+			// There are errors in LUSI code !
+		}
 	}
 	
 	app_settings = settings;
@@ -95,8 +99,6 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 SequenceWizard::~SequenceWizard()
 {
 	clearCTreeWidget();
-
-	delete sequence_proc;
 
 	delete ui;	
 }
@@ -110,11 +112,10 @@ void SequenceWizard::setConnections()
 	connect(ui->pbtViewCode, SIGNAL(clicked()), this, SLOT(viewCode()));
 	connect(ui->pbtRefresh, SIGNAL(clicked()), this, SLOT(refreshSequence()));
 	connect(ui->tbtInfo, SIGNAL(clicked()), this, SLOT(showSequenceInfo()));
-	connect(ui->tbtRefreshSeqList, SIGNAL(clicked()), this, SLOT(refreshSequenceList()));
+	//connect(ui->tbtRefreshSeqList, SIGNAL(clicked()), this, SLOT(refreshSequenceList()));
 	connect(ui->pbtExportSettings, SIGNAL(clicked()), this, SLOT(setExportSettings()));
 
 	connect(ui->treeWidget, SIGNAL(itemClicked(QTreeWidgetItem*,int)), this, SLOT(treeWidgetActivated(QTreeWidgetItem*,int)));
-
 }
 
 
@@ -180,6 +181,7 @@ QSettings* SequenceWizard::initSequenceScript(QString file_name)
 	return settings;
 }
 
+/*
 void SequenceWizard::parseSequenceScript(QSettings *settings, Sequence &seq)
 {	
 	seq.clear();
@@ -983,7 +985,9 @@ void SequenceWizard::parseSequenceScript(QSettings *settings, Sequence &seq)
 		if (seq.instr_pack_list.count() != seq.instr_packs_count) seq.seq_errors.append(SeqErrors(E_InstrPacksCount,""));
 	}		
 }
+*/
 
+/*
 void SequenceWizard::showSeqParameters()
 {
 	clearCTreeWidget();
@@ -1127,13 +1131,6 @@ void SequenceWizard::showSeqParameters()
 		item_settings1.text_color = QColor(Qt::darkBlue);		
 		item_settings1.background_color = QColor(Qt::blue).lighter(190);
 
-		/*CSettings item_settings2("textedit", (param->app_value == NAN ? "" : QString::number(param->app_value)));
-		item_settings2.hint = param->caption;
-		item_settings2.text_color = QColor(Qt::darkBlue);		
-		item_settings2.background_color = QColor(Qt::blue).lighter(190);		
-		item_settings2.read_only = true;
-		item_settings2.set_frame = true;*/
-
 		CSettings item_settings3("spinbox", param->def_value);
 		QString str_minmax = QString("[ %1 ... %2 ]").arg(param->min_value).arg(param->max_value);	
 		item_settings3.hint = str_minmax;
@@ -1143,10 +1140,7 @@ void SequenceWizard::showSeqParameters()
 		item_settings3.read_only = param->read_only;
 		item_settings3.text_color = QColor(Qt::darkMagenta);
 		item_settings3.background_color = QColor(Qt::blue).lighter(190);
-
-		/*CSettings item_settings4("combobox", QString(""));
-		item_settings4.background_color = QColor(Qt::blue).lighter(190);		
-		item_settings4.text_color = QColor(Qt::darkMagenta);*/
+				
 		CSettings item_settings4("label", " " + param->units);		
 		item_settings4.text_color = QColor(Qt::darkBlue);		
 		item_settings4.background_color = QColor(Qt::blue).lighter(190);
@@ -1280,6 +1274,7 @@ void SequenceWizard::showSeqParameters()
 		}		
 	} 
 }
+*/
 
 void SequenceWizard::showLUSISeqParameters()
 {
@@ -1415,7 +1410,7 @@ void SequenceWizard::showLUSISeqMemo()
 	if (!cur_lusi_Seq.seq_errors.isEmpty()) parse_errs = true;
 	
 	bool program_errs = false;
-	if (!cur_lusi_Seq.procdsp_errors.isEmpty()) program_errs = true;
+	if (!cur_lusi_Seq.comprg_errors.isEmpty()) program_errs = true;
 	
 	bool fpga_errs = false;
 	if (!cur_lusi_Seq.procdsp_errors.isEmpty()) fpga_errs = true;
@@ -1450,6 +1445,7 @@ void SequenceWizard::showLUSISeqMemo()
 	ui->lblDescription->setText(memo);
 }
 
+/*
 void SequenceWizard::redrawSeqParameters()
 {
 	for (int i = 0; i < c_items.count(); i++)
@@ -1469,20 +1465,12 @@ void SequenceWizard::redrawSeqParameters()
 		}
 	}
 }
+*/
 
+/*
 void SequenceWizard::showSequenceMemo(Sequence &seq)
-{
-	/*QString memo = "<font color = darkblue>Author:</font> " + seq.author + "<br>";
-	memo += "<font color = darkblue>Created:</font> " + seq.date_time.toString("dd.MM.yyyy hh:mm:ss") + "<br>";
-	memo += "<font color = darkblue>Description:</font> " + seq.description + "<br><br>";
-
-	memo += "<font color = darkblue>Errors:</font> " + QString(!seq.seq_errors.isEmpty() ? "<a href=#parse_error><font color=red><b><u>Found!</u></b></font></a>" : "<font color=darkgreen>Not Found.</font>");
-
-	ui->lblDescription->setOpenExternalLinks(false);
-	ui->lblDescription->setText(memo);*/
-
-	bool parse_errs = false;
-	//if (!seq.seq_errors.isEmpty()) parse_errs = true;
+{	
+	bool parse_errs = false;	
 	for (int i = 0; i < seq.param_list.count(); i++) if (!seq.param_list[i]->flag) parse_errs = true;
 
 	bool program_errs = false;
@@ -1510,7 +1498,6 @@ void SequenceWizard::showSequenceMemo(Sequence &seq)
 	{
 		if (cond_list[i]->flag == 0) parse_errs = true;
 		else if ((cond_list[i]->flag & 0x2) == 0) cond_errs = true;
-		//if ((cond_list[i]->flag & 0x1) == 0) parse_errs = true;
 	}
 	
 	QString memo = "";
@@ -1534,14 +1521,10 @@ void SequenceWizard::showSequenceMemo(Sequence &seq)
 		else memo += QString("<font color=darkgreen>%1</font>").arg(tr("OK!"));	
 	}
 
-	//memo += QString(parse_errs ? "<a href=#parse_error><font color=red><b><u>%1</u></b></font></a>" : "<font color=darkgreen>%2</font><br>").arg(tr("Found!")).arg(tr("Not Found."));
-	//memo += QString("<font color = darkblue>%1</font> ").arg(tr("Errors in the FPGA Program:")) + QString(fpga_errs ? "<a href=#fpga_error><font color=red><b><u>%1</u></b></font></a>" : "<font color=darkgreen>%2</font><br>").arg(tr("Found!")).arg(tr("Not Found."));
-	//memo += QString("<font color = darkblue>%1</font> ").arg(tr("Errors in the DSP Processing Program:")) + QString(program_errs ? "<a href=#dsp_error><font color=red><b><u>%1</u></b></font></a>" : "<font color=darkgreen>%2</font><br>").arg(tr("Found!")).arg(tr("Not Found."));
-
-	
 	ui->lblDescription->setOpenExternalLinks(false);
 	ui->lblDescription->setText(memo);
 }
+*/
 
 void SequenceWizard::clearCTreeWidget()
 {
@@ -1552,6 +1535,7 @@ void SequenceWizard::clearCTreeWidget()
 	c_title_items.clear();
 }
 
+/*
 void SequenceWizard::descriptionLinkActivated(const QString &link)
 {
 	QString err_msg = "<b>" + tr("Sequence file parsing errors:") + "</b><br><br><font color=red>";
@@ -1684,8 +1668,50 @@ void SequenceWizard::descriptionLinkActivated(const QString &link)
 		InfoDialog info_dlg(err_msg, this);
 		if (info_dlg.exec()) return;
 	}
+}*/
+
+void SequenceWizard::descriptionLinkActivated(const QString &link)
+{
+	QString err_msg = "<b>" + tr("Sequence file parsing and execution errors:") + "</b><br><br><font color=red>";
+
+	if( link == "#parse_error" || link == "#fpga_error" || link == "#dsp_error" || link == "#params_error" )
+	{		
+		int cnt = 1;
+		QStringList seq_errors = cur_lusi_Seq.seq_errors;
+		for (int i = 0; i < seq_errors.count(); i++)
+		{
+			err_msg += tr("%1. %2<br>").arg(cnt++).arg(seq_errors[i]);				
+		}
+
+		QStringList comprg_errors = cur_lusi_Seq.comprg_errors;
+		for (int i = 0; i < comprg_errors.count(); i++)
+		{
+			err_msg += tr("%1. %2<br>").arg(cnt++).arg(comprg_errors[i]);		
+		}
+
+		QStringList procdsp_errors = cur_lusi_Seq.procdsp_errors;
+		for (int i = 0; i < procdsp_errors.count(); i++)
+		{
+			err_msg += tr("%1. %2<br>").arg(cnt++).arg(procdsp_errors[i]);		
+		}
+
+		QStringList cond_errors = cur_lusi_Seq.cond_errors;		
+		for (int i = 0; i < cond_errors.count(); i++)
+		{
+			err_msg += tr("%1. %2<br>").arg(cnt++).arg(cond_errors[i]);		
+		}
+
+		//QStringList js_errors = cur_lusi_Seq.js_error
+		
+		err_msg += "<br><br>";		
+		err_msg += "</font>";
+
+		InfoDialog info_dlg(err_msg, this);
+		if (info_dlg.exec()) return;
+	}	
 }
 
+/*
 bool SequenceWizard::changeCurrentSequence(const QString &text)
 {
 	int index = file_list.indexOf(text, 0);
@@ -1707,6 +1733,62 @@ bool SequenceWizard::changeCurrentSequence(const QString &text)
 	emit sequence_changed();
 
 	return true;
+}
+*/
+
+bool SequenceWizard::changeCurrentSequence(const QString &text)
+{
+	int index = file_list.indexOf(text, 0);
+	if (index < 0) return false;
+
+	cur_lusi_Seq.clear();
+	lusi_engine.clear();
+
+	QString file_name = path_list[index] + "/" + file_list[index];
+		
+	{
+		QString file_name = path_list.first() + "/" + file_list.first();
+		QFile file(file_name);
+		QString str = "";
+		if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+		{
+			QTextStream text_stream(&file);
+			str = text_stream.readAll();
+			file.close();		
+		}
+
+		QStringList lusi_elist;
+		lusi_engine.setLUSIscript(str);
+		if (lusi_engine.evaluate(lusi_elist))
+		{
+			LUSI::ObjectList *obj_list_global = lusi_engine.getObjList();
+			if (obj_list_global->isEmpty())
+			{
+				int ret = QMessageBox::warning(this, tr("Warning!"), tr("Sequence program for Logging Tool was not found!"), QMessageBox::Ok, QMessageBox::Ok);
+				return false;
+			}
+
+			QAction *pact = script_debugger.action(QScriptEngineDebugger::InterruptAction);
+			connect(pact, SIGNAL(triggered()), this, SLOT(triggerJSerror()));
+
+			QString js_script = lusi_engine.getJSscript();
+			QScriptValue qscrpt_value = engine.evaluate(js_script);
+
+			cur_lusi_Seq.clear();
+			cur_lusi_Seq.setObjects(obj_list_global);
+
+			showLUSISeqParameters();
+			showLUSISeqMemo();
+
+			ui->cboxSequences->addItems(file_list);
+			ui->ledSeqName->setText(cur_lusi_Seq.name);
+		}
+		else
+		{
+			// There are LUSI errors !
+		}
+	}	
+	emit sequence_changed();
 }
 
 void SequenceWizard::addSequence()
@@ -1748,9 +1830,11 @@ void SequenceWizard::refreshSequence()
 		cur_fileName = ui->cboxSequences->currentText();
 		if (!changeCurrentSequence(cur_fileName))	// выбрать в качестве текущей следующую последовательность. ≈сли такой не найдено, то очисить весь виджет и все данные
 		{
-			curSeq.clear();
-			if (sequence_proc != NULL) delete sequence_proc;
-			sequence_proc = NULL;
+			//curSeq.clear();
+			//if (sequence_proc != NULL) delete sequence_proc;
+			//sequence_proc = NULL;
+			cur_lusi_Seq.clear();
+			lusi_engine.clear();
 			
 			ui->ledSeqName->clear();
 			ui->lblDescription->clear();
@@ -1762,6 +1846,7 @@ void SequenceWizard::refreshSequence()
 	else changeCurrentSequence(cur_fileName);		// обновить все данные текущей последовательности 
 }
 
+/*
 void SequenceWizard::refreshSequenceList()
 {
 	QString cur_fileName = ui->cboxSequences->currentText();
@@ -1781,15 +1866,6 @@ void SequenceWizard::refreshSequenceList()
 		ui->cboxSequences->addItems(file_list);		
 		ui->ledSeqName->setText(curSeq.name);
 
-		/*QString memo = "<font color = darkblue>Author:</font> " + curSeq.author + "<br>";
-		memo += "<font color = darkblue>Created:</font> " + curSeq.date_time.toString("dd.MM.yyyy hh:mm:ss") + "<br>";
-		memo += "<font color = darkblue>Description:</font> " + curSeq.description + "<br><br>";
-
-		memo += "<font color = darkblue>Errors:</font> " + QString(errs ? "<a href=#parse_error><font color=red><b><u>Found!</u></b></font></a>" : "<font color=darkgreen>Not Found.</font>");
-
-		ui->lblDescription->setOpenExternalLinks(false);
-		ui->lblDescription->setText(memo);*/
-
 		showSequenceMemo(curSeq);
 		showSeqParameters();			
 	}
@@ -1806,6 +1882,7 @@ void SequenceWizard::refreshSequenceList()
 		ui->treeWidget->clear();
 	}
 }
+*/
 
 
 void SequenceWizard::readSequenceCmdIndex()
@@ -2181,69 +2258,28 @@ QString SequenceWizard::getStrItemNumber(QString text, int index, int base)
 bool SequenceWizard::getDSPPrg(QVector<uint8_t> &_prg, QVector<uint8_t> &_instr)
 {	
 	bool flag = true;
-	QList<Sequence_Param*> param_list = curSeq.param_list;
-	for (int i = 0; i < param_list.count(); i++) if (!param_list[i]->flag) flag = false;
-	
-	QList<Condition*> cond_list = curSeq.cond_list;
-	for (int i = 0; i < cond_list.count(); i++) if (cond_list[i]->flag != 3) flag = false;
+	if (!cur_lusi_Seq.seq_errors.isEmpty()) flag = false;
+	if (!cur_lusi_Seq.comprg_errors.isEmpty()) flag = false;
+	if (!cur_lusi_Seq.procdsp_errors.isEmpty()) flag = false;
+	if (!cur_lusi_Seq.cond_errors.isEmpty()) flag = false;
+	if (cur_lusi_Seq.js_error) flag = false;
 
-	QList<Argument*> arg_list = curSeq.arg_list;
-	for (int i = 0; i < arg_list.count(); i++) if (!arg_list[i]->flag) flag = false;
-	
 	if (!flag) return false;
 
 	_prg.clear();
-
-	QList<Sequence_Cmd*> cmd_list = curSeq.cmd_list;	
-	for (int i = 0; i < cmd_list.count(); i++)
-	{		
-		if (cmd_list[i]->flag)
-		{
-			_prg.append(cmd_list[i]->byte1);
-			_prg.append(cmd_list[i]->byte2);
-			_prg.append(cmd_list[i]->byte3);
-			_prg.append(cmd_list[i]->byte4);
-		}
-		else 
-		{			
-			return false;
-		}
-	}
+	QByteVector cmd_prg = cur_lusi_Seq.com_programs.first();	// временно ! ѕринимаетс€ только перва€ программа дл€ интервального программатора
+	if (cmd_prg.isEmpty()) return false;
+	_prg << cmd_prg;
 		
 	_instr.clear();
-	if (curSeq.instr_packs_count > 0)
+	if (cur_lusi_Seq.proc_programs.isEmpty()) return false;
+	for (int i = 0; i < cur_lusi_Seq.proc_programs.count(); i++)
 	{
-		QList<Sequence_InstrPack*> instr_packs = curSeq.instr_pack_list;
-		for (int i = 0; i < instr_packs.count(); i++)
-		{		
-			Sequence_InstrPack *instr_pack = instr_packs[i];
-			_instr.append(instr_pack->pack_number);
-
-			QList<Sequence_Instr*> instr_list = instr_pack->instr_list;
-			for (int j = 0; j < instr_list.count(); j++)
-			{
-				Sequence_Instr* instr = instr_list[j];
-				if (instr->flag)
-				{
-					_instr.append(instr->byte1);
-					_instr.append(instr->byte2);
-					_instr.append(instr->byte3);					
-
-					for (int k = 0; k < instr->param_bytes.count(); k++)
-					{
-						_instr.append(instr->param_bytes[k]);						
-					}
-				}
-				else 
-				{					
-					return false;
-				}	
-
-				if ((j == instr_list.count()-1) && (i < instr_packs.count()-1)) 
-				{
-					_instr.append(0xFF);					
-				}
-			}			
+		QByteVector instr_pack = cur_lusi_Seq.proc_programs[i];
+		_instr << instr_pack;
+		if (i < cur_lusi_Seq.proc_programs.count()-1)
+		{
+			_instr.append(0xFF);
 		}
 	}
 
@@ -2336,6 +2372,7 @@ int SequenceWizard::calcActualDataSize(QString &formula, bool *_ok)
 	return res;
 }
 
+/*
 void SequenceWizard::refreshArgFormula()
 {
 	for (int i = 0; i < curSeq.args_count; i++)
@@ -2357,6 +2394,7 @@ void SequenceWizard::refreshArgFormula()
 		}
 	}	
 }
+*/
 
 void SequenceWizard::showSequenceInfo()
 {
@@ -2370,9 +2408,11 @@ void SequenceWizard::showSequenceInfo()
 
 void SequenceWizard::triggerJSerror()
 {
+	
 	QAction *pact = (QAction*)sender();
 	if (!pact) return;
 
 	cur_lusi_Seq.js_error = true;
 	pact->trigger();
+	
 }

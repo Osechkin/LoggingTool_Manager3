@@ -509,6 +509,15 @@
     <ClCompile Include="GeneratedFiles\Release\moc_LUSI.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_distance_meter_widget.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_distance_meter_widget.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\distance_meter_widget.cpp">
+      <Filter>Source Files\Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="main_window.h">
@@ -766,6 +775,12 @@
     <CustomBuild Include="LUSI\LUSI.h">
       <Filter>Header Files\Common</Filter>
     </CustomBuild>
+    <CustomBuild Include="Widgets\distance_meter_widget.h">
+      <Filter>Header Files\Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\distance_meter_widget.ui">
+      <Filter>Form Files\Widgets</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_main_window.h">
@@ -916,6 +931,9 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_depth_internal_widget.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_distance_meter_widget.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1996,7 +1996,7 @@ void MainWindow::startNMRTool(bool flag)
 			a_start->setChecked(false);
 			return;
 		}
-		sequenceProc->refreshArgFormula();
+		//sequenceProc->refreshArgFormula();
 
 		emit sdsp_is_enabled(false);
 
@@ -2044,7 +2044,7 @@ void MainWindow::applyDSPProcPrg(bool flag)
 		a_start->setChecked(false);
 		return;
 	}
-	sequenceProc->refreshArgFormula();
+	//sequenceProc->refreshArgFormula();
 
 	setCmdResult(DATA_PROC, ConnectionState::State_Connecting);	
 	nmrtoolLinker->applyProcPrg(proc_prg, proc_instr);
@@ -2134,6 +2134,7 @@ void MainWindow::stopSDSPTool(bool flag)
 	nmrtoolLinker->stopNMRTool();
 }
 
+/*
 void MainWindow::applyFPGAandDSPPrg()
 {
 	Sequence *curSeq = NULL;
@@ -2229,6 +2230,7 @@ void MainWindow::applyFPGAandDSPPrg()
 		}
 	}	
 }
+*/
 
 void MainWindow::breakAllActions()
 {
@@ -2628,8 +2630,10 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				if (group_index > 0)
 				{
 					int data_index = 0; 
-					Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
-					full_size = arg->actual_points;
+					//Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
+					//full_size = arg->actual_points;
+					LUSI::Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
+					full_size = arg->getSize();
 								
 					for (int j = 0; j < x_data->size(); j++)
 					{
@@ -2640,9 +2644,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 						if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
 						else gap_map.data()[j] = DATA_OK;
 
-						bool ok = false;
-						//x_data_full.data()[j] = sequenceProc->calcArgument(j, arg, &ok);
-						x_data_full.data()[j] = arg->xdata.data()[j];
+						bool ok = false;						
+						//x_data_full.data()[j] = arg->xdata.data()[j];
+						x_data_full.data()[j] = arg->getPoints().at(j).toDouble(&ok);
 						
 						if (bad_map->at(j) == DATA_OK)
 						{
@@ -3101,7 +3105,8 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				if (group_index > 0)
 				{
 					int data_index = 0;
-					Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
+					//Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
+					LUSI::Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
 					for (int j = 0; j < x_data->size(); j++)
 					{
 						full_size++;
@@ -3112,15 +3117,15 @@ void MainWindow::treatNewData(DeviceData *device_data)
 						if (bb == 0xffffffff) gap_map.data()[j] = BAD_DATA;
 						else gap_map.data()[j] = DATA_OK;
 
-						bool ok = false;
-						//x_data_full.data()[j] = sequenceProc->calcArgument(j, arg, &ok);
-						x_data_full.data()[j] = arg->xdata.data()[j];
+						bool ok = false;						
+						//x_data_full.data()[j] = arg->xdata.data()[j];
+						x_data_full.data()[j] = arg->getPoints().at(j).toDouble(&ok);
 
 						if (bad_map->at(j) == DATA_OK)
 						{
-							bool ok = false;
-							//*(x_data->data()+data_index) = sequenceProc->calcArgument(j, arg, &ok);
-							*(x_data->data()+data_index) = arg->xdata.data()[j];
+							bool ok = false;							
+							//*(x_data->data()+data_index) = arg->xdata.data()[j];
+							*(x_data->data()+data_index) = arg->getPoints().at(j).toDouble(&ok);
 							*(y_data->data()+data_index) = fields->at(i)->value->at(j)/512;		// 512 - количество точек после преобразования фурье
 							data_index++;
 						}	
@@ -3379,7 +3384,8 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 	
 	//profiler.tic(4, "MainWindow::exportData()");
 
-	Sequence *cur_seq = sequenceProc->getCurrentSequence();
+	//Sequence *cur_seq = sequenceProc->getCurrentSequence();
+	LUSI::Sequence *cur_seq = sequenceProc->getCurrentSequence();
 
 	QDateTime ctime = QDateTime::currentDateTime();
 	QString ctime_str = ctime.toString("d-M-yyyy_hh:mm:ss");
@@ -3413,12 +3419,17 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		memo += "[Intervals]\n";
 		for (int i = 0; i < cur_seq->param_list.count(); i++)
 		{
-			Sequence_Param *param = cur_seq->param_list[i];
-			if (param->type == SeqParamType::Interval && !param->read_only)
+			//Sequence_Param *param = cur_seq->param_list[i];
+			LUSI::Parameter *param = cur_seq->param_list[i];
+			//if (param->type == SeqParamType::Interval && !param->read_only)
+			if (!param->getReadOnly())
 			{
-				QString int_name = param->name;
-				QString int_caption = param->caption;
-				double int_value = param->app_value;
+				//QString int_name = param->name;				
+				//QString int_caption = param->caption;				
+				//double int_value = param->app_value;
+				QString int_name = param->getObjName();
+				QString int_caption = param->getTitle();
+				int int_value = param->getAppValue();
 				memo += QString("%1 = %2\t; %3\n").arg(int_name).arg(int_value).arg(int_caption);
 			}			
 		}	

@@ -13,7 +13,7 @@ public:
 	AbstractDepthMeter() { }
 	~AbstractDepthMeter() { }
 
-	enum DepthMeterType { DepthEmulator, ImpulsUstye, InternalDepthMeter, NoType };
+	enum DepthMeterType { DepthEmulator, ImpulsUstye, InternalDepthMeter, LeuzeDistanceMeter, NoType };
 
 	virtual QString getTitle() { return QString(""); }
 	virtual DepthMeterType getType() { return NoType; }

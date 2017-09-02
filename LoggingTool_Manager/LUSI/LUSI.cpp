@@ -429,6 +429,15 @@ LUSI::Engine::Engine(QScriptEngine *_qsript_engine, QList<SeqCmdInfo> _cmd_list,
 	init(_qsript_engine, _cmd_list, _instr_list);
 }
 
+LUSI::Engine::~Engine()
+{
+	if (!obj_list.isEmpty())
+	{
+		qDeleteAll(obj_list.begin(), obj_list.end());
+		obj_list.clear();
+	}
+}
+
 void LUSI::Engine::init(QScriptEngine *_qsript_engine, QList<SeqCmdInfo> _cmd_list, QList<SeqInstrInfo> _instr_list)
 {
 	qscript_engine = _qsript_engine;
@@ -994,17 +1003,33 @@ bool LUSI::Engine::findLUSIMacros(QString &_str, QString &_e)
 	return false;
 }
 
+
+void LUSI::Engine::clear()
+{	
+	lusi_script = "";
+	js_script = "";
+	if (!obj_list.isEmpty())
+	{
+		qDeleteAll(obj_list.begin(), obj_list.end());
+		obj_list.clear();
+	}
+	started_package = "";
+	package_was_started = false;
+	started_comprg = "";
+	comprg_was_started = "";
+
+	error_list.clear();
+}
+
+
 //QRegExp rx_float("(^[+-]?\d*[.]?\d*[eE]?[+-]?\d+$)");						// регулярное выражение для поиска чисел с плавающей точкой
 //QRegExp rx_var("(^_+[a-zA-Z]+\w*[^_]{1}$)|([a-zA-Z]+\w*[^_]{1}$)");		// регулярное выражение для поиска имен переменных
-
 bool LUSI::Engine::evaluate(QStringList &_elist)
 {
 	qDeleteAll(obj_list.begin(), obj_list.end());
 	obj_list.clear();
 
-	DefinitionList definitions;
-	
-	// Этап 1: Поиск и применение макроопределений LUSI (lusi'ing process)
+	DefinitionList definitions;		
 	startLusiing(lusi_script, _elist, definitions, js_script);
 	error_list = _elist;
 	if (_elist.isEmpty()) return true;

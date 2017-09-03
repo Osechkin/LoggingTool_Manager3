@@ -106,7 +106,7 @@ void LeuzeDistanceMeterWidget::setConnection()
 	connect(ui->cboxZero, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
 	connect(ui->cboxSetDistance, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
 	
-	//connect(ui->pbtConnect, SIGNAL(toggled(bool)), this, SLOT(connectDepthMeter(bool)));
+	connect(ui->pbtConnect, SIGNAL(toggled(bool)), this, SLOT(connectDepthMeter(bool)));
 
 	connect(&timer, SIGNAL(timeout()), this, SLOT(onTime()));
 }

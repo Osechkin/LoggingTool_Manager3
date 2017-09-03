@@ -28,12 +28,12 @@ public:
 	//double_b getTension() { return double_b(false, tension); }
 	//int_b getMagnetMarks() { return int_b(false, 0); }
 	
-	//void stopDepthMeter();
-	//void startDepthMeter();
+	void stopDepthMeter();
+	void startDepthMeter();
 
 private:	
 	void setConnection();	
-	//void setDepthCommunicatorConnections();
+	void setDepthCommunicatorConnections();
 	void showData(uint8_t type, double val);
 
 private:
@@ -72,7 +72,7 @@ private:
 
 
 private slots:
-	//void connectDepthMeter(bool flag);
+	void connectDepthMeter(bool flag);
 	void changeUnits(QString str);
 	void getMeasuredData(uint32_t _uid, uint8_t _type, double val);
 	void measureTimedOut(uint32_t _uid, uint8_t _type);

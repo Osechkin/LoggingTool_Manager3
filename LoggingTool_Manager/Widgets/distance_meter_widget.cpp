@@ -85,7 +85,7 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	COM_Port = com_port;
 	depth_communicator = NULL;
 
-	timer.start(1000);	
+	timer.start(200);	
 		
 	setConnection();
 }
@@ -111,32 +111,32 @@ void LeuzeDistanceMeterWidget::setConnection()
 	connect(&timer, SIGNAL(timeout()), this, SLOT(onTime()));
 }
 
-/*
-void cboxDistance::setDepthCommunicatorConnections()
+
+void LeuzeDistanceMeterWidget::setDepthCommunicatorConnections()
 {
 	connect(depth_communicator, SIGNAL(measured_data(uint32_t, uint8_t, double)), this, SLOT(getMeasuredData(uint32_t, uint8_t, double)));
 	connect(depth_communicator, SIGNAL(data_timed_out(uint32_t, uint8_t)), this, SLOT(measureTimedOut(uint32_t, uint8_t)));
 	connect(this, SIGNAL(to_measure(uint32_t, uint8_t)), depth_communicator, SLOT(toMeasure(uint32_t, uint8_t)));
 }
-*/
 
-/*
-void DepthImpulsUstyeWidget::stopDepthMeter()
+
+
+void LeuzeDistanceMeterWidget::stopDepthMeter()
 {
-	ui->pbtConnect->setChecked(false);
+	//ui->pbtConnect->setChecked(false);
 
 	timer.stop();
 
-	disconnect(clocker, SIGNAL(clock()), this, SLOT(clocked()));
+	//disconnect(clocker, SIGNAL(clock()), this, SLOT(clocked()));
 }
 
-void DepthImpulsUstyeWidget::startDepthMeter()
+void LeuzeDistanceMeterWidget::startDepthMeter()
 {
-	timer.start(1000);
+	timer.start(200);
 
-	connect(clocker, SIGNAL(clock()), this, SLOT(clocked()));
+	//connect(clocker, SIGNAL(clock()), this, SLOT(clocked()));
 }
-*/
+
 
 /*
 void DepthImpulsUstyeWidget::includeParameter(int state)
@@ -224,8 +224,8 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 	}
 }
 
-/*
-void DepthImpulsUstyeWidget::connectDepthMeter(bool flag)
+
+void LeuzeDistanceMeterWidget::connectDepthMeter(bool flag)
 {
 	if (!flag)
 	{
@@ -249,11 +249,13 @@ void DepthImpulsUstyeWidget::connectDepthMeter(bool flag)
 		is_connected = false;
 		emit connected(is_connected);
 
+		/*
 		ui->pbtConnect->setText(tr("Connect to Depth Meter"));
 		ui->pbtConnect->setIcon(QIcon(":/images/add.png"));
 		ui->lblDepth->setText("");
 		ui->lblRate->setText("");
 		ui->lblTension->setText("");
+		*/
 	}	
 	else
 	{		
@@ -286,10 +288,12 @@ void DepthImpulsUstyeWidget::connectDepthMeter(bool flag)
 				is_connected = true;
 				emit connected(true);
 
-				timer.start(1000);
+				timer.start(200);
 
+				/*
 				ui->pbtConnect->setText(tr("Disconnect from Depth Meter"));
 				ui->pbtConnect->setIcon(QIcon(":/images/remove.png"));
+				*/
 			}
 			else
 			{
@@ -305,7 +309,7 @@ void DepthImpulsUstyeWidget::connectDepthMeter(bool flag)
 		}			
 	}	
 }
-*/
+
 
 void LeuzeDistanceMeterWidget::getMeasuredData(uint32_t _uid, uint8_t _type, double val)
 {

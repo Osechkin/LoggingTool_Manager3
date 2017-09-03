@@ -105,7 +105,7 @@ void DepthTemplateWizard::includeParameter(int state)
 }
 */
 
-
+/*
 void DepthTemplateWizard::changeDepthMeter(QString str)
 {
 	current_depth_meter->stopDepthMeter();
@@ -145,6 +145,52 @@ void DepthTemplateWizard::changeDepthMeter(QString str)
 			ui->gridLayoutFrame->addWidget(current_depth_meter);			
 		}
 	}
+}
+*/
+
+void DepthTemplateWizard::changeDepthMeter(QString str)
+{
+	current_depth_meter->stopDepthMeter();
+
+	AbstractDepthMeter *selected_depth_meter = NULL;
+	for (int i = 0; i < depth_meters.count(); i++)
+	{
+		if (depth_meters[i]->getTitle() == str)
+		{		
+			selected_depth_meter = depth_meters[i];					
+		}
+	}
+	if (selected_depth_meter == NULL) return;
+
+	bool removed = false;	
+	AbstractDepthMeter::DepthMeterType removed_type = AbstractDepthMeter::DepthMeterType::NoType;
+	for (int j = depth_meters.count()-1; j >= 0; --j)
+	{				
+		if (current_depth_meter == depth_meters[j])
+		{
+			depth_meters.removeAt(j);
+			removed_type = current_depth_meter->getType();
+			removed = true;
+			break;
+		}
+	}
+	if (!removed) return;
+
+	ui->gridLayoutFrame->removeWidget(current_depth_meter);
+	delete current_depth_meter;
+
+	switch (removed_type)
+	{
+	case AbstractDepthMeter::DepthEmulator:			depth_meters.append(new DepthEmulatorWidget(clocker)); break;
+	case AbstractDepthMeter::ImpulsUstye:			depth_meters.append(new DepthImpulsUstyeWidget(clocker, COM_Port)); break;
+	case AbstractDepthMeter::InternalDepthMeter:	depth_meters.append(new DepthInternalWidget(clocker, COM_Port)); break;
+	case AbstractDepthMeter::LeuzeDistanceMeter:	depth_meters.append(new LeuzeDistanceMeterWidget(clocker, COM_Port)); break;
+	default: break;
+	}
+
+	current_depth_meter = selected_depth_meter;
+	current_depth_meter->startDepthMeter();
+	ui->gridLayoutFrame->addWidget(current_depth_meter);	
 }
 
 

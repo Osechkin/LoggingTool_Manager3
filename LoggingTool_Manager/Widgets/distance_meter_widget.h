@@ -43,7 +43,7 @@ private:
 	QTimer timer;
 
 	COM_PORT *COM_Port;
-	DepthCommunicator *depth_communicator;
+	LeuzeCommunicator *leuze_communicator;
 	ImpulsConnectionWidget *connectionWidget;
 
 	double distance;

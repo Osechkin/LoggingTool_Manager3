@@ -42,6 +42,9 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	ui->pbtForward->setIcon(QIcon(":/images/play.png"));
 	ui->pbtEnd->setIcon(QIcon(":/images/play_end.png"));
 	
+	ui->pbtConnect->setText(tr("Connect to Distance Meter"));
+	ui->pbtConnect->setIcon(QIcon(":/images/add.png"));
+	
 	connectionWidget = new ImpulsConnectionWidget(this);
 	connectionWidget->setReport(ConnectionState::State_No);
 
@@ -83,7 +86,7 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 
 	clocker = _clocker;
 	COM_Port = com_port;
-	depth_communicator = NULL;
+	leuze_communicator = NULL;
 
 	timer.start(200);	
 		
@@ -114,9 +117,9 @@ void LeuzeDistanceMeterWidget::setConnection()
 
 void LeuzeDistanceMeterWidget::setDepthCommunicatorConnections()
 {
-	connect(depth_communicator, SIGNAL(measured_data(uint32_t, uint8_t, double)), this, SLOT(getMeasuredData(uint32_t, uint8_t, double)));
-	connect(depth_communicator, SIGNAL(data_timed_out(uint32_t, uint8_t)), this, SLOT(measureTimedOut(uint32_t, uint8_t)));
-	connect(this, SIGNAL(to_measure(uint32_t, uint8_t)), depth_communicator, SLOT(toMeasure(uint32_t, uint8_t)));
+	connect(leuze_communicator, SIGNAL(measured_data(uint32_t, uint8_t, double)), this, SLOT(getMeasuredData(uint32_t, uint8_t, double)));
+	connect(leuze_communicator, SIGNAL(data_timed_out(uint32_t, uint8_t)), this, SLOT(measureTimedOut(uint32_t, uint8_t)));
+	connect(this, SIGNAL(to_measure(uint32_t, uint8_t)), leuze_communicator, SLOT(toMeasure(uint32_t, uint8_t)));
 }
 
 
@@ -237,25 +240,21 @@ void LeuzeDistanceMeterWidget::connectDepthMeter(bool flag)
 			//COM_Port->COM_port = NULL;		
 		}	
 
-		if (depth_communicator != NULL)
+		if (leuze_communicator != NULL)
 		{
-			depth_communicator->exit();
-			depth_communicator->wait();
-			delete depth_communicator;	
-			depth_communicator = NULL;
+			leuze_communicator->exit();
+			leuze_communicator->wait();
+			delete leuze_communicator;	
+			leuze_communicator = NULL;
 		}
 
 		timer.stop();
 		is_connected = false;
 		emit connected(is_connected);
-
-		/*
-		ui->pbtConnect->setText(tr("Connect to Depth Meter"));
+				
+		ui->pbtConnect->setText(tr("Connect to Distance Meter"));
 		ui->pbtConnect->setIcon(QIcon(":/images/add.png"));
-		ui->lblDepth->setText("");
-		ui->lblRate->setText("");
-		ui->lblTension->setText("");
-		*/
+		ui->ledDistance->setText("");		
 	}	
 	else
 	{		
@@ -264,36 +263,34 @@ void LeuzeDistanceMeterWidget::connectDepthMeter(bool flag)
 			QString COMPort_Name = COM_Port->COM_port->portName();
 			if (COMPort_Name.isEmpty()) 
 			{
-				int ret = QMessageBox::warning(this, tr("Warning!"), tr("No available COM-Port was found to connect to Depth Meter!"), QMessageBox::Ok, QMessageBox::Ok);
+				int ret = QMessageBox::warning(this, tr("Warning!"), tr("No available COM-Port was found to connect to Distance Meter!"), QMessageBox::Ok, QMessageBox::Ok);
 				return;
 			}
 
 			COM_Port->COM_port->close();
 			COM_Port->COM_port->setPortName(COMPort_Name);
 
-			if (depth_communicator != NULL)
+			if (leuze_communicator != NULL)
 			{
-				depth_communicator->exit();
-				depth_communicator->wait();
-				delete depth_communicator;
-				depth_communicator = NULL;
+				leuze_communicator->exit();
+				leuze_communicator->wait();
+				delete leuze_communicator;
+				leuze_communicator = NULL;
 			}			
 			bool res = COM_Port->COM_port->open(QextSerialPort::ReadWrite);
 			if (res) 	
 			{				
-				depth_communicator = new DepthCommunicator(COM_Port->COM_port, clocker);
+				leuze_communicator = new LeuzeCommunicator(COM_Port->COM_port, clocker);
 				setDepthCommunicatorConnections();
-				depth_communicator->start(QThread::NormalPriority);
+				leuze_communicator->start(QThread::NormalPriority);
 
 				is_connected = true;
 				emit connected(true);
 
 				timer.start(200);
-
-				/*
-				ui->pbtConnect->setText(tr("Disconnect from Depth Meter"));
-				ui->pbtConnect->setIcon(QIcon(":/images/remove.png"));
-				*/
+								
+				ui->pbtConnect->setText(tr("Disconnect from Distance Meter"));
+				ui->pbtConnect->setIcon(QIcon(":/images/remove.png"));				
 			}
 			else
 			{
@@ -305,7 +302,7 @@ void LeuzeDistanceMeterWidget::connectDepthMeter(bool flag)
 		}
 		else
 		{
-			int ret = QMessageBox::warning(this, tr("Warning!"), tr("No available COM-Port was found to connect to Depth Meter!"), QMessageBox::Ok, QMessageBox::Ok);
+			int ret = QMessageBox::warning(this, tr("Warning!"), tr("No available COM-Port was found to connect to Distance Meter!"), QMessageBox::Ok, QMessageBox::Ok);
 		}			
 	}	
 }
@@ -349,16 +346,15 @@ void LeuzeDistanceMeterWidget::measureTimedOut(uint32_t _uid, uint8_t _type)
 
 void LeuzeDistanceMeterWidget::showData(uint8_t type, double val)
 {	
-	QString str = "<font color=darkGreen><b>%1</font>";
+	distance = val/1000;
 
 	switch (type)
 	{
 	case DEPTH_DATA:	
 		{
-			double value = val * k_distance;  
-			QString str_value = QString::number(value);
-			str = QString(str).arg(str_value);
-			ui->ledDistance->setText(str); 
+			double value = distance * k_distance;  
+			QString str_value = QString::number(value);			
+			ui->ledDistance->setText(str_value); 
 			break;
 		}	
 	case DEVICE_SEARCH:	

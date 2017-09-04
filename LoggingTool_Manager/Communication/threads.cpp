@@ -2655,3 +2655,136 @@ void DepthCommunicator::wake()
 
 	emit frozen(is_freezed);
 }
+
+
+LeuzeCommunicator::LeuzeCommunicator(QextSerialPort *com_port, Clocker *clocker, QObject *parent)
+{
+	thread_id = thid++;	
+
+	COM_port = com_port;	
+	connect(COM_port, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));
+	
+	this->clocker = clocker;	
+}
+
+LeuzeCommunicator::~LeuzeCommunicator()
+{
+	//delete data_q;
+	/*
+	for (int i = 0; i < depth_data_queue.count(); i++)
+	{
+		DepthMeterData *depth_data = depth_data_queue.get();
+		delete depth_data;
+	}
+
+	for (int i = 0; i < sent_depth_data_queue.count(); i++)
+	{
+		DepthMeterData *depth_data = sent_depth_data_queue.get();
+		delete depth_data;
+	}
+	*/
+}
+
+
+void LeuzeCommunicator::setPort(QextSerialPort *com_port)
+{
+	COM_port = com_port; 
+	connect(COM_port, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));
+}
+
+void LeuzeCommunicator::toMeasure(uint32_t uid, uint8_t data_type)
+{
+	if (distance_buffer.isEmpty()) return;
+	if (data_type != DEPTH_DATA) return;
+
+	double res = 0;
+	for (int i = 0; i < distance_buffer.count(); i++)
+	{
+		res += distance_buffer[i];
+	}
+	res /= distance_buffer.count();
+	distance_buffer.clear();
+
+	emit measured_data(uid, DEPTH_DATA, res);
+}
+
+
+void LeuzeCommunicator::onDataAvailable()
+{
+	QByteArray byte_data = COM_port->readAll();	
+	if (!byte_data.isEmpty())
+	{
+		acc_data += byte_data;
+		QStringList str_data = acc_data.split('\r');
+		if (str_data.count() == 1 && str_data.first().size() == 5)
+		{
+			bool _ok;
+			int value = str_data.first().toInt(&_ok);
+			if (_ok) distance_buffer.push_back(value);		
+			str_data.takeFirst();
+			acc_data = "";
+		}
+		else
+		{
+			int sz = str_data.count();
+			for (int i = 0; i < sz; i++)
+			{
+				if (str_data.first().size() == 5)
+				{
+					bool _ok;
+					int value = str_data.first().toInt(&_ok);
+					if (_ok) distance_buffer.push_back(value);
+				}
+				str_data.takeFirst();				
+			}	
+			acc_data = "";
+		}
+		//acc_data = str_data.join('\r');
+	}	
+}
+
+
+void LeuzeCommunicator::run()
+{
+	if (!COM_port)
+	{
+		freeze();
+		emit error_msg("Bad pointer to COM-port!");
+		return;
+	}
+	if (!COM_port->isOpen())
+	{
+		freeze();
+		emit error_msg("COM-port is closed!");
+		return;
+	}
+
+	connect(clocker, SIGNAL(clock()), this, SLOT(timeClocked()));
+
+	is_freezed = false;
+	is_running = true;
+
+	/*is_running = true;
+	while (is_running)
+	{
+		msleep(1);
+	}*/
+	exec();
+}
+
+
+void LeuzeCommunicator::freeze()
+{
+	disconnect(clocker, SIGNAL(clock()), this, SLOT(timeClocked()));
+	is_freezed = true;	
+
+	emit frozen(is_freezed);
+}
+
+void LeuzeCommunicator::wake()
+{
+	connect(clocker, SIGNAL(clock()), this, SLOT(timeClocked()));
+	is_freezed = false;	
+
+	emit frozen(is_freezed);
+}

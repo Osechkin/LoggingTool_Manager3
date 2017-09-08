@@ -82,10 +82,12 @@
     <addaction name="separator"/>
     <addaction name="a_COMPort"/>
     <addaction name="a_Depthmeter_Connection"/>
+    <addaction name="a_StepMotor"/>
     <addaction name="separator"/>
     <addaction name="a_Communication"/>
     <addaction name="a_TCP_Connection"/>
     <addaction name="a_CDiag_Connection"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -275,6 +277,11 @@
   <action name="a_Change_Tool">
    <property name="text">
     <string>Change Logging Tool...</string>
+   </property>
+  </action>
+  <action name="a_StepMotor">
+   <property name="text">
+    <string>Step Motor COM-Port Settings...</string>
    </property>
   </action>
  </widget>

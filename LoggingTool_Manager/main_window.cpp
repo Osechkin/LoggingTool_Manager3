@@ -213,19 +213,33 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 		int ret = QMessageBox::warning(this, "Warning!", tr("Available COM-Port for Depth Meter hasn't been found!"), QMessageBox::Ok);	
 		exit(0);
 	}
+	QString stepmotor_port_name = "COM8";
+	if (app_settings->contains("StepMotor/PortName")) stepmotor_port_name = app_settings->value("StepMotor/PortName").toString();
+	else app_settings->setValue(("StepMotor/PortName"), QVariant(stepmotor_port_name));
+	COM_Port_stepmotor = new COM_PORT;
+	initCOMSettings(COM_Port_stepmotor, "StepMotor");
+	conn_res = setupCOMPort(COM_Port_stepmotor, stepmotor_port_name);
+	if (!conn_res) conn_res = findAvailableCOMPort(COM_Port_stepmotor);
+	if (!conn_res)
+	{
+		int ret = QMessageBox::warning(this, "Warning!", tr("Available COM-Port for Step Motor control system hasn't been found!"), QMessageBox::Ok);	
+		exit(0);
+	}
+
 	dock_depthTemplate = new QDockWidget(tr("Depth Monitoring"), this);
 	dock_depthTemplate->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
 	QFont fontDepthTemplate = dock_depthTemplate->font();
 	fontDepthTemplate.setPointSize(9);
 	fontDepthTemplate.setBold(true);
 	dock_depthTemplate->setFont(fontDepthTemplate);
-	depthTemplate = new DepthTemplateWizard(COM_Port_depth, clocker, dock_depthTemplate);
+	depthTemplate = new DepthTemplateWizard(COM_Port_depth, COM_Port_stepmotor, clocker, dock_depthTemplate);
 	fontDepthTemplate.setBold(false);
 	depthTemplate->getUI()->cboxDepthMeter->setFont(fontDepthTemplate);
 	depthTemplate->getUI()->lblDepthMeter->setFont(fontDepthTemplate);
 	dock_depthTemplate->setWidget(depthTemplate);
 	addDockWidget(Qt::BottomDockWidgetArea, dock_depthTemplate);
 	dock_depthTemplate->setVisible(true);
+	
 		
 	dock_sequenceProc = new QDockWidget(tr("Sequence Wizard"), this);	
 	QFont fontProc = dock_sequenceProc->font();
@@ -530,7 +544,8 @@ void MainWindow::setConnections()
 	connect(ui->a_About, SIGNAL(triggered()), this, SLOT(showAboutDialog()));
 	connect(ui->a_toOil, SIGNAL(triggered()), this, SLOT(setExportToOilData()));
 	connect(ui->a_toFile, SIGNAL(triggered()), this, SLOT(setExportToFileData()));
-	connect(ui->a_Depthmeter_Connection, SIGNAL(triggered()), this, SLOT(setDepthmeterSettings()));
+	connect(ui->a_Depthmeter_Connection, SIGNAL(triggered()), this, SLOT(setDepthMeterSettings()));
+	connect(ui->a_StepMotor, SIGNAL(triggered()), this, SLOT(setStepMotorCOMSettings()));
 	connect(ui->a_Change_Tool, SIGNAL(triggered()), this, SLOT(changeLoggingTool()));
 	
 	connect(dock_RxTxControl, SIGNAL(dockLocationChanged(Qt::DockWidgetArea)), rxtxControl, SLOT(changeLocation(Qt::DockWidgetArea)));
@@ -1601,10 +1616,10 @@ void MainWindow::setTCPConnectionSettings()
 }
 
 
-void MainWindow::setDepthmeterSettings()
+void MainWindow::setDepthMeterSettings()
 {
 	COMPortDialog dlg(COM_Port_depth->COM_port->portName(), COM_Port_depth->COM_Settings, false, this);
-	dlg.setTitle(tr("Set COM-Port Settings of Depth Meter"));
+	dlg.setTitle(tr("Set COM-Port Settings for Depth Meter"));
 	dlg.enableAutoSearch(false);
 	if (dlg.exec())
 	{
@@ -1618,6 +1633,26 @@ void MainWindow::setDepthmeterSettings()
 		com_port->setDataBits(port_settings.DataBits);
 		com_port->setParity(port_settings.Parity);
 		//com_port->setFlowControl(port_settings.FlowControl);
+		com_port->setStopBits(port_settings.StopBits);		
+	}
+}
+
+void MainWindow::setStepMotorCOMSettings()
+{
+	COMPortDialog dlg(COM_Port_stepmotor->COM_port->portName(), COM_Port_stepmotor->COM_Settings, false, this);
+	dlg.setTitle(tr("Set COM-Port Settings for Step Motor control board"));
+	dlg.enableAutoSearch(false);
+	if (dlg.exec())
+	{
+		COM_Port_stepmotor->COM_Settings = dlg.getPortSettings();		
+		COM_Port_stepmotor->auto_search = dlg.getAutoSearchState();
+
+		QextSerialPort *com_port = COM_Port_stepmotor->COM_port;
+		PortSettings port_settings = COM_Port_stepmotor->COM_Settings;
+		com_port->setPortName(dlg.getCOMPort());
+		com_port->setBaudRate(port_settings.BaudRate);
+		com_port->setDataBits(port_settings.DataBits);
+		com_port->setParity(port_settings.Parity);		
 		com_port->setStopBits(port_settings.StopBits);		
 	}
 }

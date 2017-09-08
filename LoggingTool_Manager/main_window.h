@@ -115,6 +115,7 @@ private:
 	COM_PORT *COM_Port;
 	Communication_Settings *comm_settings;
 	COM_PORT *COM_Port_depth;				// COM-порт для глубиномера
+	COM_PORT *COM_Port_stepmotor;			// COM-порт для платы управления шаговым двигателем
 	GF_Data *gf_data;	
 
 	//unsigned char tool_id;					// идентификационный номер каротажного прибора
@@ -215,7 +216,8 @@ private slots:
 	void setCOMPortSettings();  	
 	void setCommunicationSettings();
 	void setTCPConnectionSettings();	
-	void setDepthmeterSettings();
+	void setDepthMeterSettings();
+	void setStepMotorCOMSettings();
 	void setProcessingSettings();
 	void setSequenceChanged();
 	void showAboutDialog();

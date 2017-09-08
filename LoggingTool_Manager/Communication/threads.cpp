@@ -2662,6 +2662,8 @@ LeuzeCommunicator::LeuzeCommunicator(QextSerialPort *com_port, Clocker *clocker,
 	thread_id = thid++;	
 
 	COM_port = com_port;	
+	COM_port->flush();
+
 	connect(COM_port, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));
 	
 	this->clocker = clocker;	
@@ -2669,31 +2671,23 @@ LeuzeCommunicator::LeuzeCommunicator(QextSerialPort *com_port, Clocker *clocker,
 
 LeuzeCommunicator::~LeuzeCommunicator()
 {
-	//delete data_q;
-	/*
-	for (int i = 0; i < depth_data_queue.count(); i++)
-	{
-		DepthMeterData *depth_data = depth_data_queue.get();
-		delete depth_data;
-	}
-
-	for (int i = 0; i < sent_depth_data_queue.count(); i++)
-	{
-		DepthMeterData *depth_data = sent_depth_data_queue.get();
-		delete depth_data;
-	}
-	*/
+	
 }
 
 
 void LeuzeCommunicator::setPort(QextSerialPort *com_port)
 {
 	COM_port = com_port; 
+	COM_port->flush();
+
 	connect(COM_port, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));
 }
 
 void LeuzeCommunicator::toMeasure(uint32_t uid, uint8_t data_type)
 {
+	//COM_port->flush();
+	//qDebug() << COM_port->bytesAvailable();
+
 	if (distance_buffer.isEmpty()) return;
 	if (data_type != DEPTH_DATA) return;
 
@@ -2712,34 +2706,25 @@ void LeuzeCommunicator::toMeasure(uint32_t uid, uint8_t data_type)
 void LeuzeCommunicator::onDataAvailable()
 {
 	QByteArray byte_data = COM_port->readAll();	
+
 	if (!byte_data.isEmpty())
 	{
 		acc_data += byte_data;
 		QStringList str_data = acc_data.split('\r');
-		if (str_data.count() == 1 && str_data.first().size() == 5)
-		{
-			bool _ok;
-			int value = str_data.first().toInt(&_ok);
-			if (_ok) distance_buffer.push_back(value);		
-			str_data.takeFirst();
-			acc_data = "";
-		}
-		else
-		{
-			int sz = str_data.count();
-			for (int i = 0; i < sz; i++)
-			{
-				if (str_data.first().size() == 5)
-				{
-					bool _ok;
-					int value = str_data.first().toInt(&_ok);
-					if (_ok) distance_buffer.push_back(value);
-				}
-				str_data.takeFirst();				
-			}	
-			acc_data = "";
-		}
-		//acc_data = str_data.join('\r');
+		
+		bool _ok = false;
+		int sz = str_data.count();
+		for (int i = 0; i < sz; i++)
+		{			
+			if (str_data.first().size() == LEUZE_DATA_LEN)
+			{				
+				int value = str_data.first().toInt(&_ok);
+				if (_ok) distance_buffer.push_back(value);
+			}
+			str_data.takeFirst();				
+		}	
+		
+		if (_ok) acc_data = "";
 	}	
 }
 
@@ -2773,6 +2758,11 @@ void LeuzeCommunicator::run()
 }
 
 
+void LeuzeCommunicator::timeClocked()
+{
+
+}
+
 void LeuzeCommunicator::freeze()
 {
 	disconnect(clocker, SIGNAL(clock()), this, SLOT(timeClocked()));
@@ -2784,6 +2774,118 @@ void LeuzeCommunicator::freeze()
 void LeuzeCommunicator::wake()
 {
 	connect(clocker, SIGNAL(clock()), this, SLOT(timeClocked()));
+	is_freezed = false;	
+
+	emit frozen(is_freezed);
+}
+
+
+
+StepMotorCommunicator::StepMotorCommunicator(QextSerialPort *com_port, QObject *parent)
+{
+	thread_id = thid++;	
+
+	COM_port = com_port;	
+	connect(COM_port, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));	
+}
+
+StepMotorCommunicator::~StepMotorCommunicator()
+{
+	
+}
+
+
+void StepMotorCommunicator::setPort(QextSerialPort *com_port)
+{
+	COM_port = com_port; 
+	connect(COM_port, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));
+}
+
+void StepMotorCommunicator::sendRequestToCOM(QByteArray *arr)
+{		
+	COM_port->write(arr->data(), arr->size());	
+}
+
+void StepMotorCommunicator::toSend(QString cmd)
+{
+	QByteArray arr = cmd.toLocal8Bit();
+	sendRequestToCOM(&arr);
+}
+
+void StepMotorCommunicator::onDataAvailable()
+{
+	QByteArray byte_data = COM_port->readAll();	
+
+	if (!byte_data.isEmpty())
+	{
+		acc_data += byte_data;
+		QStringList str_data = acc_data.split('*');
+		int block_count = str_data.count();
+		if (block_count > 2)
+		{
+			for (int i = 0; i < block_count-1; i++)
+			{
+				QString req_str = str_data.first();
+				if (req_str == "E10") 
+				{
+					str_data.takeFirst();					
+				}
+				else if (req_str == "E15")
+				{
+					emit error_msg(tr("Step Motor Error: Bad RS-232!"));
+					return;
+				}
+				else if (req_str == "E16")
+				{
+					emit error_msg(tr("Step Motor Error: Bad command!"));
+					return;
+				}
+				else if (req_str == "E19")
+				{
+					emit error_msg(tr("Step Motor Error: Bad command parameter!"));
+					return;
+				}
+			}
+			acc_data = str_data.last();
+		}
+	}	
+}
+
+void StepMotorCommunicator::run()
+{
+	if (!COM_port)
+	{
+		freeze();
+		emit error_msg("Bad pointer to COM-port!");
+		return;
+	}
+	if (!COM_port->isOpen())
+	{
+		freeze();
+		emit error_msg("COM-port is closed!");
+		return;
+	}
+
+	//connect(clocker, SIGNAL(clock()), this, SLOT(timeClocked()));
+
+	is_freezed = false;
+	is_running = true;
+
+	exec();
+}
+
+
+void StepMotorCommunicator::freeze()
+{
+	//disconnect(clocker, SIGNAL(clock()), this, SLOT(timeClocked()));
+	is_freezed = true;	
+
+	emit frozen(is_freezed);
+}
+
+void StepMotorCommunicator::wake()
+{
+	//connect(clocker, SIGNAL(clock()), this, SLOT(timeClocked()));
 	is_freezed = false;	
 
 	emit frozen(is_freezed);

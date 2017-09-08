@@ -319,9 +319,7 @@ public:
 
 private:		
 	void sendRequestToCOM(DepthMeterData *dmd);	
-	//void treatCOMData(QByteArray _str, COM_Message *_msg);
-	
-	//MainWindow *main_win;
+	//void treatCOMData(QByteArray _str, COM_Message *_msg);	
 
 	QextSerialPort *COM_port;	
 	Clocker *clocker;
@@ -378,11 +376,10 @@ public:
 private:		
 	QextSerialPort *COM_port;	
 	Clocker *clocker;
-	QTimer *msg_timer;
 	
 	QString acc_data;						// приемник символов, поступающих по сети
-	QVector<double> distance_buffer;			// буфер типа FIFO последних DEPTH_BUFF_SIZE измрений глубины для удаления случайных скачков глубины
-
+	QVector<double> distance_buffer;		// буфер типа FIFO последних DEPTH_BUFF_SIZE измрений глубины для удаления случайных скачков глубины
+	
 	volatile bool is_running;
 	volatile bool is_freezed;
 
@@ -390,6 +387,55 @@ private:
 
 public slots:
 	void toMeasure(uint32_t uid, uint8_t data_type);
+
+private slots:	
+	void onDataAvailable();
+	void timeClocked();
+
+protected:
+	void run();
+
+signals:    
+	void error_msg(QString);
+	void measured_data(uint32_t, uint8_t, double);	// uint32_t uid, uint8_t type, double result
+	void data_timed_out(uint32_t, uint8_t);			// uint32_t uid, uint8_t type
+	void frozen(bool);
+
+};
+
+
+
+// поток, устанавливающий связь с платой управления шаговым двигателем,
+// и управляющий шаговым двигателем
+class StepMotorCommunicator : public QThread
+{
+	Q_OBJECT
+
+public:
+	explicit StepMotorCommunicator(QextSerialPort *com_port, QObject *parent = 0);
+	~StepMotorCommunicator();
+
+	void freeze();
+	void wake();
+	int id() { return thread_id; }
+	
+	void setPort(QextSerialPort *com_port);
+
+private:		
+	void sendRequestToCOM(QByteArray *arr);		
+
+private:
+	QextSerialPort *COM_port;	
+	
+	QString acc_data;								// приемник символов, поступающих по сети
+
+	volatile bool is_running;
+	volatile bool is_freezed;
+
+	int thread_id;
+
+public slots:
+	void toSend(QString cmd);
 
 private slots:	
 	void onDataAvailable();
@@ -405,6 +451,5 @@ signals:
 
 };
 
+
 #endif // THREADS_H
-
-

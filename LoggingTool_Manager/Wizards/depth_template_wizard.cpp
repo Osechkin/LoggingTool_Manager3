@@ -11,7 +11,7 @@ static int port_num = 0;
 static uint32_t uid = 0;
 
 
-DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, Clocker *clocker, QWidget *parent) : QWidget(parent), ui(new Ui::DepthTemplateWizard)
+DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_stepmotor, Clocker *clocker, QWidget *parent) : QWidget(parent), ui(new Ui::DepthTemplateWizard)
 {
 	ui->setupUi(this);
 	this->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Expanding);
@@ -21,6 +21,7 @@ DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, Clocker *clocker, Q
 	
 	this->clocker = clocker;
 	COM_Port = com_port;
+	COM_Port_stepmotor = com_port_stepmotor;
 	
 	is_connected = false;
 	//device_is_searching = false;
@@ -28,7 +29,7 @@ DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, Clocker *clocker, Q
 	DepthEmulatorWidget *depth_emulator = new DepthEmulatorWidget(clocker);
 	DepthImpulsUstyeWidget *depth_impulsustye = new DepthImpulsUstyeWidget(clocker, COM_Port);
 	DepthInternalWidget *depth_internal = new DepthInternalWidget(clocker, COM_Port);
-	LeuzeDistanceMeterWidget *distance_meter = new LeuzeDistanceMeterWidget(clocker, COM_Port);
+	LeuzeDistanceMeterWidget *distance_meter = new LeuzeDistanceMeterWidget(clocker, COM_Port, COM_Port_stepmotor);
 	connect(depth_impulsustye, SIGNAL(connected(bool)), this, SIGNAL(connected(bool)));
 
 	ui->gridLayoutFrame->addWidget(depth_emulator);
@@ -184,7 +185,7 @@ void DepthTemplateWizard::changeDepthMeter(QString str)
 	case AbstractDepthMeter::DepthEmulator:			depth_meters.append(new DepthEmulatorWidget(clocker)); break;
 	case AbstractDepthMeter::ImpulsUstye:			depth_meters.append(new DepthImpulsUstyeWidget(clocker, COM_Port)); break;
 	case AbstractDepthMeter::InternalDepthMeter:	depth_meters.append(new DepthInternalWidget(clocker, COM_Port)); break;
-	case AbstractDepthMeter::LeuzeDistanceMeter:	depth_meters.append(new LeuzeDistanceMeterWidget(clocker, COM_Port)); break;
+	case AbstractDepthMeter::LeuzeDistanceMeter:	depth_meters.append(new LeuzeDistanceMeterWidget(clocker, COM_Port, COM_Port_stepmotor)); break;
 	default: break;
 	}
 

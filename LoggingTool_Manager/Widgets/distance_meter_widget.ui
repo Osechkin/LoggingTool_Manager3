@@ -69,7 +69,7 @@
        <item row="5" column="0">
         <widget class="QPushButton" name="pbtConnect">
          <property name="text">
-          <string>Connect to Distance Meter</string>
+          <string>Connect to Rock Movement System</string>
          </property>
          <property name="checkable">
           <bool>true</bool>

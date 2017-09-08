@@ -257,6 +257,7 @@ typedef enum {
 
 
 #define DEPTH_DATA_LEN		3			// длина получаемых из глубиномера данных в байтах
+#define LEUZE_DATA_LEN		5			// длина числа, получаемого из Leuze ODSL 96B (в байтах)
 
 
 #define DEPTH_REQ_TIMEOUT	250			// время, необходимое на получение ответа на запрос из глубиномера

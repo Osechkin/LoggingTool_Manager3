@@ -17,7 +17,7 @@ class LeuzeDistanceMeterWidget : public AbstractDepthMeter, public Ui::LeuzeDist
 	Q_OBJECT
 
 public:
-	explicit LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *com_port, QWidget *parent = 0);
+	explicit LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *com_port, COM_PORT *stepmotor_com_port, QWidget *parent = 0);
 	~LeuzeDistanceMeterWidget();
 
 	QString getTitle() { return tr("Leuze Distance Meter"); }
@@ -34,6 +34,7 @@ public:
 private:	
 	void setConnection();	
 	void setDepthCommunicatorConnections();
+	void setStepMotorCommunicatorConnections();
 	void showData(uint8_t type, double val);
 
 private:
@@ -41,9 +42,12 @@ private:
 
 	Clocker *clocker;
 	QTimer timer;
+	QTimer stepmotor_timer;
 
 	COM_PORT *COM_Port;
+	COM_PORT *stepmotor_COM_Port;
 	LeuzeCommunicator *leuze_communicator;
+	StepMotorCommunicator *stepmotor_communicator;
 	ImpulsConnectionWidget *connectionWidget;
 
 	double distance;
@@ -64,7 +68,7 @@ private:
 	double lower_bound;
 	double upper_bound;
 	
-	bool distance_active;
+	bool distance_ok;
 	
 	bool is_connected;
 	bool is_started;
@@ -72,12 +76,15 @@ private:
 
 
 private slots:
-	void connectDepthMeter(bool flag);
+	void connectAllMeters(bool flag);
 	void changeUnits(QString str);
 	void getMeasuredData(uint32_t _uid, uint8_t _type, double val);
 	void measureTimedOut(uint32_t _uid, uint8_t _type);
 	//void includeParameter(int state);
 	void onTime();
+
+	void moveBack(bool flag);
+	void moveForward(bool flag);
 
 public slots:
 

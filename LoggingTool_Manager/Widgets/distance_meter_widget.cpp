@@ -5,7 +5,7 @@
 
 static uint32_t uid = 0;
 
-LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *com_port, QWidget *parent /* = 0 */)  : ui(new Ui::LeuzeDistanceMeter)
+LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *com_port, COM_PORT *stepmotor_com_port, QWidget *parent /* = 0 */)  : ui(new Ui::LeuzeDistanceMeter)
 {
 	ui->setupUi(this);
 	this->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Expanding);
@@ -42,7 +42,7 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	ui->pbtForward->setIcon(QIcon(":/images/play.png"));
 	ui->pbtEnd->setIcon(QIcon(":/images/play_end.png"));
 	
-	ui->pbtConnect->setText(tr("Connect to Distance Meter"));
+	ui->pbtConnect->setText(tr("Connect to Rock Movement System"));
 	ui->pbtConnect->setIcon(QIcon(":/images/add.png"));
 	
 	connectionWidget = new ImpulsConnectionWidget(this);
@@ -50,7 +50,7 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 
 	distance = 0.001;		// always in meters
 	k_distance = 1000;		// for default units ("mm")
-	distance_active = true;
+	distance_ok = true;
 
 	set_distance = 0;
 	k_set_distance = 1000;
@@ -86,9 +86,15 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 
 	clocker = _clocker;
 	COM_Port = com_port;
+	stepmotor_COM_Port = stepmotor_com_port;
 	leuze_communicator = NULL;
+	stepmotor_communicator = NULL;
 
-	timer.start(200);	
+	upper_bound = 1.950;	// m
+	lower_bound = 0.150;	// m
+
+	timer.start(250);	
+	stepmotor_timer.start(250);
 		
 	setConnection();
 }
@@ -97,6 +103,8 @@ LeuzeDistanceMeterWidget::~LeuzeDistanceMeterWidget()
 {
 	delete ui;
 	delete connectionWidget;
+	if (leuze_communicator != NULL) delete leuze_communicator;
+	if (stepmotor_communicator != NULL) delete stepmotor_communicator;
 }
 
 
@@ -108,8 +116,11 @@ void LeuzeDistanceMeterWidget::setConnection()
 	connect(ui->cboxStep, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
 	connect(ui->cboxZero, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
 	connect(ui->cboxSetDistance, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
+
+	connect(ui->pbtBack, SIGNAL(toggled(bool)), this, SLOT(moveBack(bool)));
+	connect(ui->pbtForward, SIGNAL(toggled(bool)), this, SLOT(moveForward(bool)));
 	
-	connect(ui->pbtConnect, SIGNAL(toggled(bool)), this, SLOT(connectDepthMeter(bool)));
+	connect(ui->pbtConnect, SIGNAL(toggled(bool)), this, SLOT(connectAllMeters(bool)));
 
 	connect(&timer, SIGNAL(timeout()), this, SLOT(onTime()));
 }
@@ -122,7 +133,52 @@ void LeuzeDistanceMeterWidget::setDepthCommunicatorConnections()
 	connect(this, SIGNAL(to_measure(uint32_t, uint8_t)), leuze_communicator, SLOT(toMeasure(uint32_t, uint8_t)));
 }
 
+void LeuzeDistanceMeterWidget::setStepMotorCommunicatorConnections()
+{
+	
+}
 
+void LeuzeDistanceMeterWidget::moveBack(bool flag)
+{
+	if (!flag)
+	{
+		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
+	}
+	else
+	{
+		if (distance > lower_bound && distance < upper_bound)
+		{
+			stepmotor_communicator->toSend("\EN*DL*SD200*MV*");		// Move step motor left
+		}
+		else 
+		{
+			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
+			ui->pbtBack->setChecked(false);
+			ui->pbtForward->setChecked(false);
+		}
+	}
+}
+
+void LeuzeDistanceMeterWidget::moveForward(bool flag)
+{
+	if (!flag)
+	{
+		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
+	}
+	else
+	{
+		if (distance > lower_bound && distance < upper_bound)
+		{
+			stepmotor_communicator->toSend("\EN*DR*SD200*MV*");		// Move step motor left
+		}
+		else 
+		{
+			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
+			ui->pbtBack->setChecked(false);
+			ui->pbtForward->setChecked(false);
+		}
+	}
+}
 
 void LeuzeDistanceMeterWidget::stopDepthMeter()
 {
@@ -135,42 +191,11 @@ void LeuzeDistanceMeterWidget::stopDepthMeter()
 
 void LeuzeDistanceMeterWidget::startDepthMeter()
 {
-	timer.start(200);
+	timer.start(250);
 
 	//connect(clocker, SIGNAL(clock()), this, SLOT(clocked()));
 }
 
-
-/*
-void DepthImpulsUstyeWidget::includeParameter(int state)
-{
-	QCheckBox *chbox = (QCheckBox*)sender();
-	if (!chbox) return;
-
-	bool flag;
-	if (state == Qt::Checked) flag = true;
-	else if (state == Qt::Unchecked) flag = false;
-
-	if (chbox == ui->chboxDepth) 
-	{
-		ui->lblDepth->setText("");
-		ui->cboxDepth->setEnabled(flag);
-		depth_active = flag;
-	}
-	else if (chbox == ui->chboxRate)
-	{
-		ui->lblRate->setText("");
-		ui->cboxRate->setEnabled(flag);
-		rate_active = flag;
-	}
-	else if (chbox == ui->chboxTension)
-	{
-		ui->lblTension->setText("");
-		ui->cboxTension->setEnabled(flag);
-		tension_active = flag;
-	}
-}
-*/
 
 void LeuzeDistanceMeterWidget::changeUnits(QString str)
 {
@@ -228,17 +253,18 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 }
 
 
-void LeuzeDistanceMeterWidget::connectDepthMeter(bool flag)
+void LeuzeDistanceMeterWidget::connectAllMeters(bool flag)
 {
 	if (!flag)
 	{
 		if (COM_Port->COM_port != NULL) 
 		{
-			COM_Port->COM_port->close();			
-
-			//delete COM_Port->COM_port;
-			//COM_Port->COM_port = NULL;		
+			COM_Port->COM_port->close();		
 		}	
+		if (stepmotor_COM_Port->COM_port != NULL) 
+		{
+			stepmotor_COM_Port->COM_port->close();		
+		}
 
 		if (leuze_communicator != NULL)
 		{
@@ -247,17 +273,25 @@ void LeuzeDistanceMeterWidget::connectDepthMeter(bool flag)
 			delete leuze_communicator;	
 			leuze_communicator = NULL;
 		}
+		if (stepmotor_communicator != NULL)
+		{
+			stepmotor_communicator->exit();
+			stepmotor_communicator->wait();
+			delete stepmotor_communicator;	
+			stepmotor_communicator = NULL;
+		}
 
 		timer.stop();
 		is_connected = false;
 		emit connected(is_connected);
 				
-		ui->pbtConnect->setText(tr("Connect to Distance Meter"));
+		ui->pbtConnect->setText(tr("Connect to Rock Movement System"));
 		ui->pbtConnect->setIcon(QIcon(":/images/add.png"));
 		ui->ledDistance->setText("");		
 	}	
 	else
 	{		
+		// Leuze destance meter initialization
 		if (COM_Port->COM_port != NULL)
 		{
 			QString COMPort_Name = COM_Port->COM_port->portName();
@@ -287,9 +321,9 @@ void LeuzeDistanceMeterWidget::connectDepthMeter(bool flag)
 				is_connected = true;
 				emit connected(true);
 
-				timer.start(200);
+				timer.start(250);
 								
-				ui->pbtConnect->setText(tr("Disconnect from Distance Meter"));
+				ui->pbtConnect->setText(tr("Disconnect from Rock Movement System"));
 				ui->pbtConnect->setIcon(QIcon(":/images/remove.png"));				
 			}
 			else
@@ -303,7 +337,53 @@ void LeuzeDistanceMeterWidget::connectDepthMeter(bool flag)
 		else
 		{
 			int ret = QMessageBox::warning(this, tr("Warning!"), tr("No available COM-Port was found to connect to Distance Meter!"), QMessageBox::Ok, QMessageBox::Ok);
-		}			
+		}	
+
+		// Step Motor controller initialization
+		if (stepmotor_COM_Port->COM_port != NULL)
+		{
+			QString stepmotor_COMPort_Name = stepmotor_COM_Port->COM_port->portName();
+			if (stepmotor_COMPort_Name.isEmpty()) 
+			{
+				int ret = QMessageBox::warning(this, tr("Warning!"), tr("No available COM-Port was found to connect to Step Motor controller!"), QMessageBox::Ok, QMessageBox::Ok);
+				return;
+			}
+
+			stepmotor_COM_Port->COM_port->close();
+			stepmotor_COM_Port->COM_port->setPortName(stepmotor_COMPort_Name);
+
+			if (stepmotor_communicator != NULL)
+			{
+				stepmotor_communicator->exit();
+				stepmotor_communicator->wait();
+				delete stepmotor_communicator;
+				stepmotor_communicator = NULL;
+			}			
+			bool res = stepmotor_COM_Port->COM_port->open(QextSerialPort::ReadWrite);
+			if (res) 	
+			{				
+				stepmotor_communicator = new StepMotorCommunicator(stepmotor_COM_Port->COM_port, clocker);
+				setStepMotorCommunicatorConnections();
+				stepmotor_communicator->start(QThread::NormalPriority);
+
+				//is_connected = true;
+				//emit connected(true);
+								
+				ui->pbtConnect->setText(tr("Disconnect from Rock Movement System"));
+				ui->pbtConnect->setIcon(QIcon(":/images/remove.png"));				
+			}
+			else
+			{
+				is_connected = false;
+				emit connected(false);
+
+				int ret = QMessageBox::warning(this, tr("Warning!"), tr("Cannot open COM-Port (%1)!").arg(stepmotor_COMPort_Name), QMessageBox::Ok, QMessageBox::Ok);
+			}
+		}
+		else
+		{
+			int ret = QMessageBox::warning(this, tr("Warning!"), tr("No available COM-Port was found to connect to Step Motor controller!"), QMessageBox::Ok, QMessageBox::Ok);
+		}	
 	}	
 }
 
@@ -319,11 +399,20 @@ void LeuzeDistanceMeterWidget::getMeasuredData(uint32_t _uid, uint8_t _type, dou
 
 	switch (_type)
 	{
-	case DEPTH_DATA:	distance = val;	break;
+	case DEPTH_DATA:	distance = val/1000;	break;
 	case DEVICE_SEARCH:	device_is_searching = false; break;
 	default: break;
 	}
 
+	if (distance < lower_bound || distance > upper_bound)
+	{
+		distance_ok = false;
+		stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
+		ui->pbtBack->setChecked(false);
+		ui->pbtForward->setChecked(false);
+	}
+	else distance_ok = true;
+	
 	showData(_type, val);
 }
 
@@ -346,15 +435,31 @@ void LeuzeDistanceMeterWidget::measureTimedOut(uint32_t _uid, uint8_t _type)
 
 void LeuzeDistanceMeterWidget::showData(uint8_t type, double val)
 {	
-	distance = val/1000;
+	
 
 	switch (type)
 	{
 	case DEPTH_DATA:	
 		{
-			double value = distance * k_distance;  
-			QString str_value = QString::number(value);			
-			ui->ledDistance->setText(str_value); 
+			QPalette palette;					
+			if (distance_ok)
+			{
+				palette.setColor(QPalette::Base,Qt::white);
+				palette.setColor(QPalette::Text,Qt::darkGreen);
+				 //ui->ledDistance->setStyleSheet("QLineEdit {background-color: white;}");
+			}
+			else
+			{
+				palette.setColor(QPalette::Base,Qt::red);
+				palette.setColor(QPalette::Text,Qt::darkGreen);
+				//ui->ledDistance->setStyleSheet("QLineEdit {background-color: red;}");
+			}
+			ui->ledDistance->setPalette(palette);
+
+			double value = distance * k_distance;  			
+			QString str_value = QString::number(value,'g',4);				
+			ui->ledDistance->setText(str_value);
+			
 			break;
 		}	
 	case DEVICE_SEARCH:	

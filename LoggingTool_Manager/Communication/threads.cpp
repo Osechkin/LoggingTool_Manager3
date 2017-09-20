@@ -2683,11 +2683,9 @@ void LeuzeCommunicator::setPort(QextSerialPort *com_port)
 	connect(COM_port, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));
 }
 
+/*
 void LeuzeCommunicator::toMeasure(uint32_t uid, uint8_t data_type)
 {
-	//COM_port->flush();
-	//qDebug() << COM_port->bytesAvailable();
-
 	if (distance_buffer.isEmpty()) return;
 	if (data_type != DEPTH_DATA) return;
 
@@ -2727,6 +2725,65 @@ void LeuzeCommunicator::onDataAvailable()
 		if (_ok) acc_data = "";
 	}	
 }
+*/
+
+void LeuzeCommunicator::toMeasure(uint32_t uid, uint8_t data_type)
+{	
+	if (data_type != DEPTH_DATA) return;
+		
+	sendRequestToCOM();
+
+	if (!distance_buffer.isEmpty()) 
+	{
+		switch (distance_buffer.last().first)
+		{
+		case NoError:		emit measured_data(uid, DEPTH_DATA, distance_buffer.last().second); break;
+		case NoSignal:		emit error_msg(tr("No Signal!")); break;
+		case UnknownError:	emit error_msg(tr("Error!")); break;
+		}
+		distance_buffer.clear();
+	}
+}
+
+void LeuzeCommunicator::sendRequestToCOM()
+{	
+	char req[4];
+	req[0] = '*';
+	req[1] = '0';
+	req[2] = 'M';
+	req[3] = '#';
+
+	COM_port->write((char*)(&req[0]), 4);	
+}
+
+void LeuzeCommunicator::onDataAvailable()
+{
+	QByteArray byte_data = COM_port->readAll();	
+	acc_data += byte_data;
+
+	if (acc_data.count() < LEUZE_DATA_LEN) return;
+	else if (acc_data.count() == LEUZE_DATA_LEN)
+	{
+		if (acc_data.at(0) == 0x2A && acc_data.at(LEUZE_DATA_LEN-1) == 0x23)
+		{
+			QString str_data = acc_data.split('*').last().split('#').first();
+			
+			int err_code = NoError;
+			if (str_data.contains("65535")) err_code = NoSignal;
+			if (str_data.contains("9999")) err_code = UnknownError;
+			
+			distance_buffer.clear();
+
+			bool _ok;
+			int value = str_data.toInt(&_ok);				
+			if (_ok) distance_buffer.push_back(QPair<int,int>(err_code,value));
+			else distance_buffer.push_back(QPair<int,int>(UnknownError,0));
+			
+			acc_data.clear();			
+		}
+	}
+	else acc_data.clear();	
+}
 
 
 void LeuzeCommunicator::run()
@@ -2760,7 +2817,7 @@ void LeuzeCommunicator::run()
 
 void LeuzeCommunicator::timeClocked()
 {
-
+	
 }
 
 void LeuzeCommunicator::freeze()

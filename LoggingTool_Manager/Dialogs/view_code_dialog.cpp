@@ -38,6 +38,7 @@ void ViewCodeDialog::setMode(Mode _mode)
 
 void ViewCodeDialog::showLUSISeqProgram()
 {
+	tedProgram->clear();
 	for (int i = 0; i < lusi_seq->comprg_list.count(); i++)
 	{
 		LUSI::COMProgram *com_prg = lusi_seq->comprg_list[i];
@@ -47,7 +48,7 @@ void ViewCodeDialog::showLUSISeqProgram()
 		QString prg_str = comPrgToString(i);
 		QString bytecode_str = "";
 		if (view_bytecode) bytecode_str = comPrgToByteCodeString(i);
-		tedProgram->clear();
+		//tedProgram->clear();
 
 		QString str_ = "";
 		if (view_bytecode) str_ = tr("<b>Byte-code:</b>");
@@ -58,6 +59,7 @@ void ViewCodeDialog::showLUSISeqProgram()
 		tedProgram->insertHtml(prg_str);
 	}
 		
+	tedProcessing->clear();
 	for (int i = 0; i < lusi_seq->procdsp_list.count(); i++)
 	{
 		LUSI::ProcPackage *dsp_prg = lusi_seq->procdsp_list[i];
@@ -67,7 +69,7 @@ void ViewCodeDialog::showLUSISeqProgram()
 		QString prg_str = procPrgToString(i);
 		QString bytecode_str = "";
 		if (view_bytecode) bytecode_str = procPrgToByteCodeString(i);
-		tedProcessing->clear();
+		//tedProcessing->clear();
 
 		QString str_ = "";
 		if (view_bytecode) str_ = tr("<b>Byte-code:</b>");

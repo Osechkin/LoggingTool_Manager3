@@ -30,7 +30,7 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	ui->cboxZero->setStyleSheet("QComboBox { color: darkblue }");
 
 	ui->ledDistance->setStyleSheet("QLineEdit { color: darkGreen }");
-	ui->ledSetDistance->setStyleSheet("QLineEdit { color: darkGreen }");
+	ui->dsboxSetPosition->setStyleSheet("QDoubleSpinBox { color: darkBlue }");	
 
 	ui->dsboxFrom->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
 	ui->dsboxTo->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
@@ -41,6 +41,7 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	ui->pbtBegin->setIcon(QIcon(":/images/play_begin.png"));
 	ui->pbtForward->setIcon(QIcon(":/images/play.png"));
 	ui->pbtEnd->setIcon(QIcon(":/images/play_end.png"));
+	ui->pbtSet->setIcon(QIcon(":/images/apply.png"));
 	
 	ui->pbtConnect->setText(tr("Connect to Rock Movement System"));
 	ui->pbtConnect->setIcon(QIcon(":/images/add.png"));
@@ -52,8 +53,10 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	k_distance = 1000;		// for default units ("mm")
 	distance_ok = true;
 
-	set_distance = 0;
-	k_set_distance = 1000;
+	set_distance = 1;		// [m]
+	k_set_distance = 1000;	// [mm]
+	direction_coef = -1;	
+	pos_is_set = false;
 
 	from_pos = 0;
 	to_pos = 0;
@@ -79,9 +82,15 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	ui->cboxZero->addItems(distance_units_list);
 	ui->cboxZero->setEnabled(true);
 
-	ui->ledDistance->setText(QString::number(distance*k_distance));	
+	ui->ledDistance->setText("");	
 		
+	ui->dsboxSetPosition->setMinimum(150);
+	ui->dsboxSetPosition->setMaximum(2000);
+	ui->dsboxSetPosition->setSingleStep(1);
+	ui->dsboxSetPosition->setValue(set_distance*k_set_distance);
+
 	is_connected = false;
+	ui->framePosControl->setEnabled(is_connected);
 	device_is_searching = false;
 
 	clocker = _clocker;
@@ -91,8 +100,8 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	stepmotor_communicator = NULL;
 
 	upper_bound = 1.950;	// m
-	lower_bound = 0.150;	// m
-
+	lower_bound = 0.150;	// m	
+	
 	timer.start(250);	
 	stepmotor_timer.start(250);
 		
@@ -119,6 +128,7 @@ void LeuzeDistanceMeterWidget::setConnection()
 
 	connect(ui->pbtBack, SIGNAL(toggled(bool)), this, SLOT(moveBack(bool)));
 	connect(ui->pbtForward, SIGNAL(toggled(bool)), this, SLOT(moveForward(bool)));
+	connect(ui->pbtSet, SIGNAL(toggled(bool)), this, SLOT(setPosition(bool)));
 	
 	connect(ui->pbtConnect, SIGNAL(toggled(bool)), this, SLOT(connectAllMeters(bool)));
 
@@ -130,6 +140,7 @@ void LeuzeDistanceMeterWidget::setDepthCommunicatorConnections()
 {
 	connect(leuze_communicator, SIGNAL(measured_data(uint32_t, uint8_t, double)), this, SLOT(getMeasuredData(uint32_t, uint8_t, double)));
 	connect(leuze_communicator, SIGNAL(data_timed_out(uint32_t, uint8_t)), this, SLOT(measureTimedOut(uint32_t, uint8_t)));
+	connect(leuze_communicator, SIGNAL(error_msg(QString)), this, SLOT(showErrorMsg(QString)));
 	connect(this, SIGNAL(to_measure(uint32_t, uint8_t)), leuze_communicator, SLOT(toMeasure(uint32_t, uint8_t)));
 }
 
@@ -139,22 +150,24 @@ void LeuzeDistanceMeterWidget::setStepMotorCommunicatorConnections()
 }
 
 void LeuzeDistanceMeterWidget::moveBack(bool flag)
-{
+{	
 	if (!flag)
 	{
 		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
 	}
 	else
 	{
+		ui->pbtForward->setChecked(false);
+		ui->pbtSet->setChecked(false);
+
 		if (distance > lower_bound && distance < upper_bound)
 		{
-			stepmotor_communicator->toSend("\EN*DL*SD200*MV*");		// Move step motor left
+			stepmotor_communicator->toSend("\EN*DL*SD1000*MV*");		// Move step motor left
 		}
 		else 
 		{
 			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
-			ui->pbtBack->setChecked(false);
-			ui->pbtForward->setChecked(false);
+			ui->pbtBack->setChecked(false);			
 		}
 	}
 }
@@ -167,15 +180,58 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 	}
 	else
 	{
+		ui->pbtBack->setChecked(false);		
+		ui->pbtSet->setChecked(false);
+
 		if (distance > lower_bound && distance < upper_bound)
-		{
-			stepmotor_communicator->toSend("\EN*DR*SD200*MV*");		// Move step motor left
+		{			
+			stepmotor_communicator->toSend("\EN*DR*SD1000*MV*");		// Move step motor left
 		}
 		else 
 		{
 			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
 			ui->pbtBack->setChecked(false);
 			ui->pbtForward->setChecked(false);
+			ui->pbtSet->setChecked(false);
+		}
+	}
+}
+
+void LeuzeDistanceMeterWidget::setPosition(bool flag)
+{
+	if (!flag)
+	{
+		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
+	}
+	else
+	{		
+		ui->pbtBack->setChecked(false);
+		ui->pbtForward->setChecked(false);
+		
+		set_distance = ui->dsboxSetPosition->value()/k_set_distance;
+		if (set_distance > distance )
+		{
+			pos_is_set = true;
+			direction_coef = 1;
+			if (set_distance - distance < 0.011) stepmotor_communicator->toSend("\EN*DR*SD50*MV*");				// Move step motor right, very low speed			
+			else if (set_distance - distance < 0.03) stepmotor_communicator->toSend("\EN*DR*SD200*MV*");		// Move step motor right, low speed			
+			else stepmotor_communicator->toSend("\EN*DR*SD1000*MV*");											// Move step motor right, high speed
+			
+		}
+		else if (set_distance < distance )
+		{
+			pos_is_set = true;
+			direction_coef = -1;
+			if (distance - set_distance < 0.011) stepmotor_communicator->toSend("\EN*DL*SD50*MV*");				// Move step motor left, very low speed
+			else if (distance - set_distance < 0.03) stepmotor_communicator->toSend("\EN*DL*SD200*MV*");		// Move step motor left, low speed
+			else stepmotor_communicator->toSend("\EN*DL*SD1000*MV*");											// Move step motor left, high speed
+		}
+		else 
+		{
+			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
+			ui->pbtBack->setChecked(false);
+			ui->pbtForward->setChecked(false);
+			ui->pbtSet->setChecked(false);
 		}
 	}
 }
@@ -212,11 +268,23 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 	}
 	else if (cbox == ui->cboxSetDistance)
 	{		
-		if (str == distance_units_list[0]) k_set_distance = 1000;		// [mm]
-		else if (str == distance_units_list[1]) k_set_distance = 1;		// [m]
+		if (str == distance_units_list[0])							// [mm]
+		{
+			ui->dsboxSetPosition->setMinimum(150);
+			ui->dsboxSetPosition->setMaximum(2000);
+			ui->dsboxSetPosition->setSingleStep(1);
+			k_set_distance = 1000;		
+		}
+		else if (str == distance_units_list[1])						// [m]
+		{
+			ui->dsboxSetPosition->setMinimum(0.15);
+			ui->dsboxSetPosition->setMaximum(2.00);
+			ui->dsboxSetPosition->setSingleStep(0.01);
+			k_set_distance = 1;		
+		}
 		else k_set_distance = 1;
 
-		ui->ledSetDistance->setText(QString::number(k_set_distance*set_distance));		
+		ui->dsboxSetPosition->setValue(k_set_distance*set_distance);		
 	}
 	else if (cbox == ui->cboxFrom)
 	{
@@ -263,6 +331,7 @@ void LeuzeDistanceMeterWidget::connectAllMeters(bool flag)
 		}	
 		if (stepmotor_COM_Port->COM_port != NULL) 
 		{
+			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
 			stepmotor_COM_Port->COM_port->close();		
 		}
 
@@ -282,7 +351,7 @@ void LeuzeDistanceMeterWidget::connectAllMeters(bool flag)
 		}
 
 		timer.stop();
-		is_connected = false;
+		is_connected = false;		
 		emit connected(is_connected);
 				
 		ui->pbtConnect->setText(tr("Connect to Rock Movement System"));
@@ -385,8 +454,21 @@ void LeuzeDistanceMeterWidget::connectAllMeters(bool flag)
 			int ret = QMessageBox::warning(this, tr("Warning!"), tr("No available COM-Port was found to connect to Step Motor controller!"), QMessageBox::Ok, QMessageBox::Ok);
 		}	
 	}	
+
+	ui->framePosControl->setEnabled(is_connected);
 }
 
+void LeuzeDistanceMeterWidget::showErrorMsg(QString msg)
+{
+	stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
+
+	QPalette palette; 
+	palette.setColor(QPalette::Base,Qt::red);
+	palette.setColor(QPalette::Text,Qt::darkGreen);
+	ui->ledDistance->setPalette(palette);
+
+	ui->ledDistance->setText(msg);
+}
 
 void LeuzeDistanceMeterWidget::getMeasuredData(uint32_t _uid, uint8_t _type, double val)
 {
@@ -412,6 +494,42 @@ void LeuzeDistanceMeterWidget::getMeasuredData(uint32_t _uid, uint8_t _type, dou
 		ui->pbtForward->setChecked(false);
 	}
 	else distance_ok = true;
+
+	if (fabs(distance - set_distance) < 0.011 && pos_is_set && direction_coef == -1 && pos_is_set)
+	{		
+		stepmotor_communicator->toSend("\EN*DL*SD50*MV*");			// Set motion slow 		
+	}
+	else if (fabs(distance - set_distance) < 0.03 && pos_is_set && direction_coef == -1 && pos_is_set)
+	{		
+		stepmotor_communicator->toSend("\EN*DL*SD200*MV*");			// Set motion slow 		
+	}
+	else if (fabs(set_distance - distance) < 0.011 && pos_is_set && direction_coef == 1 && pos_is_set)
+	{		
+		stepmotor_communicator->toSend("\EN*DR*SD50*MV*");			// Set motion slow 		
+	}
+	else if (fabs(set_distance - distance) < 0.03 && pos_is_set && direction_coef == 1 && pos_is_set)
+	{		
+		stepmotor_communicator->toSend("\EN*DR*SD200*MV*");			// Set motion slow 		
+	}
+	
+	if (distance <= set_distance && pos_is_set && direction_coef == -1)
+	{
+		distance_ok = true;
+		pos_is_set = false;
+		stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
+		ui->pbtBack->setChecked(false);
+		ui->pbtForward->setChecked(false);
+		ui->pbtSet->setChecked(false);
+	}
+	else if (distance >= set_distance && pos_is_set && direction_coef == 1)
+	{
+		distance_ok = true;
+		pos_is_set = false;
+		stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
+		ui->pbtBack->setChecked(false);
+		ui->pbtForward->setChecked(false);
+		ui->pbtSet->setChecked(false);
+	}
 	
 	showData(_type, val);
 }
@@ -435,8 +553,6 @@ void LeuzeDistanceMeterWidget::measureTimedOut(uint32_t _uid, uint8_t _type)
 
 void LeuzeDistanceMeterWidget::showData(uint8_t type, double val)
 {	
-	
-
 	switch (type)
 	{
 	case DEPTH_DATA:	

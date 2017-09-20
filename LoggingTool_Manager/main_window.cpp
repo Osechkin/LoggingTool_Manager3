@@ -134,7 +134,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_msgConnect->setWidget(nmrtoolLinker);    
 	addDockWidget(Qt::BottomDockWidgetArea, dock_msgConnect);
 	dock_msgConnect->setVisible(true);
-
+	
 	dock_msgLog = new QDockWidget(tr("Communication Log Monitor"), this);
 	QFont fontLog = dock_msgLog->font();
 	fontLog.setPointSize(9);
@@ -1472,27 +1472,35 @@ void MainWindow::initCOMSettings(COM_PORT *com_port, QString objName)
 	}
 
 	key_value = QString("%1/Parity").arg(objName);
-	if (app_settings->contains(key_value)) com_port->COM_Settings.Parity = (ParityType)app_settings->value(key_value).toInt(&_ok);
-	else app_settings->setValue(key_value, toString(PAR_NONE));
-	if (!_ok)
+	QString par = app_settings->value(key_value).toString();
+	if (par == GET_STRING(PAR_NONE)) com_port->COM_Settings.Parity = PAR_NONE;
+	else if (par == GET_STRING(PAR_ODD)) com_port->COM_Settings.Parity = PAR_ODD;
+	else if (par == GET_STRING(PAR_EVEN)) com_port->COM_Settings.Parity = PAR_EVEN;
+	else if (par == GET_STRING(PAR_MARK)) com_port->COM_Settings.Parity = PAR_MARK;
+	else if (par == GET_STRING(PAR_SPACE)) com_port->COM_Settings.Parity = PAR_SPACE;
+	else
 	{
 		com_port->COM_Settings.Parity = PAR_NONE;
 		app_settings->setValue(key_value, toString(PAR_NONE));
 	}
 
 	key_value = QString("%1/StopBits").arg(objName);
-	if (app_settings->contains(key_value)) com_port->COM_Settings.StopBits = (StopBitsType)app_settings->value(key_value).toInt(&_ok);
-	else app_settings->setValue(key_value, toString(STOP_1));
-	if (!_ok)
+	QString stbit = app_settings->value(key_value).toString();
+	if (stbit == GET_STRING(STOP_1)) com_port->COM_Settings.StopBits = STOP_1;
+	else if (stbit == GET_STRING(STOP_1_5)) com_port->COM_Settings.StopBits = STOP_1_5;
+	else if (stbit == GET_STRING(STOP_2)) com_port->COM_Settings.StopBits = STOP_2;	
+	else	
 	{
 		com_port->COM_Settings.StopBits = STOP_1;
 		app_settings->setValue(key_value, toString(STOP_1));
 	}
 
 	key_value = QString("%1/FlowControl").arg(objName);
-	if (app_settings->contains(key_value)) com_port->COM_Settings.FlowControl = (FlowType)app_settings->value(key_value).toInt(&_ok);
-	else app_settings->setValue(key_value, toString(FLOW_OFF));
-	if (!_ok)
+	QString flowc = app_settings->value(key_value).toString();
+	if (flowc == GET_STRING(FLOW_OFF)) com_port->COM_Settings.FlowControl = FLOW_OFF;
+	else if (flowc == GET_STRING(FLOW_HARDWARE)) com_port->COM_Settings.FlowControl = FLOW_HARDWARE;
+	else if (flowc == GET_STRING(FLOW_XONXOFF)) com_port->COM_Settings.FlowControl = FLOW_XONXOFF;		
+	else
 	{
 		com_port->COM_Settings.FlowControl = FLOW_OFF;
 		app_settings->setValue(key_value, toString(FLOW_OFF));
@@ -2691,7 +2699,7 @@ void MainWindow::treatNewData(DeviceData *device_data)
 							data_index++;
 						}	
 						else gap_map.data()[j] = BAD_DATA;
-					}					
+					} 
 					x_data->resize(data_index);
 					y_data->resize(data_index);					
 				}

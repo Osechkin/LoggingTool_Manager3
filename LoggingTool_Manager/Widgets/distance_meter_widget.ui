@@ -160,7 +160,7 @@
         </widget>
        </item>
        <item row="2" column="0">
-        <widget class="QFrame" name="frame_2">
+        <widget class="QFrame" name="framePosControl">
          <property name="frameShape">
           <enum>QFrame::Panel</enum>
          </property>
@@ -296,29 +296,15 @@
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="ledSetDistance">
+             <widget class="QDoubleSpinBox" name="dsboxSetPosition">
               <property name="minimumSize">
                <size>
-                <width>60</width>
+                <width>80</width>
                 <height>0</height>
                </size>
               </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-              <property name="readOnly">
-               <bool>false</bool>
               </property>
              </widget>
             </item>

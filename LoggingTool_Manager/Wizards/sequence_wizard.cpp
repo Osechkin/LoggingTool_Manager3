@@ -36,7 +36,7 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 	ui->treeWidget->header()->setFont(QFont("Arial", 10, 0, false));		
 	
 	script_debugger.attachTo(&engine);
-
+	
 	readSequenceCmdIndex();
 	readSequenceInstrIndex();
 
@@ -68,26 +68,60 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 				int ret = QMessageBox::warning(this, tr("Warning!"), tr("Sequence program for Logging Tool was not found!"), QMessageBox::Ok, QMessageBox::Ok);
 				return;
 			}
-
-			QAction *pact = script_debugger.action(QScriptEngineDebugger::InterruptAction);
-			connect(pact, SIGNAL(triggered()), this, SLOT(triggerJSerror()));
+			
+			//QAction *pact = script_debugger.action(QScriptEngineDebugger::InterruptAction);
+			//connect(pact, SIGNAL(triggered()), this, SLOT(triggerJSerror()));
 			
 			QString js_script = lusi_engine.getJSscript();
 			QScriptValue qscrpt_value = engine.evaluate(js_script);
-
+			if (qscrpt_value.isError())
+			{
+				cur_lusi_Seq.js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");
+				cur_lusi_Seq.comprg_list.clear();
+				cur_lusi_Seq.proc_programs.clear();				
+				/*
+				QWidget *qscript_deb_widget = script_debugger.widget(QScriptEngineDebugger::ConsoleWidget);
+				QLayout *gr = qscript_deb_widget->layout(); 
+				QVBoxLayout *vgr = (QVBoxLayout *)gr;
+				int num = vgr->count();
+				for (int jj = 0; jj < num; jj++)
+				{
+					QLayoutItem *l = vgr->itemAt(jj);
+					QWidget *ww = l->widget();
+					int tt = 0;
+				}
+				int tt = 0;
+				*/
+			}
+			
 			cur_lusi_Seq.clear();
 			cur_lusi_Seq.setObjects(obj_list_global);
+			cur_lusi_Seq.setFilePathName(path_list.first(), file_list.first());
 
-			showLUSISeqParameters();
-			showLUSISeqMemo();
+			//showLUSISeqParameters();
+			//showLUSISeqMemo();
 
-			ui->cboxSequences->addItems(file_list);
-			ui->ledSeqName->setText(cur_lusi_Seq.name);
+			//ui->cboxSequences->addItems(file_list);
+			//ui->ledSeqName->setText(cur_lusi_Seq.name);
 		}
 		else
 		{
 			// There are errors in LUSI code !
+			LUSI::ObjectList *obj_list_global = lusi_engine.getObjList();
+			if (obj_list_global->isEmpty())
+			{
+				int ret = QMessageBox::warning(this, tr("Warning!"), tr("Sequence program for Logging Tool was not found!"), QMessageBox::Ok, QMessageBox::Ok);
+				return;
+			}	
+			cur_lusi_Seq.clear();
+			cur_lusi_Seq.setObjects(obj_list_global);
+			cur_lusi_Seq.setFilePathName(path_list.first(), file_list.first());
 		}
+		showLUSISeqParameters();
+		showLUSISeqMemo();
+
+		ui->cboxSequences->addItems(file_list);
+		ui->ledSeqName->setText(cur_lusi_Seq.name);
 	}
 	
 	app_settings = settings;
@@ -1418,7 +1452,7 @@ void SequenceWizard::showLUSISeqMemo()
 	bool cond_errs = false;
 	if (!cur_lusi_Seq.cond_errors.isEmpty()) cond_errs = true;
 
-	bool js_error = cur_lusi_Seq.js_error;
+	bool js_error = !cur_lusi_Seq.js_error.isEmpty();
 	
 	QString memo = "";
 	memo += QString("<font color = darkblue>%1</font> ").arg(tr("Parsing & Run-time Errors:"));
@@ -1701,8 +1735,9 @@ void SequenceWizard::descriptionLinkActivated(const QString &link)
 			err_msg += tr("%1. %2<br>").arg(cnt++).arg(cond_errors[i]);		
 		}
 
-		//QStringList js_errors = cur_lusi_Seq.js_error
-		
+		QString runtime_error = cur_lusi_Seq.js_error;		
+		err_msg += tr("%1. %2<br>").arg(cnt++).arg(runtime_error);	
+
 		err_msg += "<br><br>";		
 		err_msg += "</font>";
 
@@ -1789,6 +1824,8 @@ bool SequenceWizard::changeCurrentSequence(const QString &text)
 		}
 	}	
 	emit sequence_changed();
+
+	return true;
 }
 
 void SequenceWizard::addSequence()
@@ -2262,7 +2299,7 @@ bool SequenceWizard::getDSPPrg(QVector<uint8_t> &_prg, QVector<uint8_t> &_instr)
 	if (!cur_lusi_Seq.comprg_errors.isEmpty()) flag = false;
 	if (!cur_lusi_Seq.procdsp_errors.isEmpty()) flag = false;
 	if (!cur_lusi_Seq.cond_errors.isEmpty()) flag = false;
-	if (cur_lusi_Seq.js_error) flag = false;
+	if (!cur_lusi_Seq.js_error.isEmpty()) flag = false;
 
 	if (!flag) return false;
 
@@ -2407,12 +2444,11 @@ void SequenceWizard::showSequenceInfo()
 }
 
 void SequenceWizard::triggerJSerror()
-{
-	
+{	
 	QAction *pact = (QAction*)sender();
 	if (!pact) return;
 
-	cur_lusi_Seq.js_error = true;
+	cur_lusi_Seq.js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");
 	pact->trigger();
 	
 }

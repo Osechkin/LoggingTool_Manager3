@@ -518,6 +518,9 @@
     <ClCompile Include="Widgets\distance_meter_widget.cpp">
       <Filter>Source Files\Widgets</Filter>
     </ClCompile>
+    <ClCompile Include="Wizards\scheduler_wizard.cpp">
+      <Filter>Source Files\Wizards</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="main_window.h">
@@ -621,9 +624,6 @@
     </CustomBuild>
     <CustomBuild Include="Wizards\experiment_manager.h">
       <Filter>Header Files\Wizards</Filter>
-    </CustomBuild>
-    <CustomBuild Include="Wizards\experiment_manager.ui">
-      <Filter>Form Files\Wizards</Filter>
     </CustomBuild>
     <CustomBuild Include="Dialogs\select_sequence_dialog.ui">
       <Filter>Form Files\Dialogs</Filter>
@@ -781,6 +781,12 @@
     <CustomBuild Include="Widgets\distance_meter_widget.ui">
       <Filter>Form Files\Widgets</Filter>
     </CustomBuild>
+    <CustomBuild Include="Wizards\experiment_manager.ui">
+      <Filter>Form Files\Wizards</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Wizards\scheduler_wizard.ui">
+      <Filter>Form Files\Wizards</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_main_window.h">
@@ -850,9 +856,6 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_export_settings_dialog.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GeneratedFiles\ui_experiment_manager.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_select_sequence_dialog.h">
@@ -935,6 +938,15 @@
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_distance_meter_widget.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_experiment_manager.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_scheduler_wizard.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Wizards\scheduler_wizard.h">
+      <Filter>Header Files\Wizards</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

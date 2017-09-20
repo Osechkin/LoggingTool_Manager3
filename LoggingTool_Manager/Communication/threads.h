@@ -367,6 +367,8 @@ public:
 	explicit LeuzeCommunicator(QextSerialPort *com_port, Clocker *clocker, QObject *parent = 0);
 	~LeuzeCommunicator();
 
+	enum ErrCode { NoError = 0, NoSignal = 1, UnknownError = 2 };
+
 	void freeze();
 	void wake();
 	int id() { return thread_id; }
@@ -374,12 +376,15 @@ public:
 	void setPort(QextSerialPort *com_port);
 
 private:		
+	void sendRequestToCOM();	
+
+private:
 	QextSerialPort *COM_port;	
 	Clocker *clocker;
 	
-	QString acc_data;						// приемник символов, поступающих по сети
-	QVector<double> distance_buffer;		// буфер типа FIFO последних DEPTH_BUFF_SIZE измрений глубины для удаления случайных скачков глубины
-	
+	QString acc_data;								// приемник символов, поступающих по сети
+	QVector<QPair<int, int> > distance_buffer;		// буфер типа FIFO последних измрений глубины (второй параметр), первый параметр - код ошибки (см. enum ErrCode)
+														
 	volatile bool is_running;
 	volatile bool is_freezed;
 

@@ -261,7 +261,7 @@ namespace LUSI
 
 	public:
 		bool setField(QString _name, QString _value);
-		bool setField(QString _value, int _index);
+		bool setField(QString _value, int _index);		
 		
 	public:
 		QString title;			// Название параметра (отображается в виджете последовательностей) 
@@ -398,6 +398,7 @@ namespace LUSI
 		Q_PROPERTY(QString title READ getTitle WRITE setTitle);
 		Q_PROPERTY(QString comment READ getComment WRITE setComment);
 		Q_PROPERTY(QString units READ getUnits WRITE setUnits);
+		Q_PROPERTY(QString func READ getFunc WRITE setFunc);
 		Q_PROPERTY(int size READ getSize WRITE setSize);
 		Q_PROPERTY(QVariantList points READ getPoints WRITE setPoints);
 
@@ -412,6 +413,9 @@ namespace LUSI
 
 		QString getUnits() const { return units; }
 		void setUnits(QString _units) { units = _units; }
+
+		QString getFunc() const { return func; }
+		void setFunc(QString _func) { func = _func; }
 
 		int getSize() const { return size; }
 		void setSize(int _size) { size = _size; }
@@ -428,6 +432,7 @@ namespace LUSI
 		QString title;
 		QString comment;
 		QString units;
+		QString func;
 		int size;
 		QVariantList points;
 	};
@@ -455,8 +460,9 @@ namespace LUSI
 		ObjectList *getObjList() { return &obj_list; }
 		bool findLUSIDefinition(QString &_str, Definition &_def, QString &_e);
 		bool findLUSIMacros(QString &_str, QString &_e);
+		//bool getXVector(QString arg_name, int size, QVector<double> &xvec);
 		QStringList getErrorList() const { return error_list; }
-
+		
 	private:
 		void findAllQuotas(QString &_seq, QIntVector &_quotas);
 		void findAllApostrophes(QString &_seq, QIntVector &_apostrophes);
@@ -495,6 +501,7 @@ namespace LUSI
 		Sequence(ObjectList *_obj_list, QString _js_script, QStringList _elist = QStringList());
 
 		void setObjects(LUSI::ObjectList *_obj_list);
+		void setFilePathName(QString _path, QString _file_name) { file_name = _file_name; file_path = _path; }
 		QList<QVariantList> getVarComProgram(int index); // программа для интервального программатора 
 		QList<QVariantList> getVarProcProgram(int index); // программа обработки данных для сигнального процессора 
 		void clear();
@@ -503,6 +510,9 @@ namespace LUSI
 		QString author;							// автор последовательности
 		QString datetime;						// дата и время создания последовательности	
 		QString description;					// описание последовательности
+
+		QString file_name;						// имя файла последовательности
+		QString file_path;						// путь к файлу последовательности
 
 		QString js_script;						// программа последовательности на JavaScript
 
@@ -520,7 +530,7 @@ namespace LUSI
 		QStringList comprg_errors;				// ошибки, обнаруженные при разборе программы для интервального программатора
 		QStringList procdsp_errors;				// ошибки, обнаруженные при разборе пакетов обработки данных для DSP
 		QStringList cond_errors;				// ошибки, возникающие при невыполнении условий правильности значений параметров в последовательности
-		bool js_error;							// ошибка, возникшая при исполнении кода JavaScript
+		QString js_error;						// ошибка, возникшая при исполнении кода JavaScript
 	};
 }
 

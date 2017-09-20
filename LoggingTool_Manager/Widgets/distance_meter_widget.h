@@ -54,6 +54,9 @@ private:
 	double k_distance;
 	double set_distance;
 	double k_set_distance;
+	int direction_coef;
+	bool pos_is_set;
+
 	QStringList distance_units_list;
 
 	double from_pos;
@@ -66,25 +69,26 @@ private:
 	double k_zero;
 
 	double lower_bound;
-	double upper_bound;
+	double upper_bound;		
 	
 	bool distance_ok;
 	
 	bool is_connected;
 	bool is_started;
 	bool device_is_searching;
-
+		
 
 private slots:
 	void connectAllMeters(bool flag);
 	void changeUnits(QString str);
 	void getMeasuredData(uint32_t _uid, uint8_t _type, double val);
 	void measureTimedOut(uint32_t _uid, uint8_t _type);
-	//void includeParameter(int state);
+	void showErrorMsg(QString msg);
 	void onTime();
 
 	void moveBack(bool flag);
 	void moveForward(bool flag);
+	void setPosition(bool flag);
 
 public slots:
 

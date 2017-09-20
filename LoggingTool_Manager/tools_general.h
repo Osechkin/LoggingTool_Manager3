@@ -4,6 +4,7 @@
 #include "qextserialport.h"
 
 
+#define NMRKern					(5)				// ID ןנטבמנא ‗ÌÐ Êונם
 #define KMRK					(4)				// ID ןנטבמנא ÊÌÐÊ
 #define NMKT					(3)				// ID ןנטבמנא ‗ÌÊÒ
 

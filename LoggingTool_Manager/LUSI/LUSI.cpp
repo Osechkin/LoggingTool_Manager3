@@ -144,7 +144,7 @@ bool LUSI::Parameter::setField(QString _value, int _index)
 	switch (_index)
 	{
 	case 0: if (LUSI::getStrName(_value)) title = _value; else return false; break;
-	case 1: value = _value.toDouble(&ok); if (!ok) return false; break;
+	case 1: value = _value.toDouble(&ok); if (!ok) return false; else app_value = value; break;
 	case 2: min = _value.toDouble(&ok); if (!ok) return false; break;
 	case 3: max = _value.toDouble(&ok); if (!ok) return false; break;
 	case 4: if (LUSI::getStrName(_value)) units = _value; else return false; break;
@@ -400,7 +400,8 @@ bool LUSI::Argument::setField(QString _name, QString _value)
 	if (_name == "title") if (LUSI::getStrName(_value)) title = _value; else return false;
 	else if (_name == "comment") if (LUSI::getStrName(_value)) comment = _value; else return false;
 	else if (_name == "units") if (LUSI::getStrName(_value)) units = _value; else return false;
-	else if (_name == "size") size = _value.toInt(&ok); if (!ok) return false;	
+	else if (_name == "func") if (LUSI::getStrName(_value)) func = _value; else return false;
+	//else if (_name == "size") size = _value.toInt(&ok); if (!ok) return false;	
 	else return false;
 
 	return true;
@@ -412,9 +413,10 @@ bool LUSI::Argument::setField(QString _value, int _index)
 	switch (_index)
 	{
 	case 0: if (LUSI::getStrName(_value)) title = _value; else return false; break;
-	case 1: size = _value.toInt(&ok); if (!ok) return false; break;
-	case 2: if (LUSI::getStrName(_value)) comment = _value; else return false; break;
-	case 3: if (LUSI::getStrName(_value)) units = _value; else return false; break;	
+	//case 1: size = _value.toInt(&ok); if (!ok) return false; break;
+	case 1: if (LUSI::getStrName(_value)) comment = _value; else return false; break;
+	case 2: if (LUSI::getStrName(_value)) units = _value; else return false; break;	
+	case 3: if (LUSI::getStrName(_value)) func = _value; else return false; break;
 	default: return false;
 	}
 
@@ -1241,21 +1243,31 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 							if (param_list.count() == num + 2)
 							{
 								QStringList params;
+
 								params.append(param_list[0].trimmed());
 
 								int type = param_list[1].trimmed().toInt(&ok);
 								if (ok) params.append(param_list[1].trimmed());
+								else if (qscript_engine->globalObject().property(param_list[1].trimmed()).isValid()) 
+								{
+									params.append(param_list[1].trimmed() + ".getAppValue()");
+								}
 								else
 								{
 									// wrong data type !
-									e = tr("Wrong data type!");
-									_elist << tr("<font color=red>LUSI: Error in line %1 : </font>").arg(str_count+1) + e;
-									break;
+									//e = tr("Wrong data type!");
+									//_elist << tr("<font color=red>LUSI: Error in line %1 : </font>").arg(str_count+1) + e;
+									//break;
+									params.append(param_list[1].trimmed());
 								}
 								
 								for (int i = 0; i < num; i++)
 								{
-									params.append(param_list[2+i].trimmed());									
+									if (qscript_engine->globalObject().property(param_list[2+i].trimmed()).isValid()) 
+									{
+										params.append(param_list[2+i].trimmed() + ".getAppValue()");
+									}
+									else params.append(param_list[2+i].trimmed());									
 								}
 								txt = QString("%1.exec(['%2',%3])\t\t // %4").arg(started_package).arg(instr).arg(params.join(", ")).arg(txt);
 							}
@@ -1264,7 +1276,7 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 								// Wrong number of parameters in function!
 								e = tr("Wrong number of parameters in function '%1'!").arg(instr);
 								_elist << tr("<font color=red>LUSI: Error in line %1 : </font>").arg(str_count+1) + e;
-								break;
+								//break;
 							}
 						}
 						else
@@ -1272,7 +1284,7 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 							// cannot read the number of function parameters!
 							e = tr("Cannot read the number of function parameters!");
 							_elist << tr("<font color=red>LUSI: Error in line %1 : </font>").arg(str_count+1) + e;
-							break;
+							//break;
 						}
 					}
 					else 
@@ -1280,7 +1292,7 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 						// Wrong number of parameters in function!
 						e = tr("Wrong number of parameters in function '%1'!").arg(instr);
 						_elist << tr("<font color=red>LUSI: Error in line %1 : </font>").arg(str_count+1) + e;
-						break;
+						//break;
 					}
 				}
 				else
@@ -1288,7 +1300,7 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 					// Wrong number of parameters in function!
 					e = tr("Unknown instruction '%1'!").arg(instr);
 					_elist << tr("<font color=red>LUSI: Error in line %1 : </font>").arg(str_count+1) + e;
-					break;
+					//break;
 				}
 			}			
 		}
@@ -1304,23 +1316,38 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 				if (code)
 				{
 					param_list = param_list.join("").split(",");					
-					if (param_list.count() == 1 || param_list.count() == 3)
+					
+					QStringList params;
+					if (param_list.count() == 1)
 					{
-						bool _ok;
-						QStringList params;
+						bool _ok;						
+						if (qscript_engine->globalObject().property(param_list.first().trimmed()).isValid()) 
+						{
+							params.append(param_list.first().trimmed() + ".getAppValue()");
+						}
+						else params.append(param_list.first().trimmed());	
+
+						txt = QString("%1.exec(['%2',%3])\t\t // %4").arg(started_comprg).arg(comm).arg(params.join(", ")).arg(txt);
+					}
+					else if (param_list.count() == 3)
+					{
 						for (int i = 0; i < param_list.count(); i++)
 						{
-							params.append(param_list[i].trimmed());							
+							if (qscript_engine->globalObject().property(param_list[i].trimmed()).isValid()) 
+							{
+								params.append(param_list[i].trimmed() + ".getAppValue()");
+							}
+							else params.append(param_list[i].trimmed());									
 						}
-												
-						txt = QString("%1.exec(['%2',%3])\t\t // %4").arg(started_comprg).arg(comm).arg(params.join(", ")).arg(txt);						
+
+						txt = QString("%1.exec(['%2',%3])\t\t // %4").arg(started_comprg).arg(comm).arg(params.join(", ")).arg(txt);
 					}
-					else 
+					else
 					{
 						// Wrong number of parameters in function!
 						e = tr("Wrong number of parameters in FPGA command '%1'!").arg(comm);
 						_elist << tr("<font color=red>LUSI: Error in line %1 : </font>").arg(str_count+1) + e;
-						break;
+						//break;
 					}
 				}
 				else
@@ -1328,7 +1355,7 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 					// Wrong number of parameters in function!
 					e = tr("Unknown FPGA command '%1'!").arg(comm);
 					_elist << tr("<font color=red>LUSI: Error in line %1 : </font>").arg(str_count+1) + e;
-					break;
+					//break;
 				}
 			}			
 		}
@@ -1341,6 +1368,47 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 	_js_script = js_script_list.join("\n");
 }
 
+/*bool LUSI::Engine::getXVector(QString arg_name, int size, QVector<double> &xvec)
+{
+	xvec.clear();
+	bool res = false;
+
+	for (int i = 0; i < obj_list.count(); i++)
+	{
+		Object *lusi_obj = obj_list[i];
+		if (lusi_obj->getType() == Definition::Argument)
+		{
+			if (LUSI::Argument *arg_obj = qobject_cast<LUSI::Argument*>(lusi_obj))
+			{
+				if (arg_obj->getObjName() == arg_name)
+				{
+					QString func_name = arg_obj->getFunc();
+					
+					QScriptValue func = qscript_engine->globalObject().property(func_name);
+					if (func.isValid())
+					{
+						QScriptValue qval = func.call(QScriptValue(), QScriptValueList() << size);
+						if (qval.isValid())
+						{							
+							QVariantList var_list = qval.toVariant().toList();							
+							xvec.resize(var_list.count());
+							bool _ok;
+							for (int j = 0; j < var_list.count(); j++)
+							{
+								xvec[j] = var_list[j].toDouble(&_ok);
+							}
+							res = true;
+						}						
+					}					
+				}
+			}
+		}
+	}
+	//QScriptValue add = qscript_engine->globalObject().property("add");
+	//qDebug() << add.call(QScriptValue(), QScriptValueList() << 1 << 2).toNumber(); // 3
+
+	return res;
+}*/
 
 LUSI::Sequence::Sequence()
 {
@@ -1351,11 +1419,14 @@ LUSI::Sequence::Sequence()
 
 	js_script = "";
 
+	file_path = "";
+	file_name = "";
+
 	comprg_errors.clear();
 	procdsp_errors.clear();
 	seq_errors.clear();
 	cond_errors.clear();
-	js_error = false;
+	js_error = "";
 
 	main_object = NULL;
 }

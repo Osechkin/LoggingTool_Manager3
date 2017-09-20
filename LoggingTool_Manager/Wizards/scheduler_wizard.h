@@ -26,6 +26,9 @@ public:
 	SchedulerWizard(QSettings *settings, QWidget *parent = 0);
 	~SchedulerWizard();
 
+protected:
+	bool eventFilter(QObject *obj, QEvent *event);
+
 private:
 	Ui::SchedulerWizard *ui;
 

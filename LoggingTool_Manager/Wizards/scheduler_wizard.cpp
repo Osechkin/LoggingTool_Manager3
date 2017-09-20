@@ -20,9 +20,22 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 	ui->treeWidgetParam->setColumnCount(3);
 	headlist << tr("Parameter") << tr("Value") << tr("Units");
 	ui->treeWidgetParam->setHeaderLabels(headlist);
-	ui->treeWidgetParam->setColumnWidth(0,300);
+	ui->treeWidgetParam->setColumnWidth(0,250);
 	ui->treeWidgetParam->setColumnWidth(1,75);	
 	ui->treeWidgetParam->header()->setFont(QFont("Arial", 10, 0, false));
+
+	ui->tableWidgetExp->installEventFilter(this);
+}
+
+bool SchedulerWizard::eventFilter(QObject *obj, QEvent *event)
+{
+
+	if(event->type() == QEvent::Resize)
+	{
+		
+	}
+
+
 }
 
 SchedulerWizard::~SchedulerWizard()

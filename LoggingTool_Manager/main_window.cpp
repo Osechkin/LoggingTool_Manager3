@@ -173,34 +173,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_RFPulseControl->setWidget(rfpulseControl);
 	addDockWidget(Qt::BottomDockWidgetArea, dock_RFPulseControl);
 	dock_RFPulseControl->setVisible(true);
-
-
-	/*
-	dock_depthMonitor = new QDockWidget(tr("Depth Monitoring"), this);
-	dock_depthMonitor->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
-	QFont fontDepthMonitor = dock_depthMonitor->font();
-	fontDepthMonitor.setPointSize(9);
-	fontDepthMonitor.setBold(true);
-	dock_depthMonitor->setFont(fontDepthMonitor);
-	depthMonitor = new DepthMonitoringWizard(clocker, dock_depthMonitor);
-	QFont font_depth = depthMonitor->getUI()->lblDepth->font();
-	font_depth.setBold(false);
-	depthMonitor->getUI()->chboxDepth->setFont(font_depth);
-	depthMonitor->getUI()->chboxRate->setFont(font_depth);
-	depthMonitor->getUI()->chboxTension->setFont(font_depth);
-	depthMonitor->getUI()->cboxDepth->setFont(font_depth);
-	depthMonitor->getUI()->cboxRate->setFont(font_depth);
-	depthMonitor->getUI()->cboxTension->setFont(font_depth);
-	depthMonitor->getUI()->label->setFont(font_depth);
-	depthMonitor->getUI()->cboxPort->setFont(font_depth);
-	dock_depthMonitor->setWidget(depthMonitor);
-	addDockWidget(Qt::BottomDockWidgetArea, dock_depthMonitor);
-	dock_depthMonitor->setVisible(true);
-	depthMonitor->connectDepthMeter(true);
-	if (depthMonitor->isConnected()) ui->a_Depthmeter_Connection->setEnabled(false);
-	else ui->a_Depthmeter_Connection->setEnabled(true);
-	*/
-
+		
 	QString depth_port_name = "COM9";
 	if (app_settings->contains("DepthMeter/PortName")) depth_port_name = app_settings->value("DepthMeter/PortName").toString();
 	else app_settings->setValue(("DepthMeter/PortName"), QVariant(depth_port_name));
@@ -292,14 +265,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	//dock_sdspProc->setVisible(true);
 	sdsp_sequence_status = SeqStatus::Seq_Not_Appl;
 		
-	dock_expManager = new QDockWidget(tr("Experiment Manager"), this);
-	QFont fontManager = dock_expManager->font();
+	dock_expScheduler = new QDockWidget(tr("Experiment Scheduler"), this);
+	QFont fontManager = dock_expScheduler->font();
 	fontManager.setPointSize(9);
-	dock_expManager->setFont(fontManager);
-	dock_expManager->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
-	expManager = new ExperimentManager(app_settings, sequenceProc);	
-	dock_expManager->setWidget(expManager);    
-	addDockWidget(Qt::LeftDockWidgetArea, dock_expManager);	
+	dock_expScheduler->setFont(fontManager);
+	dock_expScheduler->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
+	expScheduler = new SchedulerWizard(app_settings, dock_expScheduler);	
+	dock_expScheduler->setWidget(expScheduler);    
+	addDockWidget(Qt::LeftDockWidgetArea, dock_expScheduler);	
 	
 	dock_nmrtoolStatus = new QDockWidget(tr("Logging Tool Status"), this);
 	QFont fontNMRToolStatus = dock_nmrtoolStatus->font();
@@ -317,8 +290,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	addDockWidget(Qt::BottomDockWidgetArea, dock_nmrtoolStatus);	
 	dock_nmrtoolStatus->setVisible(true);
 			
-	this->tabifyDockWidget(dock_sdspProc, dock_expManager);
-	this->tabifyDockWidget(dock_expManager, dock_sequenceProc);
+	this->tabifyDockWidget(dock_sdspProc, dock_expScheduler);
+	this->tabifyDockWidget(dock_expScheduler, dock_sequenceProc);
 	this->setTabPosition(Qt::LeftDockWidgetArea, QTabWidget::South);
 	
 	relax_widget = new RelaxationWidget(ui->tabDataViewer, app_settings);
@@ -374,7 +347,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	ui->tabWidget->setMovable(true);
 
 	dock_sequenceProc->setVisible(true);
-	dock_expManager->setVisible(false);
+	//dock_expScheduler->setVisible(false);
 	dock_sdspProc->setVisible(false);
 		
 	sdsptab_is_active = false;

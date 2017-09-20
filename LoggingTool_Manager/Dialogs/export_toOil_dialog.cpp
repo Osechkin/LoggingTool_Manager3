@@ -13,11 +13,7 @@ ToOilExportDialog::ToOilExportDialog(DataTypeList &_dt_list, QWidget *parent)
 
 	pbtSaveSettings->setIcon(QIcon(":/images/save.png"));
 
-	QStringList headlist;
 	treeWidget->setColumnCount(1);
-	//headlist << tr("Incomming Data");
-	//treeWidget->setHeaderLabels(headlist);	
-	//treeWidget->header()->setFont(QFont("Arial", 10, 0, false));	
 	treeWidget->header()->close();
 
 	setConnections();

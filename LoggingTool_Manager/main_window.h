@@ -14,7 +14,8 @@
 
 #include "tools_general.h"
 #include "Wizards/sequence_wizard.h"
-#include "Wizards/experiment_manager.h"
+//#include "Wizards/experiment_manager.h"
+#include "Wizards/scheduler_wizard.h"
 #include "Wizards/message_log_monitor.h"
 #include "Wizards/nmrtool_connect_wizard.h"
 #include "Wizards/depth_monitoring_wizard.h"
@@ -174,8 +175,10 @@ private:
 	//SignalProcessingWizard *signalProc;
 	SequenceWizard *sequenceProc;
 	SDSPWizard *sdspProc;
-	ExperimentManager *expManager;
+	SchedulerWizard *expScheduler;
+	//ExperimentManager *expManager;
 	//DepthMonitoringWizard *depthMonitor;
+
 	DepthTemplateWizard *depthTemplate;
 	NMRToolStatusWizard *nmrtoolStatus;
 	RxTxControlWizard *rxtxControl;
@@ -185,7 +188,7 @@ private:
 	QDockWidget *dock_msgLog;
 	QDockWidget *dock_sequenceProc;
 	QDockWidget *dock_sdspProc;
-	QDockWidget *dock_expManager;
+	QDockWidget *dock_expScheduler;
 	QDockWidget *dock_depthMonitor;
 	QDockWidget *dock_depthTemplate;
 	QDockWidget *dock_nmrtoolStatus;

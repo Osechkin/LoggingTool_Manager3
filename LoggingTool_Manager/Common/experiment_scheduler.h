@@ -65,10 +65,28 @@ namespace Scheduler
 		Q_OBJECT
 
 	public:
-		//Engine();
-		//~Engine() { }
+		Engine() { }
+		~Engine();
 
+		template<class X> void add(X* obj)
+		{
+			SchedulerObject *sch_obj = static_cast<SchedulerObject*>(obj);
+			if (sch_obj) obj_list.append(obj);
+		}		
+		template<class X> void insert(int index, X* obj)
+		{
+			if (index > obj_list.count()) return;
 
+			SchedulerObject *sch_obj = static_cast<SchedulerObject*>(obj);
+			if (sch_obj) obj_list.insert(index, obj);
+		}
+
+		QList<SchedulerObject*> getObjectList() { return obj_list; }
+		SchedulerObject* get(int index);		
+		void clear();
+		
+	private:
+		QList<SchedulerObject*> obj_list;
 	};
 }
 

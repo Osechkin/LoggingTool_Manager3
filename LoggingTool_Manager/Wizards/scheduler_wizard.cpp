@@ -1,3 +1,6 @@
+#include <QMenu>
+#include <QAction>
+
 #include "scheduler_wizard.h"
 
 
@@ -18,7 +21,36 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 	ui->treeWidgetParam->setColumnWidth(1,75);	
 	ui->treeWidgetParam->header()->setFont(QFont("Arial", 10, 0, false));
 
+	QMenu *menu_add = new QMenu(this);
+	QAction *a_exec = new QAction("EXEC", this);
+	QAction *a_distance_range = new QAction("DISTANCE_RANGE", this);
+	QAction *a_set_distance = new QAction("SET_DISTANCE", this);
+	QAction *a_loop = new QAction("LOOP", this);
+	QAction *a_until = new QAction("UNTIL", this);
+	QAction *a_nop = new QAction("NOP", this);
+	menu_add->addAction(a_exec);
+	menu_add->addAction(a_distance_range);
+	menu_add->addAction(a_set_distance);
+	menu_add->addAction(a_loop);
+	menu_add->addAction(a_until);
+	menu_add->addAction(a_nop);
+	ui->tbtAdd->setMenu(menu_add);
+	ui->tbtAdd->setPopupMode(QToolButton::InstantPopup);
+
+	QMenu *menu_save = new QMenu(this);
+	QAction *a_save = new QAction(tr("Save"), this);
+	QAction *a_save_as = new QAction(tr("Save As..."), this);	
+	menu_save->addAction(a_save);
+	menu_save->addAction(a_save_as);
+	ui->tbtSave->setMenu(menu_save);
+	ui->tbtSave->setPopupMode(QToolButton::InstantPopup);
+
 	ui->tableWidgetExp->installEventFilter(this);
+}
+
+SchedulerWizard::~SchedulerWizard()
+{
+	
 }
 
 bool SchedulerWizard::eventFilter(QObject *obj, QEvent *event)
@@ -35,8 +67,7 @@ bool SchedulerWizard::eventFilter(QObject *obj, QEvent *event)
 	return QWidget::eventFilter(obj, event);
 }
 
-SchedulerWizard::~SchedulerWizard()
+void SchedulerWizard::setConnections()
 {
 
 }
-

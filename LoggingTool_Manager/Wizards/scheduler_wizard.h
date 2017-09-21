@@ -30,6 +30,9 @@ protected:
 	bool eventFilter(QObject *obj, QEvent *event);
 
 private:
+	void setConnections();
+
+private:
 	Ui::SchedulerWizard *ui;
 
 	QList<CTreeWidgetItem*> c_items;

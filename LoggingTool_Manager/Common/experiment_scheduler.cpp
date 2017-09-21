@@ -8,7 +8,7 @@ Scheduler::SchedulerObject::SchedulerObject(Command _type)
 	switch (type)
 	{
 	case Command::Exec:				mnemonic = "EXEC"; break;
-	case Command::DistanceRange:	mnemonic = "LOOP_DISTANCE"; break;
+	case Command::DistanceRange:	mnemonic = "DISTANCE_RANGE"; break;
 	case Command::SetDistance:		mnemonic = "SET_DISTANCE"; break;
 	case Command::Loop:				mnemonic = "LOOP"; break;
 	case Command::Until:			mnemonic = "UNTIL"; break;
@@ -63,4 +63,22 @@ Scheduler::NOP::NOP(int _line)
 	type = Scheduler::NOP;
 	line = _line;
 	mnemonic = "NOP";
+}
+
+
+Scheduler::Engine::~Engine()
+{
+	clear();
+}
+
+void Scheduler::Engine::clear()
+{
+	qDeleteAll(obj_list.begin(), obj_list.end());
+	obj_list.clear();
+}
+
+Scheduler::SchedulerObject* Scheduler::Engine::get(int index) 
+{ 
+	if (index < obj_list.count()) return obj_list.at(index);
+	else return NULL; 
 }

@@ -509,6 +509,15 @@
     <ClCompile Include="GeneratedFiles\Release\moc_scheduler_wizard.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_experiment_scheduler.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_experiment_scheduler.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\experiment_scheduler.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="main_window.h">
@@ -765,6 +774,9 @@
     </CustomBuild>
     <CustomBuild Include="Wizards\scheduler_wizard.h">
       <Filter>Header Files\Wizards</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Common\experiment_scheduler.h">
+      <Filter>Header Files\Common</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

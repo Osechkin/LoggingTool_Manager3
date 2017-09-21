@@ -41,8 +41,7 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 	readSequenceInstrIndex();
 
 	QStringList lusi_elist;
-	//QStringList js_elist;
-
+	
 	lusi_engine.init(&engine, seq_cmd_index, seq_instr_index);
 
 	QString seq_path = QDir::currentPath() + "/Sequences";
@@ -97,12 +96,6 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 			cur_lusi_Seq.clear();
 			cur_lusi_Seq.setObjects(obj_list_global);
 			cur_lusi_Seq.setFilePathName(path_list.first(), file_list.first());
-
-			//showLUSISeqParameters();
-			//showLUSISeqMemo();
-
-			//ui->cboxSequences->addItems(file_list);
-			//ui->ledSeqName->setText(cur_lusi_Seq.name);
 		}
 		else
 		{
@@ -116,6 +109,7 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 			cur_lusi_Seq.clear();
 			cur_lusi_Seq.setObjects(obj_list_global);
 			cur_lusi_Seq.setFilePathName(path_list.first(), file_list.first());
+
 		}
 		showLUSISeqParameters();
 		showLUSISeqMemo();

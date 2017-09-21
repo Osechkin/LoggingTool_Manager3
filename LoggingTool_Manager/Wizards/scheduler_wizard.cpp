@@ -9,14 +9,8 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 	ui->tbtRemove->setIcon(QIcon(":/images/disconnect.png"));
 	ui->tbtOpen->setIcon(QIcon(":/images/open.png"));
 	ui->tbtSave->setIcon(QIcon(":/images/save.png"));
-
+		
 	QStringList headlist;
-	ui->treeWidgetPlan->setColumnCount(1);
-	headlist << tr("Schedule") << tr("Value") << tr("Units");
-	ui->treeWidgetPlan->setHeaderLabels(headlist);
-	ui->treeWidgetPlan->header()->setFont(QFont("Arial", 10, 0, false));		
-
-	headlist.clear();
 	ui->treeWidgetParam->setColumnCount(3);
 	headlist << tr("Parameter") << tr("Value") << tr("Units");
 	ui->treeWidgetParam->setHeaderLabels(headlist);
@@ -29,13 +23,16 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 
 bool SchedulerWizard::eventFilter(QObject *obj, QEvent *event)
 {
-
-	if(event->type() == QEvent::Resize)
+	if (obj == ui->tableWidgetExp)
 	{
-		
+		if (event->type() == QEvent::Resize)
+		{
+			int w = ui->tableWidgetExp->size().width();
+			ui->tableWidgetExp->setColumnWidth(0,w);
+			return true;
+		}
 	}
-
-
+	return QWidget::eventFilter(obj, event);
 }
 
 SchedulerWizard::~SchedulerWizard()

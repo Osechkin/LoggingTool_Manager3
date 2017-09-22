@@ -2,67 +2,89 @@
 
 
 Scheduler::SchedulerObject::SchedulerObject(Command _type) 
-{ 
-	line = 0;
+{ 	
 	type = _type; 
 	switch (type)
 	{
-	case Command::Exec:				mnemonic = "EXEC"; break;
-	case Command::DistanceRange:	mnemonic = "DISTANCE_RANGE"; break;
-	case Command::SetDistance:		mnemonic = "SET_DISTANCE"; break;
-	case Command::Loop:				mnemonic = "LOOP"; break;
-	case Command::Until:			mnemonic = "UNTIL"; break;
+	case Command::Exec_Cmd:
+		mnemonic = "EXEC"; 
+		cell_text = "<font size=4><color=darkgreen>EXEC </font>( <font color=blue>%1</font> )</font>"; 
+		break;
+	case Command::DistanceRange_Cmd:
+		mnemonic = "DISTANCE_RANGE"; 
+		cell_text = "<font size=4><font color=darkgreen>DISTANCE_RANGE </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> )</font>"; 
+		break;
+	case Command::SetDistance_Cmd:
+		mnemonic = "SET_DISTANCE"; 
+		cell_text = "<font size=4><font color=darkgreen>SET_DISTANCE </font>( <font color=blue>%1</font> )</font>"; 
+		break;
+	case Command::Loop_Cmd:
+		mnemonic = "LOOP"; 
+		cell_text = "<font size=4><font color=darkgreen>LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> )</font>"; 
+		break;
+	case Command::Until_Cmd:
+		mnemonic = "UNTIL"; 
+		cell_text = "<font size=4 color=darkgreen>UNTIL</font>"; 
+		break;
+	case Command::NoP_Cmd:
+		mnemonic = "NOP";
+		cell_text = "<font size=4 color=darkgreen>NOP</font>"; 
+		break;
+	default:
+		mnemonic = "NOP";
+		cell_text = "<font size=4 color=darkgreen>NOP</font>"; 
+		break;
 	}
 }
 
 
-Scheduler::Exec::Exec(int _line)
+Scheduler::Exec::Exec()
 {
-	type = Scheduler::Exec;
-	line = _line;
+	type = Scheduler::Exec_Cmd;	
 	mnemonic = "EXEC";
+	cell_text = "<font size=4><color=darkgreen>EXEC </font>( <font color=blue>%1</font> )</font>";
 }
 
 
-Scheduler::DistanceRange::DistanceRange(int _line)
+Scheduler::DistanceRange::DistanceRange()
 {
-	type = Scheduler::DistanceRange;
-	line = _line;
+	type = Scheduler::DistanceRange_Cmd;	
 	mnemonic = "DISTANCE_RANGE";
+	cell_text = "<font size=4><font color=darkgreen>DISTANCE_RANGE </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> )</font>";
 }
 
 
-Scheduler::SetDistance::SetDistance(int _line)
+Scheduler::SetDistance::SetDistance()
 {
-	type = Scheduler::SetDistance;
-	line = _line;
+	type = Scheduler::SetDistance_Cmd;	
 	mnemonic = "SET_DISTANCE";
+	cell_text = "<font size=4><font color=darkgreen>SET_DISTANCE </font>( <font color=blue>%1</font> )</font>"; 
 }
 
 
-Scheduler::Loop::Loop(int _line)
+Scheduler::Loop::Loop()
 {
-	type = Scheduler::Loop;
-	line = _line;
+	type = Scheduler::Loop_Cmd;	
 	mnemonic = "LOOP";
+	cell_text = "<font size=4><font color=darkgreen>LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> )</font>"; 
 	index = 1;	
 }
 
 
-Scheduler::Until::Until(int _line)
+Scheduler::Until::Until()
 {
-	type = Scheduler::Until;
-	line = _line;
+	type = Scheduler::Until_Cmd;	
 	mnemonic = "UNTIL";
+	cell_text = "<font size=4 color=darkgreen>UNTIL</font>";
 	ref_obj = NULL;
 }
 
 
-Scheduler::NOP::NOP(int _line)
+Scheduler::NOP::NOP()
 {
-	type = Scheduler::NOP;
-	line = _line;
+	type = Scheduler::NoP_Cmd;	
 	mnemonic = "NOP";
+	cell_text = "<font size=4 color=darkgreen>NOP</font>";
 }
 
 

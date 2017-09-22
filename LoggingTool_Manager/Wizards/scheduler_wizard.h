@@ -30,11 +30,11 @@ protected:
 	bool eventFilter(QObject *obj, QEvent *event);
 	
 private:
-	void setConnections();
 	void insertItem(int row, QString cmd);
 
 private slots:
 	void addItem();	
+	void addItemNOP();
 	void removeItem();
 
 private:
@@ -44,7 +44,7 @@ private:
 	QList<CTreeWidgetItem*> c_title_items;
 	CTreeWidgetItem *c_item_selected;
 		
-	
+	Scheduler::Engine scheduler_engine;
 };
 
 #endif // SCHEDULER_WIZARD_H

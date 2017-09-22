@@ -6,41 +6,41 @@
 
 namespace Scheduler
 {
-	enum Command { Exec, DistanceRange, SetDistance, Loop, Until, NOP };
+	enum Command { Exec_Cmd, DistanceRange_Cmd, SetDistance_Cmd, Loop_Cmd, Until_Cmd, NoP_Cmd };
 	
 
 	class SchedulerObject
 	{
 	public:
-		SchedulerObject(Command _type = NOP); 
+		SchedulerObject(Command _type = NoP_Cmd); 
 		
-		Command type;
-		int line;			// номер линии в программе (нулеруются с единицы)
+		Command type;		
 		QString mnemonic;
+		QString cell_text;
 	};
 
 	class Exec : public SchedulerObject
 	{
 	public:
-		explicit Exec(int _line);
+		explicit Exec();
 	};
 
 	class DistanceRange : public SchedulerObject
 	{
 	public: 
-		explicit DistanceRange(int _line);
+		explicit DistanceRange();
 	};
 
 	class SetDistance : public SchedulerObject
 	{
 	public: 
-		explicit SetDistance(int _line);
+		explicit SetDistance();
 	};
 
 	class Loop : public SchedulerObject
 	{
 	public: 
-		explicit Loop(int _line);
+		explicit Loop();
 				
 		int index;
 	};
@@ -48,7 +48,7 @@ namespace Scheduler
 	class Until : public SchedulerObject
 	{
 	public: 
-		explicit Until(int _line);
+		explicit Until();
 
 		SchedulerObject *ref_obj;
 	};
@@ -56,7 +56,7 @@ namespace Scheduler
 	class NOP : public SchedulerObject
 	{
 	public: 
-		explicit NOP(int _line);
+		explicit NOP();
 	};
 
 
@@ -69,7 +69,9 @@ namespace Scheduler
 	public:
 		Engine() { }
 		~Engine();
-
+		
+		SchedulerObjList getObjectList() { return obj_list; }
+		
 		template<class X> void add(X* obj)
 		{
 			SchedulerObject *sch_obj = static_cast<SchedulerObject*>(obj);
@@ -81,9 +83,7 @@ namespace Scheduler
 
 			SchedulerObject *sch_obj = static_cast<SchedulerObject*>(obj);
 			if (sch_obj) obj_list.insert(index, obj);
-		}
-
-		QList<SchedulerObject*> getObjectList() { return obj_list; }
+		}		
 		SchedulerObject* get(int index);	
 		void remove(int index);
 		SchedulerObject* take(int index);

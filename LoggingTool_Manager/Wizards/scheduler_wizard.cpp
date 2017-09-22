@@ -27,13 +27,13 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 	QAction *a_set_distance = new QAction("SET_DISTANCE", this);
 	QAction *a_loop = new QAction("LOOP", this);
 	QAction *a_until = new QAction("UNTIL", this);
-	QAction *a_nop = new QAction("NOP", this);
+	//QAction *a_nop = new QAction("NOP", this);
 	menu_add->addAction(a_exec);
 	menu_add->addAction(a_distance_range);
 	menu_add->addAction(a_set_distance);
 	menu_add->addAction(a_loop);
 	menu_add->addAction(a_until);
-	menu_add->addAction(a_nop);
+	//menu_add->addAction(a_nop);
 	ui->tbtAdd->setMenu(menu_add);
 	//ui->tbtAdd->setPopupMode(QToolButton::InstantPopup);
 
@@ -47,7 +47,11 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 
 	ui->tableWidgetExp->installEventFilter(this);
 
-	setConnections();
+	scheduler_engine.clear();
+
+	connect(ui->tbtAdd, SIGNAL(clicked()), this, SLOT(addItemNOP()));
+	connect(ui->tbtRemove, SIGNAL(clicked()), this, SLOT(removeItem()));
+	connect(a_distance_range, SIGNAL(clicked()), this, SLOT(addItem()));
 }
 
 SchedulerWizard::~SchedulerWizard()
@@ -69,26 +73,33 @@ bool SchedulerWizard::eventFilter(QObject *obj, QEvent *event)
 	return QWidget::eventFilter(obj, event);
 }
 
-void SchedulerWizard::setConnections()
-{
-	connect(ui->tbtAdd, SIGNAL(clicked()), this, SLOT(addItem()));
-	connect(ui->tbtRemove, SIGNAL(clicked()), this, SLOT(removeItem()));
-}
 
-
-void SchedulerWizard::addItem()
+void SchedulerWizard::addItemNOP()
 {
 	int rows = ui->tableWidgetExp->rowCount();
 	int cur_row = ui->tableWidgetExp->currentRow();	
-	
+
 	if (cur_row < 0 || cur_row == rows-1) 
-	{				
+	{
 		ui->tableWidgetExp->setRowCount(rows+1);
-		QLabel *lb = new QLabel("<font size=4 color=darkGreen>NOP</font>");
+		Scheduler::NOP *cmd_nop = new Scheduler::NOP;
+		scheduler_engine.add(cmd_nop);
+
+		QLabel *lb = new QLabel(cmd_nop->cell_text);
 		ui->tableWidgetExp->setCellWidget(rows, 0, lb);
-		ui->tableWidgetExp->setCurrentCell(rows, 0);
+		ui->tableWidgetExp->setCurrentCell(rows, 0);		
 	}
-	else insertItem(cur_row, "<font size=4 color=darkGreen>NOP</font>");
+	else 
+	{
+		Scheduler::NOP *cmd_nop = new Scheduler::NOP;
+		scheduler_engine.insert(cur_row, cmd_nop);
+		insertItem(cur_row, cmd_nop->cell_text);
+	}
+}
+
+void SchedulerWizard::addItem()
+{
+
 }
 
 void SchedulerWizard::insertItem(int row, QString cmd)
@@ -96,7 +107,7 @@ void SchedulerWizard::insertItem(int row, QString cmd)
 	if (row < 0) return;
 
 	ui->tableWidgetExp->insertRow(row);
-
+	
 	QLabel *lb = new QLabel(cmd);
 	ui->tableWidgetExp->setCellWidget(row, 0, lb);
 	ui->tableWidgetExp->setCurrentCell(row, 0);
@@ -108,6 +119,7 @@ void SchedulerWizard::removeItem()
 	if (cur_row < 0) return;	
 
 	ui->tableWidgetExp->removeRow(cur_row);
+	scheduler_engine.remove(cur_row);
 }
 
 // Read text in tableWidgetExp excluding HTML QString text:

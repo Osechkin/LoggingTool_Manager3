@@ -485,6 +485,7 @@ private:
 	GF_Data *gf_data;	
 };
 
+/*
 // структура, предназначенная для контроля обмена сообщениями
 struct Scheduler
 {
@@ -499,6 +500,7 @@ struct Scheduler
 	QList<uint16_t> report;		// отчет о соблюдении задержек в расписании "передача сообщения - ответ на передачу" 
 	bool started;				// флаг состояния объекта Scheduler (работает/не работает)
 };
+*/
 
 
 struct DepthMeterData

@@ -12,9 +12,9 @@
 //#include "sequence_wizard.h"
 
 #include "../Common/settings_tree.h"
+#include "../Common/experiment_scheduler.h"
 
 #include "ui_scheduler_wizard.h"
-
 
 
 // виджет редактирования циклограммы измерений программой сигнального процессора
@@ -28,9 +28,14 @@ public:
 
 protected:
 	bool eventFilter(QObject *obj, QEvent *event);
-
+	
 private:
 	void setConnections();
+	void insertItem(int row, QString cmd);
+
+private slots:
+	void addItem();	
+	void removeItem();
 
 private:
 	Ui::SchedulerWizard *ui;
@@ -39,6 +44,7 @@ private:
 	QList<CTreeWidgetItem*> c_title_items;
 	CTreeWidgetItem *c_item_selected;
 		
+	
 };
 
 #endif // SCHEDULER_WIZARD_H

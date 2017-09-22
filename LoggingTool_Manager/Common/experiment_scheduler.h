@@ -7,7 +7,7 @@
 namespace Scheduler
 {
 	enum Command { Exec, DistanceRange, SetDistance, Loop, Until, NOP };
-
+	
 
 	class SchedulerObject
 	{
@@ -60,6 +60,8 @@ namespace Scheduler
 	};
 
 
+	typedef QList<SchedulerObject*>		SchedulerObjList;
+
 	class Engine : public QObject
 	{
 		Q_OBJECT
@@ -82,11 +84,13 @@ namespace Scheduler
 		}
 
 		QList<SchedulerObject*> getObjectList() { return obj_list; }
-		SchedulerObject* get(int index);		
+		SchedulerObject* get(int index);	
+		void remove(int index);
+		SchedulerObject* take(int index);
 		void clear();
 		
 	private:
-		QList<SchedulerObject*> obj_list;
+		SchedulerObjList obj_list;
 	};
 }
 

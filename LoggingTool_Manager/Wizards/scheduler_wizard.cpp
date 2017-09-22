@@ -35,7 +35,7 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 	menu_add->addAction(a_until);
 	menu_add->addAction(a_nop);
 	ui->tbtAdd->setMenu(menu_add);
-	ui->tbtAdd->setPopupMode(QToolButton::InstantPopup);
+	//ui->tbtAdd->setPopupMode(QToolButton::InstantPopup);
 
 	QMenu *menu_save = new QMenu(this);
 	QAction *a_save = new QAction(tr("Save"), this);
@@ -43,9 +43,11 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 	menu_save->addAction(a_save);
 	menu_save->addAction(a_save_as);
 	ui->tbtSave->setMenu(menu_save);
-	ui->tbtSave->setPopupMode(QToolButton::InstantPopup);
+	//ui->tbtSave->setPopupMode(QToolButton::InstantPopup);
 
 	ui->tableWidgetExp->installEventFilter(this);
+
+	setConnections();
 }
 
 SchedulerWizard::~SchedulerWizard()
@@ -69,5 +71,44 @@ bool SchedulerWizard::eventFilter(QObject *obj, QEvent *event)
 
 void SchedulerWizard::setConnections()
 {
-
+	connect(ui->tbtAdd, SIGNAL(clicked()), this, SLOT(addItem()));
+	connect(ui->tbtRemove, SIGNAL(clicked()), this, SLOT(removeItem()));
 }
+
+
+void SchedulerWizard::addItem()
+{
+	int rows = ui->tableWidgetExp->rowCount();
+	int cur_row = ui->tableWidgetExp->currentRow();	
+	
+	if (cur_row < 0 || cur_row == rows-1) 
+	{				
+		ui->tableWidgetExp->setRowCount(rows+1);
+		QLabel *lb = new QLabel("<font size=4 color=darkGreen>NOP</font>");
+		ui->tableWidgetExp->setCellWidget(rows, 0, lb);
+		ui->tableWidgetExp->setCurrentCell(rows, 0);
+	}
+	else insertItem(cur_row, "<font size=4 color=darkGreen>NOP</font>");
+}
+
+void SchedulerWizard::insertItem(int row, QString cmd)
+{
+	if (row < 0) return;
+
+	ui->tableWidgetExp->insertRow(row);
+
+	QLabel *lb = new QLabel(cmd);
+	ui->tableWidgetExp->setCellWidget(row, 0, lb);
+	ui->tableWidgetExp->setCurrentCell(row, 0);
+}
+
+void SchedulerWizard::removeItem()
+{
+	int cur_row = ui->tableWidgetExp->currentRow();	
+	if (cur_row < 0) return;	
+
+	ui->tableWidgetExp->removeRow(cur_row);
+}
+
+// Read text in tableWidgetExp excluding HTML QString text:
+// QString  txt = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(cur_row,0))->text().remove(QRegExp("<[^>]*>"));

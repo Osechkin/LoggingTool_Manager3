@@ -71,14 +71,27 @@ Scheduler::Engine::~Engine()
 	clear();
 }
 
+Scheduler::SchedulerObject* Scheduler::Engine::get(int index) 
+{ 
+	if (index < obj_list.count()) return obj_list.at(index);
+	else return NULL; 
+}
+
+void Scheduler::Engine::remove(int index)
+{
+	obj_list.removeAt(index);
+}
+
 void Scheduler::Engine::clear()
 {
 	qDeleteAll(obj_list.begin(), obj_list.end());
 	obj_list.clear();
 }
 
-Scheduler::SchedulerObject* Scheduler::Engine::get(int index) 
-{ 
-	if (index < obj_list.count()) return obj_list.at(index);
-	else return NULL; 
+Scheduler::SchedulerObject* Scheduler::Engine::take(int index)
+{
+	if (index < 0) return NULL;
+	
+	return obj_list.takeAt(index);
 }
+

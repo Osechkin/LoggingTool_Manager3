@@ -17,24 +17,35 @@ namespace Scheduler
 		Command type;		
 		QString mnemonic;
 		QString cell_text;
+		QObjectList *param_objects;
 	};
 
 	class Exec : public SchedulerObject
 	{
 	public:
 		explicit Exec();
+
+		QString jseq_name;
+		QString jseq_path;
+		QString data_file;
 	};
 
 	class DistanceRange : public SchedulerObject
 	{
 	public: 
 		explicit DistanceRange();
+
+		double from;
+		double to;
+		double step;
 	};
 
 	class SetDistance : public SchedulerObject
 	{
 	public: 
 		explicit SetDistance();
+
+		double position;
 	};
 
 	class Loop : public SchedulerObject
@@ -43,6 +54,7 @@ namespace Scheduler
 		explicit Loop();
 				
 		int index;
+		int to;
 	};
 
 	class Until : public SchedulerObject

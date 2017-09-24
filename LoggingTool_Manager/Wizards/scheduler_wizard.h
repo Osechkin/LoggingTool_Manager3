@@ -31,11 +31,14 @@ protected:
 	
 private:
 	void insertItem(int row, QString cmd);
+	void removeItem(int row);
 
 private slots:
 	void addItem();	
 	void addItemNOP();
 	void removeItem();
+	void removeAllItems();
+	void update();
 
 private:
 	Ui::SchedulerWizard *ui;
@@ -45,6 +48,9 @@ private:
 	CTreeWidgetItem *c_item_selected;
 		
 	Scheduler::Engine scheduler_engine;
+
+	QStringList jseq_list;
+	QString data_file;
 };
 
 #endif // SCHEDULER_WIZARD_H

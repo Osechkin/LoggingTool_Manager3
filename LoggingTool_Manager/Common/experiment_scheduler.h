@@ -2,36 +2,69 @@
 #define EXPERIMENT_SCHEDULER_H
 
 #include <QObject>
+#include <QComboBox>
 
 
 namespace Scheduler
 {
-	enum Command { Exec_Cmd, DistanceRange_Cmd, SetDistance_Cmd, Loop_Cmd, Until_Cmd, NoP_Cmd };
+	enum Command { Exec_Cmd, DistanceRange_Cmd, SetDistance_Cmd, Loop_Cmd, End_Cmd, NoP_Cmd };
+	enum WidgetType { DoubleSpinBox, ComboBox, LineEdit };
 	
-
-	class SchedulerObject
+	struct SettingsItem
 	{
+		SettingsItem(QString _title, WidgetType _wid_type, QWidget *_widget, QString _units)
+		{
+			title = _title;
+			widget_type = _wid_type;
+			widget = _widget;
+			units = _units;
+		}
+
+		~SettingsItem() { delete widget; }
+
+		QString title;		
+		QString units;
+		WidgetType widget_type;			// тип виджета для ввода параметра команды 
+		QWidget *widget;				// виджет ввода параметра оператором (например, параметр "to" цикла LOOP и т.д.)
+	};
+	typedef QList<SettingsItem*>		SettingsItemList;
+
+
+	class SchedulerObject : public QObject
+	{
+		Q_OBJECT
+
 	public:
 		SchedulerObject(Command _type = NoP_Cmd); 
 		
-		Command type;		
-		QString mnemonic;
+		Command type;				
 		QString cell_text;
-		QObjectList *param_objects;
+		SettingsItemList param_objects;
+
+	signals:
+		void changed();
 	};
 
 	class Exec : public SchedulerObject
 	{
-	public:
-		explicit Exec();
+		Q_OBJECT
 
-		QString jseq_name;
-		QString jseq_path;
+	public:
+		explicit Exec(QStringList _jseqs, QString _data_file);
+		~Exec();
+
+		QString jseq_name;		
 		QString data_file;
+
+	private slots:
+		void changeJSeq(const QString &_jseq) { jseq_name = _jseq; emit changed(); }
+		void editFileName(const QString &_name) { data_file = _name; emit changed(); }
 	};
 
 	class DistanceRange : public SchedulerObject
 	{
+		Q_OBJECT
+
 	public: 
 		explicit DistanceRange();
 
@@ -42,6 +75,8 @@ namespace Scheduler
 
 	class SetDistance : public SchedulerObject
 	{
+		Q_OBJECT
+
 	public: 
 		explicit SetDistance();
 
@@ -50,6 +85,8 @@ namespace Scheduler
 
 	class Loop : public SchedulerObject
 	{
+		Q_OBJECT
+
 	public: 
 		explicit Loop();
 				
@@ -57,16 +94,20 @@ namespace Scheduler
 		int to;
 	};
 
-	class Until : public SchedulerObject
+	class End : public SchedulerObject
 	{
+		Q_OBJECT
+
 	public: 
-		explicit Until();
+		explicit End();
 
 		SchedulerObject *ref_obj;
 	};
 
 	class NOP : public SchedulerObject
 	{
+		Q_OBJECT
+
 	public: 
 		explicit NOP();
 	};

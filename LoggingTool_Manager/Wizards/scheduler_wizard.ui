@@ -33,7 +33,7 @@
        <widget class="QToolButton" name="tbtAdd">
         <property name="font">
          <font>
-          <pointsize>10</pointsize>
+          <pointsize>9</pointsize>
          </font>
         </property>
         <property name="text">
@@ -60,7 +60,7 @@
        <widget class="QToolButton" name="tbtRemove">
         <property name="font">
          <font>
-          <pointsize>10</pointsize>
+          <pointsize>9</pointsize>
          </font>
         </property>
         <property name="text">
@@ -71,6 +71,9 @@
           <width>20</width>
           <height>20</height>
          </size>
+        </property>
+        <property name="popupMode">
+         <enum>QToolButton::MenuButtonPopup</enum>
         </property>
         <property name="toolButtonStyle">
          <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -91,7 +94,7 @@
        <widget class="QToolButton" name="tbtOpen">
         <property name="font">
          <font>
-          <pointsize>10</pointsize>
+          <pointsize>9</pointsize>
          </font>
         </property>
         <property name="text">
@@ -109,7 +112,7 @@
        <widget class="QToolButton" name="tbtSave">
         <property name="font">
          <font>
-          <pointsize>10</pointsize>
+          <pointsize>9</pointsize>
          </font>
         </property>
         <property name="text">

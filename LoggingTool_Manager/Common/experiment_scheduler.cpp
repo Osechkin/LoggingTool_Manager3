@@ -37,21 +37,24 @@ Scheduler::SchedulerObject::SchedulerObject(Command _type)
 Scheduler::Exec::Exec(QStringList jseqs, QString _data_file)
 {
 	type = Scheduler::Exec_Cmd;			
+	jseq_list = jseqs;
+	jseq_name = "";
+	if (!jseq_list.isEmpty()) jseq_name = jseq_list.first();
 
-	QComboBox *cboxJSeqs = new QComboBox;
+	/*QComboBox *cboxJSeqs = new QComboBox;
 	cboxJSeqs->addItems(jseqs);
 	jseq_name = cboxJSeqs->currentText();
 	connect(cboxJSeqs, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(changeJSeq(const QString&)));
 
 	QLineEdit *ledDataFile = new QLineEdit(data_file);
 	ledDataFile->setToolTip(data_file);
-	connect(ledDataFile, SIGNAL(textEdited(const QString&)), this, SLOT(editFileName(const QString&)));
+	connect(ledDataFile, SIGNAL(textEdited(const QString&)), this, SLOT(editFileName(const QString&)));*/
 
 	data_file = _data_file;
 	cell_text = QString("<font size=3><font color=darkgreen>EXEC </font>( '<font color=blue>%1</font>', '<font color=blue>%2</font>' )</font>").arg(jseq_name, data_file);
 
-	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("Sequence:"), Scheduler::ComboBox, cboxJSeqs, "");
-	Scheduler::SettingsItem *param_item_2 = new Scheduler::SettingsItem(tr("Data File:"), Scheduler::LineEdit, ledDataFile, "");
+	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("Sequence:"), Scheduler::ComboBox, /*cboxJSeqs*/ NULL, "");
+	Scheduler::SettingsItem *param_item_2 = new Scheduler::SettingsItem(tr("Data File:"), Scheduler::LineEdit, /*ledDataFile*/ NULL, "");
 	param_objects.append(param_item_1);
 	param_objects.append(param_item_2);
 }

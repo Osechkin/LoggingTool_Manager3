@@ -52,6 +52,8 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 	//ui->tbtSave->setPopupMode(QToolButton::InstantPopup);
 
 	ui->tableWidgetExp->installEventFilter(this);
+	QItemSelectionModel *sm = ui->tableWidgetExp->selectionModel();
+	connect(sm, SIGNAL(currentRowChanged(QModelIndex,QModelIndex)), this, SLOT(currentItemSelected(QModelIndex,QModelIndex)));
 
 	scheduler_engine.clear();
 
@@ -95,7 +97,7 @@ void SchedulerWizard::addItemNOP()
 		ui->tableWidgetExp->setRowCount(rows+1);
 		Scheduler::NOP *cmd_nop = new Scheduler::NOP;
 		scheduler_engine.add(cmd_nop);
-		showItemParameters(cmd_nop);
+		//showItemParameters(cmd_nop);
 
 		QLabel *lb = new QLabel(cmd_nop->cell_text);
 		ui->tableWidgetExp->setCellWidget(rows, 0, lb);
@@ -106,7 +108,7 @@ void SchedulerWizard::addItemNOP()
 		Scheduler::NOP *cmd_nop = new Scheduler::NOP;
 		scheduler_engine.insert(cur_row, cmd_nop);
 		insertItem(cur_row, cmd_nop->cell_text);
-		showItemParameters(cmd_nop);
+		//showItemParameters(cmd_nop);
 	}
 }
 
@@ -135,7 +137,7 @@ void SchedulerWizard::addItem()
 	{
 		Scheduler::SetDistance *dist_obj = new Scheduler::SetDistance;
 		connect(dist_obj, SIGNAL(changed()), this, SLOT(update()));
-		cmd_obj_list.append(new Scheduler::SetDistance);
+		cmd_obj_list.append(dist_obj);
 	}
 	else if (txt == "LOOP - END")			  
 	{ 
@@ -167,7 +169,7 @@ void SchedulerWizard::addItem()
 			scheduler_engine.insert(cur_row, cmd_obj);			
 			insertItem(cur_row, cmd_obj->cell_text);			
 		}
-		showItemParameters(cmd_obj);
+		//showItemParameters(cmd_obj);
 	}	
 }
 
@@ -286,15 +288,37 @@ void SchedulerWizard::update()
 
 void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 {
-	qDeleteAll(tree_items);
-	tree_items.clear();
-
+	//qDeleteAll(tree_items);
+	/*for (int i = 0; i < tree_items.count(); i++)
+	{
+		QTreeWidgetItem *twi = tree_items[i];
+		ui->treeWidgetParam->removeItemWidget(twi, 0);
+		ui->treeWidgetParam->removeItemWidget(twi, 1);
+		ui->treeWidgetParam->removeItemWidget(twi, 2);
+	}*/
+	//tree_items.clear();
+	ui->treeWidgetParam->clear();
+	
 	Scheduler::Command obj_type = obj->type;
 	switch (obj_type)
 	{
 	case Scheduler::Command::DistanceRange_Cmd:	break;
 	case Scheduler::Command::Exec_Cmd:
 		{
+			Scheduler::Exec *exec_obj = qobject_cast<Scheduler::Exec*>(obj);
+			if (!exec_obj) return;
+						
+			QComboBox *cboxJSeqs = new QComboBox;
+			cboxJSeqs->addItems(exec_obj->jseq_list);			
+			connect(cboxJSeqs, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(changeJSeq(const QString&)));
+
+			QLineEdit *ledDataFile = new QLineEdit(exec_obj->data_file);
+			ledDataFile->setToolTip(exec_obj->data_file);
+			connect(ledDataFile, SIGNAL(textEdited(const QString&)), this, SLOT(editFileName(const QString&)));
+
+			QWidgetList widget_params;
+			widget_params << cboxJSeqs << ledDataFile;
+
 			int items_count = obj->param_objects.count();
 			for (int i = 0; i < items_count; i++)
 			{
@@ -303,7 +327,7 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 				QPalette palette = lbl_title->palette();
 				palette.setColor(QPalette::Text, (QColor(Qt::darkBlue)));		
 				lbl_title->setPalette(palette);
-				QWidget *widget = param_item->widget;
+				QWidget *widget = widget_params[i];
 				QLabel *lbl_units = new QLabel(param_item->units);
 				lbl_units->setPalette(palette);
 
@@ -311,7 +335,7 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 				ui->treeWidgetParam->setItemWidget(twi, 0, lbl_title);
 				ui->treeWidgetParam->setItemWidget(twi, 1, widget);
 				ui->treeWidgetParam->setItemWidget(twi, 2, lbl_units);
-				tree_items.append(twi);
+				//tree_items.append(twi);
 			}
 			break;
 		}
@@ -321,4 +345,13 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 	case Scheduler::Command::NoP_Cmd:			break;
 	default: break;
 	}
+}
+
+void SchedulerWizard::currentItemSelected(QModelIndex index1, QModelIndex index2)
+{
+	int row = index1.row();
+	Scheduler::SchedulerObject *obj = scheduler_engine.get(row);
+	if (!obj) return;
+
+	showItemParameters(obj);
 }

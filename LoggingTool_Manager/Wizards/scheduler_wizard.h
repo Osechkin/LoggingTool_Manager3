@@ -42,6 +42,8 @@ private slots:
 	void removeAllItems();
 	void update();
 
+	void currentItemSelected(QModelIndex index1, QModelIndex index2);
+
 private:
 	Ui::SchedulerWizard *ui;
 

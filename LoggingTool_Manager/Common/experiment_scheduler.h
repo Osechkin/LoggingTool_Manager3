@@ -16,16 +16,16 @@ namespace Scheduler
 		{
 			title = _title;
 			widget_type = _wid_type;
-			widget = _widget;
+			//widget = _widget;
 			units = _units;
 		}
 
-		~SettingsItem() { delete widget; }
+		//~SettingsItem() { /*delete widget;*/ }
 
 		QString title;		
 		QString units;
 		WidgetType widget_type;			// тип виджета для ввода параметра команды 
-		QWidget *widget;				// виджет ввода параметра оператором (например, параметр "to" цикла LOOP и т.д.)
+		//QWidget *widget;				// виджет ввода параметра оператором (например, параметр "to" цикла LOOP и т.д.)
 	};
 	typedef QList<SettingsItem*>		SettingsItemList;
 
@@ -53,6 +53,7 @@ namespace Scheduler
 		explicit Exec(QStringList _jseqs, QString _data_file);
 		~Exec();
 
+		QStringList jseq_list;
 		QString jseq_name;		
 		QString data_file;
 

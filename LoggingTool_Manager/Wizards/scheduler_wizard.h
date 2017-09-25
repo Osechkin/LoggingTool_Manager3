@@ -32,6 +32,8 @@ protected:
 private:
 	void insertItem(int row, QString cmd);
 	void removeItem(int row);
+	
+	void showItemParameters(Scheduler::SchedulerObject *obj);
 
 private slots:
 	void addItem();	
@@ -43,9 +45,7 @@ private slots:
 private:
 	Ui::SchedulerWizard *ui;
 
-	QList<CTreeWidgetItem*> c_items;
-	QList<CTreeWidgetItem*> c_title_items;
-	CTreeWidgetItem *c_item_selected;
+	QList<QTreeWidgetItem*> tree_items;	
 		
 	Scheduler::Engine scheduler_engine;
 

@@ -1092,7 +1092,7 @@ void CTreeWidgetItem::show()
 {
     for (int i = 0; i < c_objects.count(); i++)
     {
-        tw->setItemWidget(sub_twi, i, c_objects[i]);	
+        tw->setItemWidget(sub_twi, i, c_objects[i]);
     }
 
     if (twi) twi->setExpanded(true);

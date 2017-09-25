@@ -18,8 +18,8 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 	ui->treeWidgetParam->setColumnCount(3);
 	headlist << tr("Parameter") << tr("Value") << tr("Units");
 	ui->treeWidgetParam->setHeaderLabels(headlist);
-	ui->treeWidgetParam->setColumnWidth(0,250);
-	ui->treeWidgetParam->setColumnWidth(1,75);	
+	ui->treeWidgetParam->setColumnWidth(0,120);
+	ui->treeWidgetParam->setColumnWidth(1,250);	
 	ui->treeWidgetParam->header()->setFont(QFont("Arial", 10, 0, false));
 
 	QMenu *menu_add = new QMenu(this);
@@ -95,6 +95,7 @@ void SchedulerWizard::addItemNOP()
 		ui->tableWidgetExp->setRowCount(rows+1);
 		Scheduler::NOP *cmd_nop = new Scheduler::NOP;
 		scheduler_engine.add(cmd_nop);
+		showItemParameters(cmd_nop);
 
 		QLabel *lb = new QLabel(cmd_nop->cell_text);
 		ui->tableWidgetExp->setCellWidget(rows, 0, lb);
@@ -105,6 +106,7 @@ void SchedulerWizard::addItemNOP()
 		Scheduler::NOP *cmd_nop = new Scheduler::NOP;
 		scheduler_engine.insert(cur_row, cmd_nop);
 		insertItem(cur_row, cmd_nop->cell_text);
+		showItemParameters(cmd_nop);
 	}
 }
 
@@ -155,16 +157,17 @@ void SchedulerWizard::addItem()
 		{		
 			ui->tableWidgetExp->setRowCount(rows+1);
 			scheduler_engine.add(cmd_obj);
-
+			
 			QLabel *lb = new QLabel(cmd_obj->cell_text);
 			ui->tableWidgetExp->setCellWidget(rows, 0, lb);
 			ui->tableWidgetExp->setCurrentCell(rows, 0);		
 		}
 		else 
 		{		
-			scheduler_engine.insert(cur_row, cmd_obj);
-			insertItem(cur_row, cmd_obj->cell_text);
+			scheduler_engine.insert(cur_row, cmd_obj);			
+			insertItem(cur_row, cmd_obj->cell_text);			
 		}
+		showItemParameters(cmd_obj);
 	}	
 }
 
@@ -193,7 +196,7 @@ void SchedulerWizard::removeItem()
 	int cur_row = ui->tableWidgetExp->currentRow();	
 	if (cur_row < 0) return;	
 
-	Scheduler::Command  cmd_type = scheduler_engine.getObjectList()[cur_row]->type;
+	Scheduler::Command cmd_type = scheduler_engine.getObjectList()[cur_row]->type;
 	if (cmd_type == Scheduler::Command::Loop_Cmd || cmd_type == Scheduler::Command::DistanceRange_Cmd)
 	{
 		ui->tableWidgetExp->removeRow(cur_row);
@@ -201,7 +204,7 @@ void SchedulerWizard::removeItem()
 		int rows = scheduler_engine.getObjectList().count();
 		for (int i = cur_row; i < rows; i++)
 		{
-			Scheduler::Command  cmd_type = scheduler_engine.getObjectList()[i]->type;
+			Scheduler::Command cmd_type = scheduler_engine.getObjectList()[i]->type;
 			if (cmd_type == Scheduler::Command::End_Cmd)
 			{
 				ui->tableWidgetExp->removeRow(i);
@@ -219,7 +222,7 @@ void SchedulerWizard::removeItem()
 		{
 			for (int i = cur_row-1; i >= 0; --i)
 			{
-				Scheduler::Command  cmd_type = scheduler_engine.getObjectList()[i]->type;
+				Scheduler::Command cmd_type = scheduler_engine.getObjectList()[i]->type;
 				if (cmd_type == Scheduler::Command::Loop_Cmd || cmd_type == Scheduler::Command::DistanceRange_Cmd)
 				{
 					ui->tableWidgetExp->removeRow(i);
@@ -267,10 +270,10 @@ void SchedulerWizard::update()
 					lb->setText(exec_obj->cell_text.arg(exec_obj->jseq_name).arg(exec_obj->data_file));
 					break;
 				}
-			case Scheduler::Command::Loop_Cmd: break;
-			case Scheduler::Command::SetDistance_Cmd: break;
-			case Scheduler::Command::End_Cmd: break;
-			case Scheduler::Command::NoP_Cmd: break;
+			case Scheduler::Command::Loop_Cmd:			break;
+			case Scheduler::Command::SetDistance_Cmd:	break;
+			case Scheduler::Command::End_Cmd:			break;
+			case Scheduler::Command::NoP_Cmd:			break;
 			default: break;
 			}
 		}
@@ -279,3 +282,43 @@ void SchedulerWizard::update()
 
 // Read text in tableWidgetExp excluding HTML QString text:
 // QString  txt = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(cur_row,0))->text().remove(QRegExp("<[^>]*>"));
+
+
+void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
+{
+	qDeleteAll(tree_items);
+	tree_items.clear();
+
+	Scheduler::Command obj_type = obj->type;
+	switch (obj_type)
+	{
+	case Scheduler::Command::DistanceRange_Cmd:	break;
+	case Scheduler::Command::Exec_Cmd:
+		{
+			int items_count = obj->param_objects.count();
+			for (int i = 0; i < items_count; i++)
+			{
+				Scheduler::SettingsItem *param_item = obj->param_objects[i];
+				QLabel *lbl_title = new QLabel(param_item->title);
+				QPalette palette = lbl_title->palette();
+				palette.setColor(QPalette::Text, (QColor(Qt::darkBlue)));		
+				lbl_title->setPalette(palette);
+				QWidget *widget = param_item->widget;
+				QLabel *lbl_units = new QLabel(param_item->units);
+				lbl_units->setPalette(palette);
+
+				QTreeWidgetItem *twi = new QTreeWidgetItem(ui->treeWidgetParam);
+				ui->treeWidgetParam->setItemWidget(twi, 0, lbl_title);
+				ui->treeWidgetParam->setItemWidget(twi, 1, widget);
+				ui->treeWidgetParam->setItemWidget(twi, 2, lbl_units);
+				tree_items.append(twi);
+			}
+			break;
+		}
+	case Scheduler::Command::SetDistance_Cmd:	break;
+	case Scheduler::Command::Loop_Cmd:			break;
+	case Scheduler::Command::End_Cmd:			break;
+	case Scheduler::Command::NoP_Cmd:			break;
+	default: break;
+	}
+}

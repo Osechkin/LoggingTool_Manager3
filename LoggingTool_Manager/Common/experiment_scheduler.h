@@ -3,31 +3,52 @@
 
 #include <QObject>
 #include <QComboBox>
+#include <QFileInfo>
 
 
 namespace Scheduler
 {
 	enum Command { Exec_Cmd, DistanceRange_Cmd, SetDistance_Cmd, Loop_Cmd, End_Cmd, NoP_Cmd };
-	enum WidgetType { DoubleSpinBox, ComboBox, LineEdit };
-	
+	enum WidgetType { DoubleSpinBox, ComboBox, LineEdit, FileBrowse };
+		
 	struct SettingsItem
 	{
-		SettingsItem(QString _title, WidgetType _wid_type, QWidget *_widget, QString _units)
+		SettingsItem(QString _title, WidgetType _wid_type, QString _units)
 		{
 			title = _title;
-			widget_type = _wid_type;
-			//widget = _widget;
+			widget_type = _wid_type;			
 			units = _units;
 		}
 
-		//~SettingsItem() { /*delete widget;*/ }
-
 		QString title;		
 		QString units;
-		WidgetType widget_type;			// тип виджета для ввода параметра команды 
-		//QWidget *widget;				// виджет ввода параметра оператором (например, параметр "to" цикла LOOP и т.д.)
+		WidgetType widget_type;			// тип виджета для ввода параметра команды 		
 	};
 	typedef QList<SettingsItem*>		SettingsItemList;
+
+
+	class FileBrowser : public QWidget
+	{
+		Q_OBJECT
+		
+	public:
+		FileBrowser(QString _file_name, QWidget *parent = 0);
+
+		QString getPath() { return file_path; } 
+		QString getFileName() { return file_name; }
+
+	private slots:		
+		void enterDataFileName();
+	
+	private:
+		QLineEdit *ledFileName;
+
+		QString file_path;
+		QString file_name;
+		
+	signals:
+		void new_filename(const QFileInfo&);
+	};
 
 
 	class SchedulerObject : public QObject
@@ -39,6 +60,7 @@ namespace Scheduler
 		
 		Command type;				
 		QString cell_text;
+		QString cell_text_template;
 		SettingsItemList param_objects;
 
 	signals:
@@ -50,16 +72,16 @@ namespace Scheduler
 		Q_OBJECT
 
 	public:
-		explicit Exec(QStringList _jseqs, QString _data_file);
+		explicit Exec(QStringList _jseqs, QString jseq_file, QString _data_file);
 		~Exec();
 
 		QStringList jseq_list;
 		QString jseq_name;		
 		QString data_file;
 
-	private slots:
+	public slots:
 		void changeJSeq(const QString &_jseq) { jseq_name = _jseq; emit changed(); }
-		void editFileName(const QString &_name) { data_file = _name; emit changed(); }
+		void editFileName(const QFileInfo &_fi) { data_file = _fi.absoluteFilePath(); emit changed(); }
 	};
 
 	class DistanceRange : public SchedulerObject

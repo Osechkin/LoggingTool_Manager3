@@ -11,12 +11,6 @@ ExportSettingsDialog::ExportSettingsDialog(QSettings *settings, bool to_save, QO
 
 	app_settings = settings;
 
-	/*if (app_settings->contains("SaveDataSettings/SaveData")) save_data = app_settings->value("SaveDataSettings/SaveData").toBool();
-	else
-	{
-		save_data = false;
-		app_settings->setValue("SaveDataSettings/SaveData", save_data);
-	}*/
 	save_data = to_save;
 	save_all_data = false;
 	gbxSaveData->setChecked(save_data);

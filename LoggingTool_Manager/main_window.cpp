@@ -271,6 +271,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_expScheduler->setFont(fontManager);
 	dock_expScheduler->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
 	expScheduler = new SchedulerWizard(app_settings, dock_expScheduler);	
+	expScheduler->setJSeqList(sequenceProc->getSeqFileList());
+	expScheduler->setJSeqFile(sequenceProc->getJSeqFile());
 	dock_expScheduler->setWidget(expScheduler);    
 	addDockWidget(Qt::LeftDockWidgetArea, dock_expScheduler);	
 	

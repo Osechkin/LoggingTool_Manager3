@@ -1,6 +1,8 @@
 #include <QMenu>
 #include <QAction>
 #include <QLabel>
+#include <QDateTime>
+#include <QDir>
 
 #include "scheduler_wizard.h"
 
@@ -8,6 +10,9 @@
 SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWizard)
 {
 	ui->setupUi(this);
+
+	app_settings = settings;
+	setDataFileSettings();
 
 	ui->tbtAdd->setIcon(QIcon(":/images/add_button.png"));
 	ui->tbtRemove->setIcon(QIcon(":/images/disconnect.png"));
@@ -97,8 +102,7 @@ void SchedulerWizard::addItemNOP()
 		ui->tableWidgetExp->setRowCount(rows+1);
 		Scheduler::NOP *cmd_nop = new Scheduler::NOP;
 		scheduler_engine.add(cmd_nop);
-		//showItemParameters(cmd_nop);
-
+		
 		QLabel *lb = new QLabel(cmd_nop->cell_text);
 		ui->tableWidgetExp->setCellWidget(rows, 0, lb);
 		ui->tableWidgetExp->setCurrentCell(rows, 0);		
@@ -107,8 +111,7 @@ void SchedulerWizard::addItemNOP()
 	{
 		Scheduler::NOP *cmd_nop = new Scheduler::NOP;
 		scheduler_engine.insert(cur_row, cmd_nop);
-		insertItem(cur_row, cmd_nop->cell_text);
-		//showItemParameters(cmd_nop);
+		insertItem(cur_row, cmd_nop->cell_text);		
 	}
 }
 
@@ -121,7 +124,8 @@ void SchedulerWizard::addItem()
 	Scheduler::SchedulerObjList cmd_obj_list;	
 	if (txt == "EXEC")
 	{
-		Scheduler::Exec *exec_obj = new Scheduler::Exec(jseq_list, data_file);
+		data_file = generateDataFileName();
+		Scheduler::Exec *exec_obj = new Scheduler::Exec(jseq_list, jseq_file, data_file);
 		connect(exec_obj, SIGNAL(changed()), this, SLOT(update()));
 		cmd_obj_list.append(exec_obj);
 	}
@@ -168,8 +172,7 @@ void SchedulerWizard::addItem()
 		{		
 			scheduler_engine.insert(cur_row, cmd_obj);			
 			insertItem(cur_row, cmd_obj->cell_text);			
-		}
-		//showItemParameters(cmd_obj);
+		}	
 	}	
 }
 
@@ -269,7 +272,8 @@ void SchedulerWizard::update()
 				{
 					QLabel *lb = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(i,0));
 					Scheduler::Exec *exec_obj = qobject_cast<Scheduler::Exec*>(obj_sender);
-					lb->setText(exec_obj->cell_text.arg(exec_obj->jseq_name).arg(exec_obj->data_file));
+					exec_obj->cell_text = exec_obj->cell_text_template.arg(exec_obj->jseq_name);
+					lb->setText(exec_obj->cell_text);
 					break;
 				}
 			case Scheduler::Command::Loop_Cmd:			break;
@@ -287,16 +291,7 @@ void SchedulerWizard::update()
 
 
 void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
-{
-	//qDeleteAll(tree_items);
-	/*for (int i = 0; i < tree_items.count(); i++)
-	{
-		QTreeWidgetItem *twi = tree_items[i];
-		ui->treeWidgetParam->removeItemWidget(twi, 0);
-		ui->treeWidgetParam->removeItemWidget(twi, 1);
-		ui->treeWidgetParam->removeItemWidget(twi, 2);
-	}*/
-	//tree_items.clear();
+{	
 	ui->treeWidgetParam->clear();
 	
 	Scheduler::Command obj_type = obj->type;
@@ -310,14 +305,14 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 						
 			QComboBox *cboxJSeqs = new QComboBox;
 			cboxJSeqs->addItems(exec_obj->jseq_list);			
-			connect(cboxJSeqs, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(changeJSeq(const QString&)));
+			connect(cboxJSeqs, SIGNAL(currentIndexChanged(const QString&)), exec_obj, SLOT(changeJSeq(const QString&)));
 
-			QLineEdit *ledDataFile = new QLineEdit(exec_obj->data_file);
-			ledDataFile->setToolTip(exec_obj->data_file);
-			connect(ledDataFile, SIGNAL(textEdited(const QString&)), this, SLOT(editFileName(const QString&)));
+			Scheduler::FileBrowser *fileBrowser = new Scheduler::FileBrowser(exec_obj->data_file);
+			fileBrowser->setToolTip(exec_obj->data_file);
+			connect(fileBrowser, SIGNAL(new_filename(const QFileInfo&)), exec_obj, SLOT(editFileName(const QFileInfo&)));
 
 			QWidgetList widget_params;
-			widget_params << cboxJSeqs << ledDataFile;
+			widget_params << cboxJSeqs << fileBrowser;
 
 			int items_count = obj->param_objects.count();
 			for (int i = 0; i < items_count; i++)
@@ -334,8 +329,7 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 				QTreeWidgetItem *twi = new QTreeWidgetItem(ui->treeWidgetParam);
 				ui->treeWidgetParam->setItemWidget(twi, 0, lbl_title);
 				ui->treeWidgetParam->setItemWidget(twi, 1, widget);
-				ui->treeWidgetParam->setItemWidget(twi, 2, lbl_units);
-				//tree_items.append(twi);
+				ui->treeWidgetParam->setItemWidget(twi, 2, lbl_units);				
 			}
 			break;
 		}
@@ -354,4 +348,55 @@ void SchedulerWizard::currentItemSelected(QModelIndex index1, QModelIndex index2
 	if (!obj) return;
 
 	showItemParameters(obj);
+}
+
+void SchedulerWizard::setDataFileSettings()
+{
+	if (app_settings->contains("SaveDataSettings/Path")) datafile_path = app_settings->value("SaveDataSettings/Path").toString();
+	else
+	{
+		QString cur_dir = QCoreApplication::applicationDirPath();		
+		datafile_path = cur_dir;
+		app_settings->setValue("SaveDataSettings/Path", datafile_path);
+	}
+		
+	if (app_settings->contains("SaveDataSettings/Prefix")) datafile_prefix = app_settings->value("SaveDataSettings/Prefix").toString();
+	else
+	{
+		datafile_prefix = "data";
+		app_settings->setValue("SaveDataSettings/Prefix", datafile_prefix);
+	}	
+	
+	if (app_settings->contains("SaveDataSettings/Postfix")) datafile_postfix = app_settings->value("SaveDataSettings/Postfix").toString();
+	else
+	{
+		datafile_postfix = "";
+		app_settings->setValue("SaveDataSettings/Postfix", datafile_postfix);
+	}
+		
+	QStringList items;
+	items << tr("dat") << tr("txt");	
+	if (app_settings->contains("SaveDataSettings/Extension")) datafile_extension = app_settings->value("SaveDataSettings/Extension").toString();
+	else
+	{
+		datafile_extension = "dat";
+		app_settings->setValue("SaveDataSettings/Extension", datafile_extension);
+	}	
+}
+
+QString SchedulerWizard::generateDataFileName()
+{
+	QDateTime dateTime = QDateTime::currentDateTime();
+	QString dateTime_str = dateTime.toString("yyyy-MM-dd_hh-mm-ss-zzz");
+	QDir dir(datafile_path);
+	QString file_name = "";
+	if (!datafile_prefix.isEmpty()) file_name += datafile_prefix + "_";
+	file_name += dateTime_str;
+	if (!datafile_postfix.isEmpty()) file_name += "_" + datafile_postfix;
+	static int file_counter = 1;
+	file_name += "_" + QString::number(file_counter++);
+	file_name += "." + datafile_extension;
+	
+	QFileInfo file_info(dir, file_name);	
+	return file_info.absoluteFilePath();
 }

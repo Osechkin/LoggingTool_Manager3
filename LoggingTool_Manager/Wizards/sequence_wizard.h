@@ -6,6 +6,7 @@
 #include <QSettings>
 #include <QList>
 #include <QDateTime>
+#include <QFileInfo>
 #include <QScriptEngine>
 #include <QScriptEngineDebugger>
 
@@ -37,8 +38,9 @@ public:
 	QList<SeqInstrInfo> *getSeqInstrIndex() { return &seq_instr_index; }
 	QList<SeqDataTypeInfo> *getSeqDataTypeInfo() { return &seq_datatype_index; }
 
-	QStringList *getSeqFileList() { return &file_list; }
-	QStringList *getSeqPathList() { return &path_list; }
+	QStringList getSeqFileList() { return file_list; }
+	QStringList getSeqPathList() { return path_list; }
+	QString &getJSeqFile() { return jseq_file; }
 
 	//void refreshArgFormula();
 	
@@ -60,6 +62,7 @@ protected:
 	//QSettings *sequence_proc;
 	QStringList file_list;
 	QStringList path_list;
+	QString jseq_file;
 	//Sequence curSeq;	
 
 	QScriptEngine engine;
@@ -119,7 +122,8 @@ private slots:
 	
 signals:
 	void sequence_changed();
-	void save_data_changed(DataSave &file_attrs);
+	void new_sequence_file(const QFileInfo&);
+	void save_data_changed(DataSave&);
 };
 
 #endif // SEQUENCE_WIZARD

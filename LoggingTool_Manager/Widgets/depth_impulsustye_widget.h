@@ -39,7 +39,7 @@ private:
 
 private:
 	Ui::DepthImpulsUstyeWidget *ui;
-
+	
 	Clocker *clocker;
 	QTimer timer;
 

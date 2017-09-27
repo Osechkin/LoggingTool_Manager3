@@ -27,6 +27,10 @@ public:
 	//double_b getRate() { return double_b(false, rate); }
 	//double_b getTension() { return double_b(false, tension); }
 	//int_b getMagnetMarks() { return int_b(false, 0); }
+	QPair<double,double> getBounds() { return QPair<double,double>(lower_bound, upper_bound); }
+	QPair<double,double> getFromTo() { return QPair<double,double>(from_pos, to_pos); }
+	double getOrderedDepth() { return ui->dsboxSetPosition->value()/k_set_distance; }
+	double getStep() { return step_pos; }
 	
 	void stopDepthMeter();
 	void startDepthMeter();

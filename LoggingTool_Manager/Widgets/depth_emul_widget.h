@@ -40,7 +40,7 @@ private:
 
 	Clocker *clocker;
 	QTimer timer;
-
+		
 	QStringList depth_units_list; 
 	QStringList rate_units_list; 
 

@@ -34,7 +34,7 @@ DepthEmulatorWidget::DepthEmulatorWidget(Clocker *_clocker, QWidget *parent) : u
 
 	ui->dsbxDepth->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
 	ui->dsbxRate->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
-		
+	
 	k_depth = 1;
 	k_rate = 3600;
 	

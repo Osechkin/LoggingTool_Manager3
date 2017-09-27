@@ -9,7 +9,7 @@
 namespace Scheduler
 {
 	enum Command { Exec_Cmd, DistanceRange_Cmd, SetPosition_Cmd, Loop_Cmd, End_Cmd, NoP_Cmd };
-	enum WidgetType { DoubleSpinBox, ComboBox, LineEdit, FileBrowse };
+	enum WidgetType { DoubleSpinBox, SpinBox, ComboBox, LineEdit, FileBrowse };
 		
 	struct SettingsItem
 	{
@@ -90,10 +90,22 @@ namespace Scheduler
 
 	public: 
 		explicit DistanceRange();
+		~DistanceRange();
 
+		void setBounds(QPair<double,double> bounds);
+		void setFromToStep(QPair<double,double> from_to, double _step);
+		
+	public slots:
+		void changeFrom(double val);
+		void changeTo(double val);
+		void changeStep(double val);
+
+	public:
 		double from;
 		double to;
-		double step;
+		double step;	
+		double upper_bound;		// in [cm]
+		double lower_bound;		// in [cm]
 	};
 
 	class SetPosition : public SchedulerObject
@@ -101,13 +113,18 @@ namespace Scheduler
 		Q_OBJECT
 
 	public: 
-		explicit SetPosition(double _position = 1000);
+		explicit SetPosition(double _position = 100);
+		~SetPosition();
 
+		void setBounds(QPair<double,double> bounds);
+		
 	public slots:
-		void changePosition(double _pos) { position = _pos; }
-
+		void changePosition(double _pos);
+		
 	public:
-		double position;	// in [mm]	
+		double position;		// in [cm]	
+		double upper_bound;		// in [cm]
+		double lower_bound;		// in [cm]
 	};
 
 	class Loop : public SchedulerObject
@@ -116,9 +133,14 @@ namespace Scheduler
 
 	public: 
 		explicit Loop();
-				
+		~Loop();
+
 		int index;
-		int to;
+		int counts;
+		int lower_bound;
+
+	public slots:
+		void changeCounts(int val);		
 	};
 
 	class End : public SchedulerObject

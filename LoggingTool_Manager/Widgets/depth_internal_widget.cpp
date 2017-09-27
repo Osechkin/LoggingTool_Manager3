@@ -64,7 +64,6 @@ DepthInternalWidget::DepthInternalWidget(Clocker *_clocker, COM_PORT *com_port, 
 	font4.setBold(true);
 	ui->ledDepth->setFont(font4);
 
-
 	depth_units_list << "m" << "ft";
 	rate_units_list << "m/hr" << "m/s"<< "ft/s" << "ft/hr";
 	tension_units_list << "kgf";	

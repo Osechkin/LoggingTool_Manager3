@@ -270,7 +270,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	fontManager.setPointSize(9);
 	dock_expScheduler->setFont(fontManager);
 	dock_expScheduler->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
-	expScheduler = new SchedulerWizard(app_settings, dock_expScheduler);	
+	expScheduler = new SchedulerWizard(app_settings, depthTemplate, dock_expScheduler);	
 	expScheduler->setJSeqList(sequenceProc->getSeqFileList());
 	expScheduler->setJSeqFile(sequenceProc->getJSeqFile());
 	dock_expScheduler->setWidget(expScheduler);    

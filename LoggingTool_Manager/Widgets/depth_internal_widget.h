@@ -39,7 +39,7 @@ private:
 
 private:
 	Ui::InternalDepthMeter *ui;
-
+	
 	Clocker *clocker;
 	QTimer timer;
 

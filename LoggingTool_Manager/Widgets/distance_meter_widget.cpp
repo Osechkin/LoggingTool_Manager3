@@ -50,11 +50,11 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	connectionWidget->setReport(ConnectionState::State_No);
 
 	distance = 0.001;		// always in meters
-	k_distance = 1000;		// for default units ("mm")
+	k_distance = 100;		// for default units ("cm")
 	distance_ok = true;
 
 	set_distance = 1;		// [m]
-	k_set_distance = 1000;	// [mm]
+	k_set_distance = 100;	// [cm]
 	direction_coef = -1;	
 	pos_is_set = false;
 
@@ -67,26 +67,32 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	k_step = 1000;
 	k_zero = 1000;
 	
-	distance_units_list << "mm" << "m";	
+	distance_units_list << "mm" << "cm" << "m";	
 		
 	ui->cboxDistance->addItems(distance_units_list);
+	ui->cboxDistance->setCurrentIndex(1);
 	ui->cboxDistance->setEnabled(true);
 	ui->cboxSetDistance->addItems(distance_units_list);
+	ui->cboxSetDistance->setCurrentIndex(1);
 	ui->cboxSetDistance->setEnabled(true);
 	ui->cboxFrom->addItems(distance_units_list);
+	ui->cboxFrom->setCurrentIndex(1);
 	ui->cboxFrom->setEnabled(true);
 	ui->cboxTo->addItems(distance_units_list);
+	ui->cboxTo->setCurrentIndex(1);
 	ui->cboxTo->setEnabled(true);
 	ui->cboxStep->addItems(distance_units_list);
+	ui->cboxStep->setCurrentIndex(1);
 	ui->cboxStep->setEnabled(true);
 	ui->cboxZero->addItems(distance_units_list);
+	ui->cboxZero->setCurrentIndex(1);
 	ui->cboxZero->setEnabled(true);
 
 	ui->ledDistance->setText("");	
 		
-	ui->dsboxSetPosition->setMinimum(150);
-	ui->dsboxSetPosition->setMaximum(2000);
-	ui->dsboxSetPosition->setSingleStep(1);
+	ui->dsboxSetPosition->setMinimum(15);
+	ui->dsboxSetPosition->setMaximum(200);
+	ui->dsboxSetPosition->setSingleStep(0.1);
 	ui->dsboxSetPosition->setValue(set_distance*k_set_distance);
 
 	is_connected = false;
@@ -261,7 +267,8 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 	if (cbox == ui->cboxDistance)
 	{		
 		if (str == distance_units_list[0]) k_distance = 1000;		// [mm]
-		else if (str == distance_units_list[1]) k_distance = 1;		// [m]
+		else if (str == distance_units_list[1]) k_distance = 100;	// [cm]
+		else if (str == distance_units_list[2]) k_distance = 1;		// [m]
 		else k_distance = 1;
 
 		ui->ledDistance->setText(QString::number(k_distance*distance));		
@@ -275,7 +282,14 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 			ui->dsboxSetPosition->setSingleStep(1);
 			k_set_distance = 1000;		
 		}
-		else if (str == distance_units_list[1])						// [m]
+		else if (str == distance_units_list[1])						// [cm]
+		{
+			ui->dsboxSetPosition->setMinimum(15);
+			ui->dsboxSetPosition->setMaximum(200);
+			ui->dsboxSetPosition->setSingleStep(0.1);
+			k_set_distance = 100;		
+		}
+		else if (str == distance_units_list[2])						// [m]
 		{
 			ui->dsboxSetPosition->setMinimum(0.15);
 			ui->dsboxSetPosition->setMaximum(2.00);
@@ -289,7 +303,8 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 	else if (cbox == ui->cboxFrom)
 	{
 		if (str == distance_units_list[0]) k_from = 1000;			// [mm]
-		else if (str == distance_units_list[1]) k_from = 1;			// [m]
+		else if (str == distance_units_list[1]) k_from = 100;		// [cm]
+		else if (str == distance_units_list[2]) k_from = 1;			// [m]
 		else k_from = 1;
 
 		ui->dsboxFrom->setValue(k_from*from_pos);	
@@ -297,7 +312,8 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 	else if (cbox == ui->cboxTo)
 	{
 		if (str == distance_units_list[0]) k_to = 1000;				// [mm]
-		else if (str == distance_units_list[1]) k_to = 1;			// [m]
+		else if (str == distance_units_list[1]) k_to = 100;			// [cm]
+		else if (str == distance_units_list[2]) k_to = 1;			// [m]
 		else k_to = 1;
 
 		ui->dsboxTo->setValue(k_to*to_pos);	
@@ -305,7 +321,8 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 	else if (cbox == ui->cboxStep)
 	{
 		if (str == distance_units_list[0]) k_step = 1000;			// [mm]
-		else if (str == distance_units_list[1]) k_step = 1;			// [m]
+		else if (str == distance_units_list[1]) k_step = 100;		// [cm]
+		else if (str == distance_units_list[2]) k_step = 1;			// [m]
 		else k_step = 1;
 
 		ui->dsboxStep->setValue(k_step*step_pos);	
@@ -313,7 +330,8 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 	else if (cbox == ui->cboxZero)
 	{
 		if (str == distance_units_list[0]) k_zero = 1000;			// [mm]
-		else if (str == distance_units_list[1]) k_zero = 1;			// [m]
+		else if (str == distance_units_list[1]) k_zero = 100;		// [cm]
+		else if (str == distance_units_list[2]) k_zero = 1;			// [m]
 		else k_zero = 1;
 
 		ui->dsboxZero->setValue(k_zero*zero_pos);	

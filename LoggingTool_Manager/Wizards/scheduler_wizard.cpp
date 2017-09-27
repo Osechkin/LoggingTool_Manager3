@@ -5,13 +5,16 @@
 #include <QDoubleSpinBox>
 #include <QDir>
 
+#include "../Widgets/distance_meter_widget.h"
+
 #include "scheduler_wizard.h"
 
 
-SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWizard)
+SchedulerWizard::SchedulerWizard(QSettings *settings, DepthTemplateWizard *depth_wiz, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWizard)
 {
 	ui->setupUi(this);
 
+	depth_wizard = depth_wiz;
 	app_settings = settings;
 	setDataFileSettings();
 
@@ -30,11 +33,9 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 
 	QMenu *menu_add = new QMenu(this);
 	QAction *a_exec = new QAction("EXEC", this);
-	QAction *a_distance_range = new QAction("DISTANCE_RANGE - END", this);
+	QAction *a_distance_range = new QAction("POSITION_LOOP - END_LOOP", this);
 	QAction *a_set_position = new QAction("SET_POSITION", this);
-	QAction *a_loop = new QAction("LOOP - END", this);
-	//QAction *a_until = new QAction("UNTIL", this);
-	//QAction *a_nop = new QAction("NOP", this);
+	QAction *a_loop = new QAction("LOOP - END_LOOP", this);
 	menu_add->addAction(a_exec);
 	menu_add->addAction(a_distance_range);
 	menu_add->addAction(a_set_position);
@@ -128,21 +129,52 @@ void SchedulerWizard::addItem()
 		connect(exec_obj, SIGNAL(changed()), this, SLOT(update()));
 		cmd_obj_list.append(exec_obj);
 	}
-	else if (txt == "DISTANCE_RANGE - END")	  
+	else if (txt == "POSITION_LOOP - END_LOOP")	  
 	{ 
-		Scheduler::DistanceRange *dist__range_obj = new Scheduler::DistanceRange;
-		connect(dist__range_obj, SIGNAL(changed()), this, SLOT(update()));
+		Scheduler::DistanceRange *dist_range_obj = new Scheduler::DistanceRange;
+		AbstractDepthMeter *abs_depthmeter = depth_wizard->getCurrentDepthMeter();
+		if (abs_depthmeter)
+		{
+			if (abs_depthmeter->getType() == AbstractDepthMeter::LeuzeDistanceMeter)
+			{
+				if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
+				{
+					QPair<double,double> bounds = leuze_meter->getBounds();
+					QPair<double,double> from_to = leuze_meter->getFromTo();
+					double _step = leuze_meter->getStep();
+					
+					dist_range_obj->setFromToStep(from_to, _step);
+					dist_range_obj->setBounds(bounds);
+				}				
+			}
+		}
+
+		connect(dist_range_obj, SIGNAL(changed()), this, SLOT(update()));
 		
-		cmd_obj_list.append(dist__range_obj); 		
+		cmd_obj_list.append(dist_range_obj); 		
 		cmd_obj_list.append(new Scheduler::End); 
 	}
 	else if (txt == "SET_POSITION")	
 	{
 		Scheduler::SetPosition *dist_obj = new Scheduler::SetPosition;
+		AbstractDepthMeter *abs_depthmeter = depth_wizard->getCurrentDepthMeter();
+		if (abs_depthmeter)
+		{
+			if (abs_depthmeter->getType() == AbstractDepthMeter::LeuzeDistanceMeter)
+			{
+				if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
+				{
+					QPair<double,double> bounds = leuze_meter->getBounds();
+					double leuze_pos = 100*leuze_meter->getOrderedDepth(); // convert to [cm]
+					dist_obj->changePosition(leuze_pos);
+					dist_obj->setBounds(bounds);
+				}				
+			}
+		}
 		connect(dist_obj, SIGNAL(changed()), this, SLOT(update()));
 		cmd_obj_list.append(dist_obj);
 	}
-	else if (txt == "LOOP - END")			  
+	else if (txt == "LOOP - END_LOOP")			  
 	{ 
 		Scheduler::Loop *loop_obj = new Scheduler::Loop;
 		connect(loop_obj, SIGNAL(changed()), this, SLOT(update()));
@@ -198,6 +230,7 @@ void SchedulerWizard::removeItem(int row)
 void SchedulerWizard::removeItem()
 {
 	int cur_row = ui->tableWidgetExp->currentRow();	
+	int table_rows = ui->tableWidgetExp->rowCount();
 	if (cur_row < 0) return;	
 
 	Scheduler::Command cmd_type = scheduler_engine.getObjectList()[cur_row]->type;
@@ -266,7 +299,14 @@ void SchedulerWizard::update()
 		{
 			switch (cmd_sender)
 			{
-			case Scheduler::Command::DistanceRange_Cmd:	break;
+			case Scheduler::Command::DistanceRange_Cmd:	
+				{
+					QLabel *lb = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(i,0));
+					Scheduler::DistanceRange *dist_range_obj = qobject_cast<Scheduler::DistanceRange*>(obj_sender);
+					dist_range_obj->cell_text = dist_range_obj->cell_text_template.arg(dist_range_obj->from).arg(dist_range_obj->step).arg(dist_range_obj->to);
+					lb->setText(dist_range_obj->cell_text);
+					break;
+				}
 			case Scheduler::Command::Exec_Cmd:		
 				{
 					QLabel *lb = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(i,0));
@@ -275,7 +315,14 @@ void SchedulerWizard::update()
 					lb->setText(exec_obj->cell_text);
 					break;
 				}
-			case Scheduler::Command::Loop_Cmd:			break;
+			case Scheduler::Command::Loop_Cmd:			
+				{
+					QLabel *lb = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(i,0));
+					Scheduler::Loop *loop_obj = qobject_cast<Scheduler::Loop*>(obj_sender);
+					loop_obj->cell_text = loop_obj->cell_text_template.arg(loop_obj->counts);
+					lb->setText(loop_obj->cell_text);
+					break;
+				}
 			case Scheduler::Command::SetPosition_Cmd:	
 				{
 					QLabel *lb = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(i,0));
@@ -298,12 +345,38 @@ void SchedulerWizard::update()
 
 void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 {	
-	ui->treeWidgetParam->clear();
+	//ui->treeWidgetParam->clear();
 	
+	QWidgetList widget_params;
 	Scheduler::Command obj_type = obj->type;
 	switch (obj_type)
 	{
-	case Scheduler::Command::DistanceRange_Cmd:	break;
+	case Scheduler::Command::DistanceRange_Cmd:	
+		{
+			Scheduler::DistanceRange *dist_range_obj = qobject_cast<Scheduler::DistanceRange*>(obj);
+			if (!dist_range_obj) return;
+
+			QSpinBox *sboxFrom = new QSpinBox;				
+			sboxFrom->setMinimum(dist_range_obj->lower_bound);
+			sboxFrom->setMaximum(dist_range_obj->upper_bound);
+			sboxFrom->setValue(dist_range_obj->from);	
+			connect(sboxFrom, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeFrom(double)));
+
+			QSpinBox *sboxTo = new QSpinBox;				
+			sboxTo->setMinimum(dist_range_obj->lower_bound);
+			sboxTo->setMaximum(dist_range_obj->upper_bound);
+			sboxTo->setValue(dist_range_obj->to);	
+			connect(sboxTo, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeTo(double)));
+
+			QSpinBox *sboxStep = new QSpinBox;				
+			sboxStep->setMinimum(dist_range_obj->lower_bound);
+			sboxStep->setMaximum(dist_range_obj->upper_bound);
+			sboxStep->setValue(dist_range_obj->step);	
+			connect(sboxStep, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeStep(double)));
+						
+			widget_params << sboxFrom << sboxTo << sboxStep;
+			break;
+		}
 	case Scheduler::Command::Exec_Cmd:
 		{
 			Scheduler::Exec *exec_obj = qobject_cast<Scheduler::Exec*>(obj);
@@ -317,26 +390,9 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 			fileBrowser->setToolTip(exec_obj->data_file);
 			connect(fileBrowser, SIGNAL(new_filename(const QFileInfo&)), exec_obj, SLOT(editFileName(const QFileInfo&)));
 
-			QWidgetList widget_params;
+			//QWidgetList widget_params;
 			widget_params << cboxJSeqs << fileBrowser;
 
-			int items_count = obj->param_objects.count();
-			for (int i = 0; i < items_count; i++)
-			{
-				Scheduler::SettingsItem *param_item = obj->param_objects[i];
-				QLabel *lbl_title = new QLabel(param_item->title);
-				QPalette palette = lbl_title->palette();
-				palette.setColor(QPalette::Text, (QColor(Qt::darkBlue)));		
-				lbl_title->setPalette(palette);
-				QWidget *widget = widget_params[i];
-				QLabel *lbl_units = new QLabel(param_item->units);
-				lbl_units->setPalette(palette);
-
-				QTreeWidgetItem *twi = new QTreeWidgetItem(ui->treeWidgetParam);
-				ui->treeWidgetParam->setItemWidget(twi, 0, lbl_title);
-				ui->treeWidgetParam->setItemWidget(twi, 1, widget);
-				ui->treeWidgetParam->setItemWidget(twi, 2, lbl_units);				
-			}
 			break;
 		}
 	case Scheduler::Command::SetPosition_Cmd:	
@@ -344,43 +400,60 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 			Scheduler::SetPosition *setpos_obj = qobject_cast<Scheduler::SetPosition*>(obj);
 			if (!setpos_obj) return;
 
-			QDoubleSpinBox *dsboxPos = new QDoubleSpinBox;
-			dsboxPos->setValue(setpos_obj->position);			
+			QDoubleSpinBox *dsboxPos = new QDoubleSpinBox;				
+			dsboxPos->setMinimum(setpos_obj->lower_bound);
+			dsboxPos->setMaximum(setpos_obj->upper_bound);
+			dsboxPos->setValue(setpos_obj->position);	
 			connect(dsboxPos, SIGNAL(valueChanged(double)), setpos_obj, SLOT(changePosition(double)));
 
-			QWidgetList widget_params;
 			widget_params << dsboxPos;
-
-			int items_count = obj->param_objects.count();
-			for (int i = 0; i < items_count; i++)
-			{
-				Scheduler::SettingsItem *param_item = obj->param_objects[i];
-				QLabel *lbl_title = new QLabel(param_item->title);
-				QPalette palette = lbl_title->palette();
-				palette.setColor(QPalette::Text, (QColor(Qt::darkBlue)));		
-				lbl_title->setPalette(palette);
-				QWidget *widget = widget_params[i];
-				QLabel *lbl_units = new QLabel(param_item->units);
-				lbl_units->setPalette(palette);
-
-				QTreeWidgetItem *twi = new QTreeWidgetItem(ui->treeWidgetParam);
-				ui->treeWidgetParam->setItemWidget(twi, 0, lbl_title);
-				ui->treeWidgetParam->setItemWidget(twi, 1, widget);
-				ui->treeWidgetParam->setItemWidget(twi, 2, lbl_units);				
-			}
 
 			break;
 		}
-	case Scheduler::Command::Loop_Cmd:			break;
+	case Scheduler::Command::Loop_Cmd:			
+		{
+			Scheduler::Loop *loop_obj = qobject_cast<Scheduler::Loop*>(obj);
+			if (!loop_obj) return;
+
+			QSpinBox *sboxCounts = new QSpinBox;				
+			sboxCounts->setMinimum(loop_obj->lower_bound);
+			sboxCounts->setValue(loop_obj->counts);	
+			connect(sboxCounts, SIGNAL(valueChanged(int)), loop_obj, SLOT(changeCounts(int)));
+						
+			widget_params << sboxCounts;
+
+			break;
+		}
 	case Scheduler::Command::End_Cmd:			break;
 	case Scheduler::Command::NoP_Cmd:			break;
 	default: break;
+	}
+
+	int items_count = obj->param_objects.count();
+	for (int i = 0; i < items_count; i++)
+	{
+		Scheduler::SettingsItem *param_item = obj->param_objects[i];
+		QLabel *lbl_title = new QLabel(param_item->title);
+		QPalette palette = lbl_title->palette();
+		palette.setColor(QPalette::Text, (QColor(Qt::darkBlue)));		
+		lbl_title->setPalette(palette);
+		QWidget *widget = widget_params[i];
+		QLabel *lbl_units = new QLabel(param_item->units);
+		lbl_units->setPalette(palette);
+
+		QTreeWidgetItem *twi = new QTreeWidgetItem(ui->treeWidgetParam);
+		ui->treeWidgetParam->setItemWidget(twi, 0, lbl_title);
+		ui->treeWidgetParam->setItemWidget(twi, 1, widget);
+		ui->treeWidgetParam->setItemWidget(twi, 2, lbl_units);				
 	}
 }
 
 void SchedulerWizard::currentItemSelected(QModelIndex index1, QModelIndex index2)
 {
+	ui->treeWidgetParam->clear();
+
 	int row = index1.row();
+	if (row < 0) return;
 	Scheduler::SchedulerObject *obj = scheduler_engine.get(row);
 	if (!obj) return;
 

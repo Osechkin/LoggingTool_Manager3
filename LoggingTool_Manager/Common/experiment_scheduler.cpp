@@ -66,7 +66,7 @@ Scheduler::SchedulerObject::SchedulerObject(Command _type)
 		cell_text = "";
 		break;
 	case Command::DistanceRange_Cmd:		
-		cell_text_template = "<font size=3><font color=darkgreen>DISTANCE_RANGE </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> )</font>"; 
+		cell_text_template = "<font size=3><font color=darkgreen>POSITION_LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> )</font>"; 
 		cell_text = "";
 		break;
 	case Command::SetPosition_Cmd:		
@@ -74,11 +74,11 @@ Scheduler::SchedulerObject::SchedulerObject(Command _type)
 		cell_text = "";
 		break;
 	case Command::Loop_Cmd:		
-		cell_text_template = "<font size=3><font color=darkgreen>LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> )</font>"; 
+		cell_text_template = "<font size=3><font color=darkgreen>LOOP </font>( <font color=blue>%1</font> )</font>"; 
 		cell_text = "";
 		break;
 	case Command::End_Cmd:		
-		cell_text_template = "<font size=3 color=darkgreen>END</font>"; 
+		cell_text_template = "<font size=3 color=darkgreen>END_LOOP</font>"; 
 		cell_text = "";
 		break;
 	case Command::NoP_Cmd:		
@@ -121,11 +121,62 @@ Scheduler::Exec::~Exec()
 Scheduler::DistanceRange::DistanceRange()
 {
 	type = Scheduler::DistanceRange_Cmd;		
-	cell_text_template = "<font size=3><font color=darkgreen>DISTANCE_RANGE </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> )</font>";
+	cell_text_template = "<font size=3><font color=darkgreen>POSITION_LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> )</font>";
 	cell_text = "";
 	from = 0;
 	to = 0;
 	step = 0;
+
+	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("From:"), Scheduler::SpinBox, "cm");	
+	param_objects.append(param_item_1);	
+
+	Scheduler::SettingsItem *param_item_2 = new Scheduler::SettingsItem(tr("To:"), Scheduler::SpinBox, "cm");	
+	param_objects.append(param_item_2);	
+
+	Scheduler::SettingsItem *param_item_3 = new Scheduler::SettingsItem(tr("Step:"), Scheduler::SpinBox, "cm");	
+	param_objects.append(param_item_3);	
+}
+
+Scheduler::DistanceRange::~DistanceRange()
+{
+	qDeleteAll(param_objects.begin(), param_objects.end());
+	param_objects.clear();
+}
+
+void Scheduler::DistanceRange::setBounds(QPair<double,double> bounds)
+{
+	lower_bound = 100*bounds.first;		// convert to [cm]
+	upper_bound = 100*bounds.second;	// convert to [cm]
+}
+
+void Scheduler::DistanceRange::setFromToStep(QPair<double,double> from_to, double _step)
+{
+	from = 100*from_to.first;			// convert to [cm]
+	to = 100*from_to.second;			// convert to [cm]
+	step = 100*_step;					// convert to [cm]
+
+	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
+}
+
+void Scheduler::DistanceRange::changeFrom(double val)
+{
+	from = val; 
+	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
+	emit changed();
+}
+
+void Scheduler::DistanceRange::changeTo(double val)
+{
+	to = val; 
+	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
+	emit changed();
+}
+
+void Scheduler::DistanceRange::changeStep(double val)
+{
+	step = val; 
+	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
+	emit changed();
 }
 
 
@@ -136,26 +187,63 @@ Scheduler::SetPosition::SetPosition(double _position)
 	position = _position;		
 	cell_text = cell_text_template.arg(position);
 
-	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("Position:"), Scheduler::DoubleSpinBox, "mm");	
+	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("Position:"), Scheduler::DoubleSpinBox, "cm");	
 	param_objects.append(param_item_1);	
+}
+
+Scheduler::SetPosition::~SetPosition()
+{
+	qDeleteAll(param_objects.begin(), param_objects.end());
+	param_objects.clear();
+}
+
+void Scheduler::SetPosition::changePosition(double _pos)
+{
+	position = _pos; 
+	cell_text = cell_text_template.arg(position);		// must be in [cm] !
+	emit changed();
+}
+
+void Scheduler::SetPosition::setBounds(QPair<double,double> bounds)
+{
+	lower_bound = 100*bounds.first;		// convert to [cm]
+	upper_bound = 100*bounds.second;	// convert to [cm]
 }
 
 
 Scheduler::Loop::Loop()
 {
 	type = Scheduler::Loop_Cmd;		
-	cell_text_template = "<font size=3><font color=darkgreen>LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> )</font>"; 
-	cell_text = "";
 	index = 0;	
-	to = 1;
+	counts = 1;
+	lower_bound = 1;
+
+	cell_text_template = QString("<font size=3><font color=darkgreen>LOOP </font>( <font color=blue>%1</font> )</font>");
+	cell_text = cell_text_template.arg(counts);
+
+	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("Counts:"), Scheduler::SpinBox, "");	
+	param_objects.append(param_item_1);	
+}
+
+Scheduler::Loop::~Loop()
+{
+	qDeleteAll(param_objects.begin(), param_objects.end());
+	param_objects.clear();
+}
+
+void Scheduler::Loop::changeCounts(int val)
+{
+	counts = val; 
+	cell_text = cell_text_template.arg(counts);		
+	emit changed();
 }
 
 
 Scheduler::End::End()
 {
 	type = Scheduler::End_Cmd;		
-	cell_text_template = "<font size=3 color=darkgreen>END</font>";
-	cell_text = "";
+	cell_text_template = QString("<font size=3 color=darkgreen>END_LOOP</font>");
+	cell_text = QString("<font size=3 color=darkgreen>END_LOOP</font>");;
 	ref_obj = NULL;
 }
 
@@ -163,8 +251,8 @@ Scheduler::End::End()
 Scheduler::NOP::NOP()
 {
 	type = Scheduler::NoP_Cmd;		
-	cell_text_template = "<font size=3 color=darkgreen></font>";
-	cell_text = "";
+	cell_text_template = QString("<font size=3 color=darkgreen></font>");
+	cell_text = QString("<font size=3 color=darkgreen></font>");
 }
 
 

@@ -2,6 +2,7 @@
 #include <QAction>
 #include <QLabel>
 #include <QDateTime>
+#include <QDoubleSpinBox>
 #include <QDir>
 
 #include "scheduler_wizard.h"
@@ -30,16 +31,14 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 	QMenu *menu_add = new QMenu(this);
 	QAction *a_exec = new QAction("EXEC", this);
 	QAction *a_distance_range = new QAction("DISTANCE_RANGE - END", this);
-	QAction *a_set_distance = new QAction("SET_DISTANCE", this);
+	QAction *a_set_position = new QAction("SET_POSITION", this);
 	QAction *a_loop = new QAction("LOOP - END", this);
 	//QAction *a_until = new QAction("UNTIL", this);
 	//QAction *a_nop = new QAction("NOP", this);
 	menu_add->addAction(a_exec);
 	menu_add->addAction(a_distance_range);
-	menu_add->addAction(a_set_distance);
-	menu_add->addAction(a_loop);
-	//menu_add->addAction(a_until);
-	//menu_add->addAction(a_nop);
+	menu_add->addAction(a_set_position);
+	menu_add->addAction(a_loop);	
 	ui->tbtAdd->setMenu(menu_add);
 	//ui->tbtAdd->setPopupMode(QToolButton::InstantPopup);
 
@@ -64,7 +63,7 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, QWidget *parent) : QWidget
 
 	connect(ui->tbtAdd, SIGNAL(clicked()), this, SLOT(addItemNOP()));	
 	connect(a_exec, SIGNAL(triggered()), this, SLOT(addItem()));
-	connect(a_set_distance, SIGNAL(triggered()), this, SLOT(addItem()));
+	connect(a_set_position, SIGNAL(triggered()), this, SLOT(addItem()));
 	connect(a_distance_range, SIGNAL(triggered()), this, SLOT(addItem()));
 	connect(a_loop, SIGNAL(triggered()), this, SLOT(addItem()));
 	//connect(a_until, SIGNAL(triggered()), this, SLOT(addItem()));
@@ -137,9 +136,9 @@ void SchedulerWizard::addItem()
 		cmd_obj_list.append(dist__range_obj); 		
 		cmd_obj_list.append(new Scheduler::End); 
 	}
-	else if (txt == "SET_DISTANCE")	
+	else if (txt == "SET_POSITION")	
 	{
-		Scheduler::SetDistance *dist_obj = new Scheduler::SetDistance;
+		Scheduler::SetPosition *dist_obj = new Scheduler::SetPosition;
 		connect(dist_obj, SIGNAL(changed()), this, SLOT(update()));
 		cmd_obj_list.append(dist_obj);
 	}
@@ -277,7 +276,14 @@ void SchedulerWizard::update()
 					break;
 				}
 			case Scheduler::Command::Loop_Cmd:			break;
-			case Scheduler::Command::SetDistance_Cmd:	break;
+			case Scheduler::Command::SetPosition_Cmd:	
+				{
+					QLabel *lb = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(i,0));
+					Scheduler::SetPosition *setpos_obj = qobject_cast<Scheduler::SetPosition*>(obj_sender);
+					setpos_obj->cell_text = setpos_obj->cell_text_template.arg(setpos_obj->position);
+					lb->setText(setpos_obj->cell_text);
+					break;
+				}				
 			case Scheduler::Command::End_Cmd:			break;
 			case Scheduler::Command::NoP_Cmd:			break;
 			default: break;
@@ -333,7 +339,38 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 			}
 			break;
 		}
-	case Scheduler::Command::SetDistance_Cmd:	break;
+	case Scheduler::Command::SetPosition_Cmd:	
+		{
+			Scheduler::SetPosition *setpos_obj = qobject_cast<Scheduler::SetPosition*>(obj);
+			if (!setpos_obj) return;
+
+			QDoubleSpinBox *dsboxPos = new QDoubleSpinBox;
+			dsboxPos->setValue(setpos_obj->position);			
+			connect(dsboxPos, SIGNAL(valueChanged(double)), setpos_obj, SLOT(changePosition(double)));
+
+			QWidgetList widget_params;
+			widget_params << dsboxPos;
+
+			int items_count = obj->param_objects.count();
+			for (int i = 0; i < items_count; i++)
+			{
+				Scheduler::SettingsItem *param_item = obj->param_objects[i];
+				QLabel *lbl_title = new QLabel(param_item->title);
+				QPalette palette = lbl_title->palette();
+				palette.setColor(QPalette::Text, (QColor(Qt::darkBlue)));		
+				lbl_title->setPalette(palette);
+				QWidget *widget = widget_params[i];
+				QLabel *lbl_units = new QLabel(param_item->units);
+				lbl_units->setPalette(palette);
+
+				QTreeWidgetItem *twi = new QTreeWidgetItem(ui->treeWidgetParam);
+				ui->treeWidgetParam->setItemWidget(twi, 0, lbl_title);
+				ui->treeWidgetParam->setItemWidget(twi, 1, widget);
+				ui->treeWidgetParam->setItemWidget(twi, 2, lbl_units);				
+			}
+
+			break;
+		}
 	case Scheduler::Command::Loop_Cmd:			break;
 	case Scheduler::Command::End_Cmd:			break;
 	case Scheduler::Command::NoP_Cmd:			break;

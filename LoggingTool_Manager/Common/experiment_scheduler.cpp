@@ -69,8 +69,8 @@ Scheduler::SchedulerObject::SchedulerObject(Command _type)
 		cell_text_template = "<font size=3><font color=darkgreen>DISTANCE_RANGE </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> )</font>"; 
 		cell_text = "";
 		break;
-	case Command::SetDistance_Cmd:		
-		cell_text_template = "<font size=3><font color=darkgreen>SET_DISTANCE </font>( <font color=blue>%1</font> )</font>"; 
+	case Command::SetPosition_Cmd:		
+		cell_text_template = "<font size=3><font color=darkgreen>SET_POSITION </font>( <font color=blue>%1</font> )</font>"; 
 		cell_text = "";
 		break;
 	case Command::Loop_Cmd:		
@@ -129,12 +129,15 @@ Scheduler::DistanceRange::DistanceRange()
 }
 
 
-Scheduler::SetDistance::SetDistance()
+Scheduler::SetPosition::SetPosition(double _position)
 {
-	type = Scheduler::SetDistance_Cmd;		
-	cell_text_template = "<font size=3><font color=darkgreen>SET_DISTANCE </font>( <font color=blue>%1</font> )</font>"; 
-	cell_text = "";
-	position = 0;
+	type = Scheduler::SetPosition_Cmd;		
+	cell_text_template = "<font size=3><font color=darkgreen>SET_POSITION </font>( <font color=blue>%1</font> )</font>"; 	
+	position = _position;		
+	cell_text = cell_text_template.arg(position);
+
+	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("Position:"), Scheduler::DoubleSpinBox, "mm");	
+	param_objects.append(param_item_1);	
 }
 
 

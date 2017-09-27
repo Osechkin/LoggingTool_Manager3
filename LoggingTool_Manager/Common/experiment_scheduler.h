@@ -8,7 +8,7 @@
 
 namespace Scheduler
 {
-	enum Command { Exec_Cmd, DistanceRange_Cmd, SetDistance_Cmd, Loop_Cmd, End_Cmd, NoP_Cmd };
+	enum Command { Exec_Cmd, DistanceRange_Cmd, SetPosition_Cmd, Loop_Cmd, End_Cmd, NoP_Cmd };
 	enum WidgetType { DoubleSpinBox, ComboBox, LineEdit, FileBrowse };
 		
 	struct SettingsItem
@@ -96,14 +96,18 @@ namespace Scheduler
 		double step;
 	};
 
-	class SetDistance : public SchedulerObject
+	class SetPosition : public SchedulerObject
 	{
 		Q_OBJECT
 
 	public: 
-		explicit SetDistance();
+		explicit SetPosition(double _position = 1000);
 
-		double position;
+	public slots:
+		void changePosition(double _pos) { position = _pos; }
+
+	public:
+		double position;	// in [mm]	
 	};
 
 	class Loop : public SchedulerObject

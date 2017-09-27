@@ -31,6 +31,8 @@ public:
 	double_b getRateData() { return current_depth_meter->getRate(); /*double_b(rate_flag, rate);*/ }
 	double_b getTensionData() { return current_depth_meter->getTension(); /*double_b(tension_flag, tension);*/ }
 
+	AbstractDepthMeter *getCurrentDepthMeter() { return current_depth_meter; }
+
 	ImpulsConnectionWidget *getConnectionWidget() { return connectionWidget; }
 	bool isConnected() { return is_connected; }
 

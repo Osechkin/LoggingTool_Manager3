@@ -65,7 +65,7 @@ protected:
 	QString jseq_file;
 	//Sequence curSeq;	
 
-	QScriptEngine engine;
+	QScriptEngine *engine;
 	QScriptEngineDebugger script_debugger;
 	LUSI::Engine lusi_engine;
 	LUSI::Sequence cur_lusi_Seq;

@@ -35,14 +35,17 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 	
 	ui->treeWidget->header()->setFont(QFont("Arial", 10, 0, false));		
 	
-	script_debugger.attachTo(&engine);
+	engine = new QScriptEngine;
+	script_debugger.attachTo(engine);
+	//script_debugger.attachTo(&engine);
 	
 	readSequenceCmdIndex();
 	readSequenceInstrIndex();
 
 	QStringList lusi_elist;
 	
-	lusi_engine.init(&engine, seq_cmd_index, seq_instr_index);
+	//lusi_engine.init(&engine, seq_cmd_index, seq_instr_index);
+	lusi_engine.init(engine, seq_cmd_index, seq_instr_index);
 
 	QString seq_path = QDir::currentPath() + "/Sequences";
 	bool res = findSequenceScripts(file_list, path_list, seq_path);
@@ -73,7 +76,8 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 			//connect(pact, SIGNAL(triggered()), this, SLOT(triggerJSerror()));
 			
 			QString js_script = lusi_engine.getJSscript();
-			QScriptValue qscrpt_value = engine.evaluate(js_script);
+			//QScriptValue qscrpt_value = engine.evaluate(js_script);
+			QScriptValue qscrpt_value = engine->evaluate(js_script);
 			if (qscrpt_value.isError())
 			{
 				cur_lusi_Seq.js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");
@@ -1417,7 +1421,8 @@ void SequenceWizard::executeJSsequence()
 	if (obj_list_global->isEmpty()) return;
 		
 	QString js_script = lusi_engine.getJSscript();
-	QScriptValue qscrpt_value = engine.evaluate(js_script);	
+	//QScriptValue qscrpt_value = engine.evaluate(js_script);	
+	QScriptValue qscrpt_value = engine->evaluate(js_script);	
 }
 
 void SequenceWizard::showLUSISeqMemo()
@@ -1760,6 +1765,11 @@ bool SequenceWizard::changeCurrentSequence(const QString &text)
 
 	cur_lusi_Seq.clear();
 	lusi_engine.clear();
+	
+	delete engine;
+	engine = new QScriptEngine;
+	script_debugger.attachTo(engine);
+	lusi_engine.init(engine, seq_cmd_index, seq_instr_index);
 
 	QString file_name = path_list.first() + "/" + file_list[index];
 	
@@ -1791,7 +1801,8 @@ bool SequenceWizard::changeCurrentSequence(const QString &text)
 		connect(pact, SIGNAL(triggered()), this, SLOT(triggerJSerror()));
 
 		QString js_script = lusi_engine.getJSscript();
-		QScriptValue qscrpt_value = engine.evaluate(js_script);
+		//QScriptValue qscrpt_value = engine.evaluate(js_script);
+		QScriptValue qscrpt_value = engine->evaluate(js_script);
 
 		cur_lusi_Seq.clear();
 		cur_lusi_Seq.setObjects(obj_list_global);
@@ -2360,8 +2371,8 @@ double SequenceWizard::calcArgument(double index, Argument* arg, bool *_ok)
 		QString num_str = QString::number(index);
 		_formula = _formula.replace(_idx, num_str, Qt::CaseInsensitive);
 
-		QScriptEngine engine;
-		QScriptValue qscr_val = engine.evaluate(_formula);
+		QScriptEngine loc_engine;
+		QScriptValue qscr_val = loc_engine.evaluate(_formula);
 		if (!qscr_val.isError()) 
 		{
 			res = qscr_val.toVariant().toDouble(&ok);	
@@ -2380,8 +2391,8 @@ int SequenceWizard::calcActualDataSize(QString &formula, bool *_ok)
 	double res = 0;
 
 	bool ok = false;	
-	QScriptEngine engine;
-	QScriptValue qscr_val = engine.evaluate(formula);
+	QScriptEngine loc_engine;
+	QScriptValue qscr_val = loc_engine.evaluate(formula);
 	if (!qscr_val.isError()) 
 	{
 		res = qscr_val.toVariant().toInt(&ok);	

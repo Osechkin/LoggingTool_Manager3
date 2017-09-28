@@ -239,6 +239,33 @@ void Scheduler::Loop::changeCounts(int val)
 }
 
 
+Scheduler::Sleep::Sleep()
+{
+	type = Scheduler::Sleep_Cmd;
+	delay = 10;
+	upper_bound = 86400;
+
+	cell_text_template = QString("<font size=3><font color=darkgreen>SLEEP </font>( <font color=blue>%1</font> )</font>");
+	cell_text = cell_text_template.arg(delay);
+
+	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("Delay:"), Scheduler::SpinBox, " sec");	
+	param_objects.append(param_item_1);	
+}
+
+Scheduler::Sleep::~Sleep()
+{
+	qDeleteAll(param_objects.begin(), param_objects.end());
+	param_objects.clear();
+}
+
+void Scheduler::Sleep::changeDelay(int val)
+{
+	delay = val; 
+	cell_text = cell_text_template.arg(delay);		
+	emit changed();
+}
+
+
 Scheduler::End::End()
 {
 	type = Scheduler::End_Cmd;		

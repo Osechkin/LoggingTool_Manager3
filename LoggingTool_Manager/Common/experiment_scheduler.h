@@ -8,7 +8,7 @@
 
 namespace Scheduler
 {
-	enum Command { Exec_Cmd, DistanceRange_Cmd, SetPosition_Cmd, Loop_Cmd, End_Cmd, NoP_Cmd };
+	enum Command { Exec_Cmd, DistanceRange_Cmd, SetPosition_Cmd, Loop_Cmd, Sleep_Cmd, End_Cmd, NoP_Cmd };
 	enum WidgetType { DoubleSpinBox, SpinBox, ComboBox, LineEdit, FileBrowse };
 		
 	struct SettingsItem
@@ -141,6 +141,21 @@ namespace Scheduler
 
 	public slots:
 		void changeCounts(int val);		
+	};
+
+	class Sleep : public SchedulerObject
+	{
+		Q_OBJECT
+
+	public:
+		explicit Sleep();
+		~Sleep();
+
+		int delay;
+		int upper_bound;
+
+	public slots:
+		void changeDelay(int val);
 	};
 
 	class End : public SchedulerObject

@@ -36,17 +36,21 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, DepthTemplateWizard *depth
 	QAction *a_distance_range = new QAction("POSITION_LOOP - END_LOOP", this);
 	QAction *a_set_position = new QAction("SET_POSITION", this);
 	QAction *a_loop = new QAction("LOOP - END_LOOP", this);
-	menu_add->addAction(a_exec);
-	menu_add->addAction(a_distance_range);
+	QAction *a_sleep = new QAction("SLEEP", this);
+	menu_add->addAction(a_exec);	
 	menu_add->addAction(a_set_position);
-	menu_add->addAction(a_loop);	
+	menu_add->addAction(a_loop);
+	menu_add->addAction(a_distance_range);
+	menu_add->addAction(a_sleep);
 	ui->tbtAdd->setMenu(menu_add);
 	//ui->tbtAdd->setPopupMode(QToolButton::InstantPopup);
+	ui->tbtAdd->setPopupMode(QToolButton::MenuButtonPopup);
 
 	QMenu *menu_remove = new QMenu(this);
 	QAction *a_remove_all = new QAction("Remove All", this);
 	menu_remove->addAction(a_remove_all);
 	ui->tbtRemove->setMenu(menu_remove);
+	ui->tbtRemove->setPopupMode(QToolButton::MenuButtonPopup);
 
 	QMenu *menu_save = new QMenu(this);
 	QAction *a_save = new QAction(tr("Save"), this);
@@ -55,6 +59,7 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, DepthTemplateWizard *depth
 	menu_save->addAction(a_save_as);
 	ui->tbtSave->setMenu(menu_save);
 	//ui->tbtSave->setPopupMode(QToolButton::InstantPopup);
+	ui->tbtSave->setPopupMode(QToolButton::MenuButtonPopup);
 
 	ui->tableWidgetExp->installEventFilter(this);
 	ui->tableWidgetExp->setStyleSheet("QTableWidget::item {padding-left: 10px }");
@@ -68,7 +73,7 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, DepthTemplateWizard *depth
 	connect(a_set_position, SIGNAL(triggered()), this, SLOT(addItem()));
 	connect(a_distance_range, SIGNAL(triggered()), this, SLOT(addItem()));
 	connect(a_loop, SIGNAL(triggered()), this, SLOT(addItem()));
-	//connect(a_until, SIGNAL(triggered()), this, SLOT(addItem()));
+	connect(a_sleep, SIGNAL(triggered()), this, SLOT(addItem()));
 	connect(ui->tbtRemove, SIGNAL(clicked()), this, SLOT(removeItem()));
 	connect(a_remove_all, SIGNAL(triggered()), this, SLOT(removeAllItems()));
 }
@@ -183,6 +188,13 @@ void SchedulerWizard::addItem()
 		cmd_obj_list.append(loop_obj); 
 		cmd_obj_list.append(new Scheduler::End); 
 	}	
+	else if (txt == "SLEEP")	
+	{
+		Scheduler::Sleep *sleep_obj = new Scheduler::Sleep;
+		connect(sleep_obj, SIGNAL(changed()), this, SLOT(update()));
+
+		cmd_obj_list.append(sleep_obj); 		
+	}
 	if (cmd_obj_list.isEmpty()) return;
 
 	for (int i = 0; i < cmd_obj_list.count(); i++)
@@ -331,7 +343,15 @@ void SchedulerWizard::update()
 					setpos_obj->cell_text = setpos_obj->cell_text_template.arg(setpos_obj->position);
 					lb->setText(setpos_obj->cell_text);
 					break;
-				}				
+				}			
+			case Scheduler::Command::Sleep_Cmd:	
+				{
+					QLabel *lb = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(i,0));
+					Scheduler::Sleep *sleep_obj = qobject_cast<Scheduler::Sleep*>(obj_sender);
+					sleep_obj->cell_text = sleep_obj->cell_text_template.arg(sleep_obj->delay);
+					lb->setText(sleep_obj->cell_text);
+					break;
+				}	
 			case Scheduler::Command::End_Cmd:			break;
 			case Scheduler::Command::NoP_Cmd:			break;
 			default: break;
@@ -374,6 +394,7 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 			connect(dsboxStep, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeStep(double)));
 						
 			widget_params << dsboxFrom << dsboxTo << dsboxStep;
+
 			break;
 		}
 	case Scheduler::Command::Exec_Cmd:
@@ -382,7 +403,8 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 			if (!exec_obj) return;
 						
 			QComboBox *cboxJSeqs = new QComboBox;
-			cboxJSeqs->addItems(exec_obj->jseq_list);			
+			cboxJSeqs->addItems(exec_obj->jseq_list);
+			cboxJSeqs->setCurrentText(exec_obj->jseq_name);
 			connect(cboxJSeqs, SIGNAL(currentIndexChanged(const QString&)), exec_obj, SLOT(changeJSeq(const QString&)));
 
 			Scheduler::FileBrowser *fileBrowser = new Scheduler::FileBrowser(exec_obj->data_file);
@@ -420,6 +442,21 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 			connect(sboxCounts, SIGNAL(valueChanged(int)), loop_obj, SLOT(changeCounts(int)));
 						
 			widget_params << sboxCounts;
+
+			break;
+		}
+	case Scheduler::Command::Sleep_Cmd:			
+		{
+			Scheduler::Sleep *sleep_obj = qobject_cast<Scheduler::Sleep*>(obj);
+			if (!sleep_obj) return;
+
+			QSpinBox *sboxDelay = new QSpinBox;				
+			sboxDelay->setMinimum(1);
+			sboxDelay->setMaximum(sleep_obj->upper_bound);
+			sboxDelay->setValue(sleep_obj->delay);	
+			connect(sboxDelay, SIGNAL(valueChanged(int)), sleep_obj, SLOT(changeDelay(int)));
+
+			widget_params << sboxDelay;
 
 			break;
 		}

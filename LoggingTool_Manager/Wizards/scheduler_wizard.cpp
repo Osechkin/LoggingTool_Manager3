@@ -57,6 +57,7 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, DepthTemplateWizard *depth
 	//ui->tbtSave->setPopupMode(QToolButton::InstantPopup);
 
 	ui->tableWidgetExp->installEventFilter(this);
+	ui->tableWidgetExp->setStyleSheet("QTableWidget::item {padding-left: 10px }");
 	QItemSelectionModel *sm = ui->tableWidgetExp->selectionModel();
 	connect(sm, SIGNAL(currentRowChanged(QModelIndex,QModelIndex)), this, SLOT(currentItemSelected(QModelIndex,QModelIndex)));
 
@@ -356,25 +357,23 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 			Scheduler::DistanceRange *dist_range_obj = qobject_cast<Scheduler::DistanceRange*>(obj);
 			if (!dist_range_obj) return;
 
-			QSpinBox *sboxFrom = new QSpinBox;				
-			sboxFrom->setMinimum(dist_range_obj->lower_bound);
-			sboxFrom->setMaximum(dist_range_obj->upper_bound);
-			sboxFrom->setValue(dist_range_obj->from);	
-			connect(sboxFrom, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeFrom(double)));
+			QDoubleSpinBox *dsboxFrom = new QDoubleSpinBox;				
+			dsboxFrom->setMinimum(dist_range_obj->lower_bound);
+			dsboxFrom->setMaximum(dist_range_obj->upper_bound);
+			dsboxFrom->setValue(dist_range_obj->from);	
+			connect(dsboxFrom, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeFrom(double)));
 
-			QSpinBox *sboxTo = new QSpinBox;				
-			sboxTo->setMinimum(dist_range_obj->lower_bound);
-			sboxTo->setMaximum(dist_range_obj->upper_bound);
-			sboxTo->setValue(dist_range_obj->to);	
-			connect(sboxTo, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeTo(double)));
+			QDoubleSpinBox *dsboxTo = new QDoubleSpinBox;				
+			dsboxTo->setMinimum(dist_range_obj->lower_bound);
+			dsboxTo->setMaximum(dist_range_obj->upper_bound);
+			dsboxTo->setValue(dist_range_obj->to);	
+			connect(dsboxTo, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeTo(double)));
 
-			QSpinBox *sboxStep = new QSpinBox;				
-			sboxStep->setMinimum(dist_range_obj->lower_bound);
-			sboxStep->setMaximum(dist_range_obj->upper_bound);
-			sboxStep->setValue(dist_range_obj->step);	
-			connect(sboxStep, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeStep(double)));
+			QDoubleSpinBox *dsboxStep = new QDoubleSpinBox;					
+			dsboxStep->setValue(dist_range_obj->step);	
+			connect(dsboxStep, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeStep(double)));
 						
-			widget_params << sboxFrom << sboxTo << sboxStep;
+			widget_params << dsboxFrom << dsboxTo << dsboxStep;
 			break;
 		}
 	case Scheduler::Command::Exec_Cmd:

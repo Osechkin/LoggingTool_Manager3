@@ -127,13 +127,13 @@ Scheduler::DistanceRange::DistanceRange()
 	to = 0;
 	step = 0;
 
-	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("From:"), Scheduler::SpinBox, "cm");	
+	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("From:"), Scheduler::SpinBox, " cm");	
 	param_objects.append(param_item_1);	
 
-	Scheduler::SettingsItem *param_item_2 = new Scheduler::SettingsItem(tr("To:"), Scheduler::SpinBox, "cm");	
+	Scheduler::SettingsItem *param_item_2 = new Scheduler::SettingsItem(tr("To:"), Scheduler::SpinBox, " cm");	
 	param_objects.append(param_item_2);	
 
-	Scheduler::SettingsItem *param_item_3 = new Scheduler::SettingsItem(tr("Step:"), Scheduler::SpinBox, "cm");	
+	Scheduler::SettingsItem *param_item_3 = new Scheduler::SettingsItem(tr("Step:"), Scheduler::SpinBox, " cm");	
 	param_objects.append(param_item_3);	
 }
 
@@ -187,7 +187,7 @@ Scheduler::SetPosition::SetPosition(double _position)
 	position = _position;		
 	cell_text = cell_text_template.arg(position);
 
-	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("Position:"), Scheduler::DoubleSpinBox, "cm");	
+	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("Position:"), Scheduler::DoubleSpinBox, " cm");	
 	param_objects.append(param_item_1);	
 }
 

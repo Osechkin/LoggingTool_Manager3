@@ -1810,7 +1810,11 @@ bool SequenceWizard::changeCurrentSequence(const QString &text)
 		showLUSISeqParameters();
 		showLUSISeqMemo();
 
+		disconnect(ui->cboxSequences, SIGNAL(currentIndexChanged(const QString &)), this, SLOT(changeCurrentSequence(const QString &)));
+		ui->cboxSequences->clear();
 		ui->cboxSequences->addItems(file_list);
+		ui->cboxSequences->setCurrentText(text);
+		connect(ui->cboxSequences, SIGNAL(currentIndexChanged(const QString &)), this, SLOT(changeCurrentSequence(const QString &)));
 		ui->ledSeqName->setText(cur_lusi_Seq.name);
 	}
 	else

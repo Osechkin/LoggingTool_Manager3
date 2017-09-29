@@ -1628,6 +1628,12 @@ void LUSI::Sequence::clear()
 	section_list.clear();
 	arg_list.clear();
 	cond_list.clear();
+	output_list.clear();
+		
+	comprg_errors.clear();
+	procdsp_errors.clear();
+	cond_errors.clear();
+	js_error.clear();
 
 	main_object = NULL;
 }

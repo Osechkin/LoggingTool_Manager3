@@ -24,7 +24,7 @@ class DepthTemplateWizard : public QWidget, public Ui::DepthTemplateWizard
 	Q_OBJECT
 
 public:
-	explicit DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_stepmotor, Clocker *clocker, QWidget *parent = 0);
+	explicit DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_stepmotor, QStringList depth_meter_list, Clocker *clocker, QWidget *parent = 0);
 	~DepthTemplateWizard();
 
 	double_b getDepthData() { return current_depth_meter->getDepth(); /*double_b(depth_flag, depth);*/ } 

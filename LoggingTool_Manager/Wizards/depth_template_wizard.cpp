@@ -11,7 +11,7 @@ static int port_num = 0;
 static uint32_t uid = 0;
 
 
-DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_stepmotor, Clocker *clocker, QWidget *parent) : QWidget(parent), ui(new Ui::DepthTemplateWizard)
+DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_stepmotor, QStringList depth_meter_list, Clocker *clocker, QWidget *parent) : QWidget(parent), ui(new Ui::DepthTemplateWizard)
 {
 	ui->setupUi(this);
 	this->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Expanding);
@@ -26,6 +26,43 @@ DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_
 	is_connected = false;
 	//device_is_searching = false;
 		
+	QStringList depth_meters_str; 
+	if (depth_meter_list.contains("DepthEmulator"))
+	{
+		DepthEmulatorWidget *depth_emulator = new DepthEmulatorWidget(clocker);
+		depth_meters_str << depth_emulator->getTitle();
+		depth_meters << depth_emulator;
+	}
+	if (depth_meter_list.contains("Impulse-Ustye"))
+	{
+		DepthImpulsUstyeWidget *depth_impulsustye = new DepthImpulsUstyeWidget(clocker, COM_Port);
+		depth_meters_str << depth_impulsustye->getTitle();
+		depth_meters << depth_impulsustye;
+	}
+	if (depth_meter_list.contains("InternalDepthMeter"))
+	{
+		DepthInternalWidget *depth_internal = new DepthInternalWidget(clocker, COM_Port);
+		depth_meters_str << depth_internal->getTitle();
+		depth_meters << depth_internal;
+	}
+	if (depth_meter_list.contains("LeuzePositionMeter"))
+	{
+		LeuzeDistanceMeterWidget *distance_meter = new LeuzeDistanceMeterWidget(clocker, COM_Port, COM_Port_stepmotor);
+		depth_meters_str << distance_meter->getTitle();
+		depth_meters << distance_meter;
+	}
+
+	if (depth_meters.isEmpty())
+	{
+		int ret = QMessageBox::warning(this, "Warning!", tr("Available Depth/Position Meters hasn't been found!"), QMessageBox::Ok);	
+		exit(0);
+	}
+
+	ui->gridLayoutFrame->addWidget(depth_meters.first());
+	ui->cboxDepthMeter->addItems(depth_meters_str);
+	current_depth_meter = depth_meters.first();
+	
+	/*
 	DepthEmulatorWidget *depth_emulator = new DepthEmulatorWidget(clocker);
 	DepthImpulsUstyeWidget *depth_impulsustye = new DepthImpulsUstyeWidget(clocker, COM_Port);
 	DepthInternalWidget *depth_internal = new DepthInternalWidget(clocker, COM_Port);
@@ -40,6 +77,7 @@ DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_
 	
 	depth_meters << depth_emulator << depth_impulsustye << depth_internal << distance_meter;
 	current_depth_meter = depth_emulator;
+	*/
 	
 	setConnection();	
 }

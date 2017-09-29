@@ -371,17 +371,6 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 	data_containers << dcont;
 	items << tr("No Data");
 
-	/*for (int i = 0; i < channels.count(); i++)
-	{
-		if (data_containers.count() < 5) 
-		{
-			LoggingData *dcont = new LoggingData(LoggingData::DataType::NoType, NULL, tr("No Data"), tr("Value"));
-			data_containers << dcont;
-			items << tr("No Data");
-		}
-	}*/
-	
-
 	ui.cboxLog1->addItems(items); 
 	ui.cboxLog2->addItems(items);
 	ui.cboxLog3->addItems(items);
@@ -390,7 +379,6 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 
 	int channel_counter = 0;
 	LoggingPlot *logging_plot1 = new LoggingPlot(data_containers.first(), ui.qwtPlot1, ui.frame_1, channel_counter);
-	//logging_plot1->setDataType(data_containers.first()->log_type, data_containers.first());
 	plot_map.append(PlotMap<LoggingData::DataType, int, int>(data_containers.first()->log_type, data_containers.first()->channel_id(), channel_counter));
 	ui.cboxLog1->setCurrentIndex(channel_counter);
 	setAxisPlotTitle(ui.qwtPlot1, QwtPlot::xBottom, data_containers.first()->axis_label);
@@ -400,7 +388,6 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 	if (channel_counter < data_containers.count())
 	{
 		logging_plot2 = new LoggingPlot(data_containers[channel_counter], ui.qwtPlot2, ui.frame_2, channel_counter);
-		//logging_plot2->setDataType(data_containers[channel_counter]->log_type, data_containers[channel_counter]);
 		plot_map.append(PlotMap<LoggingData::DataType, int, int>(data_containers[channel_counter]->log_type, data_containers[channel_counter]->channel_id(), channel_counter));
 		ui.cboxLog2->setCurrentIndex(channel_counter);
 		setAxisPlotTitle(ui.qwtPlot2, QwtPlot::xBottom, data_containers[channel_counter]->axis_label);
@@ -408,7 +395,6 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 	else
 	{
 		logging_plot2 = new LoggingPlot(data_containers.last(), ui.qwtPlot2, ui.frame_2, channel_counter);
-		//logging_plot2->setDataType(data_containers.last()->log_type, data_containers.last());
 		plot_map.append(PlotMap<LoggingData::DataType, int, int>(data_containers.last()->log_type, data_containers.last()->channel_id(), channel_counter));
 		ui.cboxLog2->setCurrentIndex(channel_counter);
 		setAxisPlotTitle(ui.qwtPlot2, QwtPlot::xBottom, data_containers.last()->axis_label);
@@ -419,7 +405,6 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 	if (channel_counter < data_containers.count())
 	{
 		logging_plot3 = new LoggingPlot(data_containers[channel_counter], ui.qwtPlot3, ui.frame_3, channel_counter);
-		//logging_plot3->setDataType(data_containers[channel_counter]->log_type, data_containers[channel_counter]);
 		plot_map.append(PlotMap<LoggingData::DataType, int, int>(data_containers[channel_counter]->log_type, data_containers[channel_counter]->channel_id(), channel_counter));
 		ui.cboxLog3->setCurrentIndex(channel_counter);
 		setAxisPlotTitle(ui.qwtPlot3, QwtPlot::xBottom, data_containers[channel_counter]->axis_label);
@@ -427,7 +412,6 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 	else
 	{
 		logging_plot3 = new LoggingPlot(data_containers.last(), ui.qwtPlot3, ui.frame_3, channel_counter);
-		//logging_plot3->setDataType(data_containers.last()->log_type, data_containers.last());
 		plot_map.append(PlotMap<LoggingData::DataType, int, int>(data_containers.last()->log_type, data_containers.last()->channel_id(), channel_counter));
 		ui.cboxLog3->setCurrentIndex(channel_counter);
 		setAxisPlotTitle(ui.qwtPlot3, QwtPlot::xBottom, data_containers.last()->axis_label);
@@ -438,7 +422,6 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 	if (channel_counter < data_containers.count())
 	{
 		logging_plot4 = new LoggingPlot(data_containers[channel_counter], ui.qwtPlot4, ui.frame_4, channel_counter);
-		//logging_plot4->setDataType(data_containers[channel_counter]->log_type, data_containers[channel_counter]);
 		plot_map.append(PlotMap<LoggingData::DataType, int, int>(data_containers[channel_counter]->log_type, data_containers[channel_counter]->channel_id(), channel_counter));
 		ui.cboxLog4->setCurrentIndex(channel_counter);
 		setAxisPlotTitle(ui.qwtPlot4, QwtPlot::xBottom, data_containers[channel_counter]->axis_label);
@@ -446,7 +429,6 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 	else
 	{
 		logging_plot4 = new LoggingPlot(data_containers.last(), ui.qwtPlot4, ui.frame_4, channel_counter);
-		//logging_plot4->setDataType(data_containers.last()->log_type, data_containers.last());
 		plot_map.append(PlotMap<LoggingData::DataType, int, int>(data_containers.last()->log_type, data_containers.last()->channel_id(), channel_counter));
 		ui.cboxLog4->setCurrentIndex(channel_counter);
 		setAxisPlotTitle(ui.qwtPlot4, QwtPlot::xBottom, data_containers.last()->axis_label);
@@ -457,7 +439,6 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 	if (channel_counter < data_containers.count())
 	{
 		logging_plot5 = new LoggingPlot(data_containers[channel_counter], ui.qwtPlot5, ui.frame_5, channel_counter);
-		//logging_plot5->setDataType(data_containers[channel_counter]->log_type, data_containers[channel_counter]);
 		plot_map.append(PlotMap<LoggingData::DataType, int, int>(data_containers[channel_counter]->log_type, data_containers[channel_counter]->channel_id(), channel_counter));
 		ui.cboxLog5->setCurrentIndex(channel_counter);
 		setAxisPlotTitle(ui.qwtPlot5, QwtPlot::xBottom, data_containers[channel_counter]->axis_label);

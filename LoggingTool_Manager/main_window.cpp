@@ -199,13 +199,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 		exit(0);
 	}
 
+	QStringList depth_meter_list; depth_meter_list << "DepthEmulator" << "Impulse-Ustye" << "InternalDepthMeter";	// temporary !
+
 	dock_depthTemplate = new QDockWidget(tr("Depth Monitoring"), this);
 	dock_depthTemplate->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
 	QFont fontDepthTemplate = dock_depthTemplate->font();
 	fontDepthTemplate.setPointSize(9);
 	fontDepthTemplate.setBold(true);
 	dock_depthTemplate->setFont(fontDepthTemplate);
-	depthTemplate = new DepthTemplateWizard(COM_Port_depth, COM_Port_stepmotor, clocker, dock_depthTemplate);
+	depthTemplate = new DepthTemplateWizard(COM_Port_depth, COM_Port_stepmotor, depth_meter_list, clocker, dock_depthTemplate);
 	fontDepthTemplate.setBold(false);
 	depthTemplate->getUI()->cboxDepthMeter->setFont(fontDepthTemplate);
 	depthTemplate->getUI()->lblDepthMeter->setFont(fontDepthTemplate);
@@ -349,8 +351,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	ui->tabWidget->setMovable(true);
 
 	dock_sequenceProc->setVisible(true);
-	//dock_expScheduler->setVisible(false);
-	dock_sdspProc->setVisible(false);
+	//dock_sdspProc->setVisible(false);
 		
 	sdsptab_is_active = false;
 
@@ -910,6 +911,9 @@ void MainWindow::applyToolSettings()
 			}
 			if (!isSDSP) ui->tabWidget->addTab(ui->tabSDSP, tr("SDSP"));
 
+			dock_expScheduler->setVisible(false);
+			dock_sdspProc->setVisible(false);
+			
 			placeInfoToExpToolBar(tr("Logging Tool: KMRK"));
 			break;
 		}
@@ -923,6 +927,26 @@ void MainWindow::applyToolSettings()
 					ui->tabWidget->removeTab(index);
 				}
 			}
+
+			dock_expScheduler->setVisible(false);
+
+			placeInfoToExpToolBar(tr("Logging Tool: NMKT"));
+			break;
+		}
+	case NMRKern:
+		{
+			for (int index = ui->tabWidget->count()-1; index >= 0; --index)
+			{
+				QWidget *widget = ui->tabWidget->widget(index);
+				if (widget->objectName() == "tabSDSP")
+				{
+					ui->tabWidget->removeTab(index);
+				}
+			}
+
+			dock_expScheduler->setVisible(true);
+
+
 			placeInfoToExpToolBar(tr("Logging Tool: NMKT"));
 			break;
 		}

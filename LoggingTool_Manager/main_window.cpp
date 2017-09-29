@@ -151,7 +151,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_msgLog->setWidget(msgLog);    
 	addDockWidget(Qt::BottomDockWidgetArea, dock_msgLog);
 	dock_msgLog->setVisible(true);
-
+	
 	dock_RxTxControl = new QDockWidget(tr("Rx/Tx Control"), this);
 	dock_RxTxControl->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
 	QFont fontRxTxControl = dock_RxTxControl->font();
@@ -199,7 +199,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 		exit(0);
 	}
 
-	QStringList depth_meter_list; depth_meter_list << "DepthEmulator" << "Impulse-Ustye" << "InternalDepthMeter";	// temporary !
+	QStringList depth_meter_list; 
+	depth_meter_list << current_tool.depth_monitors;
 
 	dock_depthTemplate = new QDockWidget(tr("Depth Monitoring"), this);
 	dock_depthTemplate->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
@@ -214,8 +215,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_depthTemplate->setWidget(depthTemplate);
 	addDockWidget(Qt::BottomDockWidgetArea, dock_depthTemplate);
 	dock_depthTemplate->setVisible(true);
-	
-		
+			
 	dock_sequenceProc = new QDockWidget(tr("Sequence Wizard"), this);	
 	QFont fontProc = dock_sequenceProc->font();
 	fontProc.setPointSize(9);
@@ -265,7 +265,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_sdspProc->setWidget(sdspProc);    
 	addDockWidget(Qt::LeftDockWidgetArea, dock_sdspProc);	
 	//dock_sdspProc->setVisible(true);
-	sdsp_sequence_status = SeqStatus::Seq_Not_Appl;
+	sdsp_sequence_status = SeqStatus::Seq_Not_Appl;	
 		
 	dock_expScheduler = new QDockWidget(tr("Experiment Scheduler"), this);
 	QFont fontManager = dock_expScheduler->font();
@@ -298,6 +298,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	this->tabifyDockWidget(dock_expScheduler, dock_sequenceProc);
 	this->setTabPosition(Qt::LeftDockWidgetArea, QTabWidget::South);
 	
+
 	relax_widget = new RelaxationWidget(ui->tabDataViewer, app_settings);
 	
 	osc_widget = new OscilloscopeWidget(ui->tabOscilloscope, app_settings);
@@ -318,6 +319,18 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	grlout_logging->setContentsMargins(1,1,1,1);
 	grlout_logging->addWidget(logging_widget, 0, 0, 1, 1);
 	
+	/*
+	dock_expScheduler->setVisible(false);
+	dock_sequenceProc->setVisible(false);
+	dock_sdspProc->setVisible(false);
+
+	relax_widget->setVisible(false);
+	osc_widget->setVisible(false);
+	monitoring_widget->setVisible(false);
+	sdsp_widget->setVisible(false);
+	logging_widget->setVisible(false);
+	*/
+
 	ui->a_CommunicationLogMonitor->setCheckable(true);
 	ui->a_LoggingToolConsole->setCheckable(true);
 	ui->a_SequenceWizard->setCheckable(true);
@@ -350,7 +363,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 	ui->tabWidget->setMovable(true);
 
-	dock_sequenceProc->setVisible(true);
+	//dock_sequenceProc->setVisible(true);
 	//dock_sdspProc->setVisible(false);
 		
 	sdsptab_is_active = false;
@@ -899,6 +912,7 @@ void MainWindow::changeLoggingTool()
 
 void MainWindow::applyToolSettings()
 {
+	/*
 	switch (current_tool.id)
 	{
 	case KMRK:
@@ -986,6 +1000,31 @@ void MainWindow::applyToolSettings()
 			break;
 		}
 	}
+	*/
+
+	dock_expScheduler->setVisible(false);
+	dock_sequenceProc->setVisible(false);
+	dock_sdspProc->setVisible(false);
+
+	relax_widget->setVisible(false);
+	osc_widget->setVisible(false);
+	monitoring_widget->setVisible(false);
+	sdsp_widget->setVisible(false);
+	logging_widget->setVisible(false);
+
+	QStringList tab_widgets = current_tool.tab_widgets;
+	logging_widget->setVisible(tab_widgets.contains("Logging"));
+	osc_widget->setVisible(tab_widgets.contains("Oscilloscope"));
+	relax_widget->setVisible(tab_widgets.contains("DataPreview"));
+	monitoring_widget->setVisible(tab_widgets.contains("Monitoring"));
+	sdsp_widget->setVisible(tab_widgets.contains("SDSP"));
+
+	QStringList seq_wizards = current_tool.seq_wizards;
+	dock_sequenceProc->setVisible(seq_wizards.contains("SequenceWizard"));
+	dock_expScheduler->setVisible(seq_wizards.contains("ExperimentScheduler"));
+	dock_sdspProc->setVisible(seq_wizards.contains("SDSPWizard"));
+
+	placeInfoToExpToolBar(tr("Logging Tool: %1").arg(current_tool.info_bar));
 }
 
 
@@ -1168,6 +1207,15 @@ void MainWindow::loadAppSettings()
 			else uid = 0;
 			if (settings->contains("Tool/type")) tool_type = settings->value("Tool/type").toString(); 
 
+			QStringList tab_widgets;
+			if (current_tool_settings->contains("VisualSettings/TabWidgets")) tab_widgets = current_tool_settings->value("VisualSettings/TabWidgets").toStringList();
+			QStringList seq_wizards;
+			if (current_tool_settings->contains("VisualSettings/SequenceWizards")) seq_wizards = current_tool_settings->value("VisualSettings/SequenceWizards").toStringList();
+			QStringList depth_monitors;
+			if (current_tool_settings->contains("VisualSettings/DepthMonitors")) depth_monitors = current_tool_settings->value("VisualSettings/DepthMonitors").toStringList(); 
+			QString tool_info_bar;
+			if (current_tool_settings->contains("VisualSettings/InfoBar")) tool_info_bar = current_tool_settings->value("VisualSettings/InfoBar").toString().simplified(); 
+
 			if (ok && uid > 0 && !tool_type.isEmpty()) 
 			{
 				bool tool_exist = false;
@@ -1180,6 +1228,10 @@ void MainWindow::loadAppSettings()
 				if (!tool_exist)
 				{
 					ToolInfo tool_info(uid, tool_type, tool_file); 
+					tool_info.tab_widgets = tab_widgets;
+					tool_info.seq_wizards = seq_wizards;
+					tool_info.depth_monitors = depth_monitors;
+					tool_info.info_bar = tool_info_bar;
 					tools.append(tool_info);
 				}
 			}
@@ -1206,6 +1258,21 @@ void MainWindow::loadAppSettings()
 	if (!current_tool.file_name.isEmpty() && tool_id > 0)
 	{
 		current_tool_settings = new QSettings(cur_tool_file, QSettings::IniFormat, this);
+		
+		QStringList tab_widgets;
+		if (current_tool_settings->contains("VisualSettings/TabWidgets")) tab_widgets = current_tool_settings->value("VisualSettings/TabWidgets").toStringList();
+		QStringList seq_wizards;
+		if (current_tool_settings->contains("VisualSettings/SequenceWizards")) seq_wizards = current_tool_settings->value("VisualSettings/SequenceWizards").toStringList();
+		QStringList depth_monitors;
+		if (current_tool_settings->contains("VisualSettings/DepthMonitors")) depth_monitors = current_tool_settings->value("VisualSettings/DepthMonitors").toStringList(); 
+		QString tool_info_bar;
+		if (current_tool_settings->contains("VisualSettings/InfoBar")) tool_info_bar = current_tool_settings->value("VisualSettings/InfoBar").toString().simplified(); 
+		
+		current_tool.tab_widgets = tab_widgets;
+		current_tool.seq_wizards = seq_wizards;
+		current_tool.depth_monitors = depth_monitors;
+		current_tool.info_bar = tool_info_bar;
+
 		setToolChannels(current_tool_settings);
 	}
 	else

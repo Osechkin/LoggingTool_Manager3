@@ -74,6 +74,10 @@ ToolsDialog::ToolsDialog(QList<ToolInfo> tools_list, int cur_index, QWidget *par
 	current_tool_id = tools[cur_index].id;
 	current_tool_file = tools[cur_index].file_name;
 	current_tool = tools[cur_index].type;
+	current_tool_tab_widgets = tools[cur_index].tab_widgets;
+	current_tool_depth_monitors = tools[cur_index].depth_monitors;
+	current_tool_seq_wizards = tools[cur_index].seq_wizards;
+	current_tool_info_bar = tools[cur_index].info_bar;
 
 	QStringList tools_types;
 	for (int i = 0; i < tools.count(); i++)
@@ -99,6 +103,11 @@ void ToolsDialog::setActiveTool(const QString &text)
 			current_tool = text;
 			current_tool_file = tool_info.file_name;
 			current_tool_id = tool_info.id;
+
+			current_tool_tab_widgets = tool_info.tab_widgets;
+			current_tool_depth_monitors = tool_info.depth_monitors;
+			current_tool_seq_wizards = tool_info.seq_wizards;
+			current_tool_info_bar = tool_info.info_bar;
 		}
 	}
 }
@@ -108,6 +117,11 @@ void ToolsDialog::setCurrentTool(QString file_name)
 	bool is_existed = false;
 	QString type = "";
 	int id = 0;
+	QStringList tab_widgets;
+	QStringList seq_wizards;
+	QStringList depth_monitors;
+	QString info_bar;
+
 	for (int i = 0; i < tools.count(); i++)
 	{
 		ToolInfo tool_info = tools[i];
@@ -116,6 +130,11 @@ void ToolsDialog::setCurrentTool(QString file_name)
 			is_existed = true; 
 			type = tool_info.type;
 			id = tool_info.id;
+
+			tab_widgets = tool_info.tab_widgets;
+			seq_wizards = tool_info.seq_wizards;
+			depth_monitors = tool_info.depth_monitors;
+			info_bar = tool_info.info_bar;
 		}
 	}
 
@@ -125,5 +144,10 @@ void ToolsDialog::setCurrentTool(QString file_name)
 		current_tool_id = id;
 		current_tool = type;
 		current_tool_file = file_name;
+
+		current_tool_tab_widgets = tab_widgets;
+		current_tool_seq_wizards = seq_wizards;
+		current_tool_depth_monitors = depth_monitors;
+		current_tool_info_bar = info_bar;
 	}
 }

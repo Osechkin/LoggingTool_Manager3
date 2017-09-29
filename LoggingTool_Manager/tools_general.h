@@ -1,6 +1,8 @@
 #ifndef TOOLS_GENERAL_H
 #define TOOLS_GENERAL_H
 
+#include <QStringList>
+
 #include "qextserialport.h"
 
 
@@ -20,6 +22,10 @@ struct ToolInfo
 	int id;
 	QString type;
 	QString file_name;
+	QStringList tab_widgets;					// список доступных вкладок в главном виджете приложения (полный список: "Logging", "DataPreview", "Oscilloscope", "Monitoring", "SDSP")
+	QStringList seq_wizards;					// список виждетов для ввода последовательности и управления экспериментом (полный список: "SequenceWizard", "ExperimentScheduler")
+	QStringList depth_monitors;					// список глубиномеров и дальномеров (полный список: "DepthEmulator", "Impulse-Ustye", "InternalDepthMeter", "LeuzePositionMeter")
+	QString info_bar;							// самоназвание прибора в InfoBar ("KMRK", "NMKT", "KERN")
 };
 
 

@@ -31,8 +31,12 @@ private:
 	QString current_tool;
 	QString current_tool_file;
 	int current_tool_id;
-	//QStringList tools;
-	//QStringList tools_files;
+
+	QStringList current_tool_tab_widgets;
+	QStringList current_tool_seq_wizards;
+	QStringList current_tool_depth_monitors;
+	QString current_tool_info_bar;
+
 	QList<ToolInfo> tools;
 };
 

@@ -5,6 +5,7 @@
 MonitoringWidget::MonitoringWidget(QSettings *app_settings, QWidget *parent) : QWidget(parent), ui(new Ui::MonitoringWidget)
 {
 	ui->setupUi(this);
+	this->setObjectName("tabMonitoring");
 
 	ui->qwtPlotTUT->setCanvasBackground(QBrush(QColor(Qt::white)));
 	ui->qwtPlotDUT->setCanvasBackground(QBrush(QColor(Qt::white)));

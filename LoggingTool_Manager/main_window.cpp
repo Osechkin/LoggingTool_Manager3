@@ -1006,25 +1006,20 @@ void MainWindow::applyToolSettings()
 	dock_sequenceProc->setVisible(false);
 	dock_sdspProc->setVisible(false);
 	
-	int tabs = ui->tabWidget->count();
-	for (int i = 0; i < tabs-1; i++)
+	for (int index = ui->tabWidget->count()-1; index >= 0; --index)
 	{
-		ui->tabWidget->removeTab(1); // Logging Wizard is always exists and has number "0"
+		QWidget *widget = ui->tabWidget->widget(index);
+		if (widget->objectName() == "tabSDSP") ui->tabWidget->removeTab(index);
+		if (widget->objectName() == "tabMonitoring") ui->tabWidget->removeTab(index);	
 	}
 
 	QStringList tab_widgets = current_tool.tab_widgets;
 	//if (tab_widgets.contains(tr("Logging"))) ui->tabWidget->addTab(logging_widget, tr("Logging"));
-	if (tab_widgets.contains(tr("Oscilloscope"))) { ui->tabWidget->addTab(osc_widget, tr("Oscilloscope")); }
-	if (tab_widgets.contains(tr("DataPreview"))) ui->tabWidget->addTab(relax_widget, tr("DataPreview"));
+	//if (tab_widgets.contains(tr("Oscilloscope"))) { ui->tabWidget->addTab(osc_widget, tr("Oscilloscope")); }
+	//if (tab_widgets.contains(tr("DataPreview"))) ui->tabWidget->addTab(relax_widget, tr("DataPreview"));
 	if (tab_widgets.contains(tr("SDSP"))) ui->tabWidget->addTab(sdsp_widget, tr("SDSP"));
 	if (tab_widgets.contains(tr("Monitoring"))) ui->tabWidget->addTab(monitoring_widget, tr("Monitoring"));
 
-	/*ui->tabLogging->setVisible(tab_widgets.contains("Logging"));
-	ui->tabOscilloscope->setVisible(tab_widgets.contains("Oscilloscope"));
-	ui->tabDataViewer->setVisible(tab_widgets.contains("DataPreview"));
-	ui->tabMonitoring->setVisible(tab_widgets.contains("Monitoring"));
-	ui->tabSDSP->setVisible(tab_widgets.contains("SDSP"));
-	*/
 	QStringList seq_wizards = current_tool.seq_wizards;
 	dock_sequenceProc->setVisible(seq_wizards.contains("SequenceWizard"));
 	dock_expScheduler->setVisible(seq_wizards.contains("ExperimentScheduler"));

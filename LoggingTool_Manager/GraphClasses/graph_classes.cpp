@@ -2776,7 +2776,7 @@ void MonitoringPlot::setCurveSettings()
 
 OscilloscopeWidget::OscilloscopeWidget(QWidget *tab, QSettings *settings, QWidget *parent)
 {
-	setParent(parent);
+	//setParent(parent);
 	app_settings = settings;
 
 	QSplitter *osc_splitter = new QSplitter(tab);

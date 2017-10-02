@@ -20,6 +20,27 @@
 #include "ui_sequence_wizard.h"
 
 
+class JSeqObject : public QObject
+{	
+	Q_OBJECT
+
+private:
+	JSeqObject(QList<SeqCmdInfo> _cmd_list, QList<SeqInstrInfo> _instr_list, QString _jseq_file);
+	~JSeqObject();
+
+	void evaluate();
+
+	QScriptEngine *js_engine;	
+	LUSI::Engine *lusi_engine;
+	LUSI::Sequence *lusi_Seq;
+	QString jseq_file;		
+
+private:
+	QList<SeqCmdInfo> cmd_list;
+	QList<SeqInstrInfo> instr_list;
+};
+typedef QList<JSeqObject*>	JSeqObjectList;
+
 
 // виджет редактирования циклограммы измерений программой сигнального процессора
 class SequenceWizard : public QWidget, public Ui::SequenceWizard

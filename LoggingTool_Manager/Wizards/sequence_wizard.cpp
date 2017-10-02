@@ -11,6 +11,88 @@
 #include "../Dialogs/sequence_info_dialog.h"
 
 
+JSeqObject::JSeqObject(QList<SeqCmdInfo> _cmd_list, QList<SeqInstrInfo> _instr_list, QString _jseq_file)
+{
+	cmd_list = _cmd_list;
+	instr_list = _instr_list;
+
+	jseq_file = _jseq_file;
+
+	js_engine = new QScriptEngine;
+	lusi_engine = new LUSI::Engine;
+	lusi_engine->init(js_engine, cmd_list, instr_list);	
+	
+	lusi_Seq = new LUSI::Sequence;	
+}
+
+JSeqObject::~JSeqObject()
+{
+	delete js_engine;
+	delete lusi_engine;
+	delete lusi_Seq;
+}
+
+void JSeqObject::evaluate()
+{
+	QFile file(jseq_file);
+	QString str = "";
+	if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+	{
+		QTextStream text_stream(&file);
+		str = text_stream.readAll();
+		file.close();			
+	}
+	else 
+	{
+		lusi_Seq->seq_errors.append(tr("Cannot open the sequence file %1").arg(jseq_file));
+	}
+
+	QFileInfo file_info(jseq_file);
+	QString file_name = file_info.fileName();
+	QString file_path = file_info.absoluteDir().path();
+
+	QStringList lusi_elist;
+	lusi_engine->setLUSIscript(str);
+	if (lusi_engine->evaluate(lusi_elist))
+	{
+		LUSI::ObjectList *obj_list_global = lusi_engine->getObjList();
+		if (obj_list_global->isEmpty())
+		{
+			lusi_Seq->seq_errors.append(tr("Sequence program for Logging Tool was not found in %1 file!").arg(jseq_file));			
+		}
+
+		lusi_Seq->setFilePathName(file_path, file_name);
+
+		QString js_script = lusi_engine->getJSscript();		
+		QScriptValue qscrpt_value = js_engine->evaluate(js_script);
+		if (qscrpt_value.isError())
+		{
+			lusi_Seq->js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");
+			lusi_Seq->comprg_list.clear();
+			lusi_Seq->proc_programs.clear();						
+		}
+		else
+		{
+			lusi_Seq->clear();
+			lusi_Seq->setObjects(obj_list_global);
+			lusi_Seq->setFilePathName(file_path, file_name);
+		}			
+	}
+	else
+	{
+		// There are errors in LUSI code !
+		LUSI::ObjectList *obj_list_global = lusi_engine->getObjList();
+		if (obj_list_global->isEmpty())
+		{
+			lusi_Seq->seq_errors.append(tr("Sequence program for Logging Tool was not found in %1 file!").arg(jseq_file));	
+		}	
+		lusi_Seq->clear();
+		lusi_Seq->setObjects(obj_list_global);
+		lusi_Seq->setFilePathName(file_path, file_name);
+	}
+}
+
+
 SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(parent), ui(new Ui::SequenceWizard)
 {
 	ui->setupUi(this);
@@ -84,10 +166,12 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 				cur_lusi_Seq.comprg_list.clear();
 				cur_lusi_Seq.proc_programs.clear();						
 			}
-			
-			cur_lusi_Seq.clear();
-			cur_lusi_Seq.setObjects(obj_list_global);
-			cur_lusi_Seq.setFilePathName(path_list.first(), file_list.first());
+			else
+			{
+				cur_lusi_Seq.clear();
+				cur_lusi_Seq.setObjects(obj_list_global);
+				cur_lusi_Seq.setFilePathName(path_list.first(), file_list.first());
+			}			
 		}
 		else
 		{
@@ -103,6 +187,7 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 			cur_lusi_Seq.setFilePathName(path_list.first(), file_list.first());
 
 		}
+
 		showLUSISeqParameters();
 		showLUSISeqMemo();
 

@@ -255,6 +255,7 @@ private slots:
 	void showPowerStatus(unsigned char pow_status);
 	void showTemperatureStatus(unsigned char temp_status);
 	void tabIsActivated(int index);	
+	void sdspIsActivated(bool flag);
 	void viewWizard(bool flag);
 	void saveAllSettings();
 	void clearStatusBar();

@@ -2777,6 +2777,7 @@ void MonitoringPlot::setCurveSettings()
 OscilloscopeWidget::OscilloscopeWidget(QWidget *tab, QSettings *settings, QWidget *parent)
 {
 	setParent(parent);
+	//this->setObjectName("tabOscilloscope");
 	app_settings = settings;
 
 	QSplitter *osc_splitter = new QSplitter(tab);
@@ -2855,6 +2856,7 @@ void OscilloscopeWidget::applyWinFuncParams(QVector<int> &params)
 RelaxationWidget::RelaxationWidget(QWidget *tab, QSettings *settings, QWidget *parent)
 {
 	setParent(parent);
+	//this->setObjectName("tabRelax");
 	app_settings = settings;
 
 	QSplitter *relax_splitter = new QSplitter(tab);

@@ -24,6 +24,11 @@ public:
 	int getSelectedToolId() { return current_tool_id; }
 	QList<ToolInfo> &getToolsInfo() { return tools; }
 
+	QStringList getTabWidgets() { return current_tool_tab_widgets; }
+	QStringList getSeqWizards() { return current_tool_seq_wizards; }
+	QStringList getDepthMonitors() { return current_tool_depth_monitors; }
+	QString getInfoBarText() { return current_tool_info_bar; } 
+
 private slots:
 	void setActiveTool(const QString &text);
 	

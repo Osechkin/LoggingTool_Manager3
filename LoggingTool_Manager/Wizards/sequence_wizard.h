@@ -24,11 +24,12 @@ class JSeqObject : public QObject
 {	
 	Q_OBJECT
 
-private:
-	JSeqObject(QList<SeqCmdInfo> _cmd_list, QList<SeqInstrInfo> _instr_list, QString _jseq_file);
+public:
+	JSeqObject(QList<SeqCmdInfo> &_cmd_list, QList<SeqInstrInfo> &_instr_list, QString _jseq_file = "");
 	~JSeqObject();
 
 	void evaluate();
+	bool partOf(QList<JSeqObject*> &jseq_list);
 
 	QScriptEngine *js_engine;	
 	LUSI::Engine *lusi_engine;
@@ -40,6 +41,7 @@ private:
 	QList<SeqInstrInfo> instr_list;
 };
 typedef QList<JSeqObject*>	JSeqObjectList;
+
 
 
 // виджет редактирования циклограммы измерений программой сигнального процессора
@@ -86,10 +88,12 @@ protected:
 	QString jseq_file;
 	//Sequence curSeq;	
 
-	QScriptEngine *engine;
+	//QScriptEngine *engine;
 	QScriptEngineDebugger script_debugger;
-	LUSI::Engine lusi_engine;
-	LUSI::Sequence cur_lusi_Seq;
+	//LUSI::Engine lusi_engine;
+	//LUSI::Sequence cur_lusi_Seq;
+
+	JSeqObject *jseq_object;
 
 protected:
 	void readSequenceCmdIndex();

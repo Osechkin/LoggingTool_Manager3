@@ -11,7 +11,7 @@
 #include "../Dialogs/sequence_info_dialog.h"
 
 
-JSeqObject::JSeqObject(QList<SeqCmdInfo> _cmd_list, QList<SeqInstrInfo> _instr_list, QString _jseq_file)
+JSeqObject::JSeqObject(QList<SeqCmdInfo> &_cmd_list, QList<SeqInstrInfo> &_instr_list, QString _jseq_file)
 {
 	cmd_list = _cmd_list;
 	instr_list = _instr_list;
@@ -92,7 +92,17 @@ void JSeqObject::evaluate()
 	}
 }
 
+bool JSeqObject::partOf(QList<JSeqObject*> &jseq_list)
+{	
+	for (int i = 0; i < jseq_list.count(); i++)
+	{
+		if (jseq_list.at(i)->jseq_file == this->jseq_file) return true;
+	}
+	return false;
+}
 
+
+/*
 SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(parent), ui(new Ui::SequenceWizard)
 {
 	ui->setupUi(this);
@@ -117,16 +127,14 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 	
 	ui->treeWidget->header()->setFont(QFont("Arial", 10, 0, false));		
 	
-	engine = new QScriptEngine;
-	script_debugger.attachTo(engine);
-	//script_debugger.attachTo(&engine);
-	
 	readSequenceCmdIndex();
 	readSequenceInstrIndex();
 
-	QStringList lusi_elist;
+	engine = new QScriptEngine;
+	script_debugger.attachTo(engine);
 	
-	//lusi_engine.init(&engine, seq_cmd_index, seq_instr_index);
+	QStringList lusi_elist;
+		
 	lusi_engine.init(engine, seq_cmd_index, seq_instr_index);
 
 	QString seq_path = QDir::currentPath() + "/Sequences";
@@ -145,9 +153,9 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 		}
 
 		lusi_engine.setLUSIscript(str);
-		if (lusi_engine.evaluate(lusi_elist))
+		if (lusi_engine.evaluate(lusi_elist))		
 		{
-			LUSI::ObjectList *obj_list_global = lusi_engine.getObjList();
+			LUSI::ObjectList *obj_list_global = lusi_engine.getObjList();			
 			if (obj_list_global->isEmpty())
 			{
 				int ret = QMessageBox::warning(this, tr("Warning!"), tr("Sequence program for Logging Tool was not found!"), QMessageBox::Ok, QMessageBox::Ok);
@@ -194,7 +202,113 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 		ui->cboxSequences->addItems(file_list);
 		ui->ledSeqName->setText(cur_lusi_Seq.name);
 	}
-	
+
+	app_settings = settings;
+	save_data.to_save = false;	
+
+	setConnections();
+}
+*/
+
+SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(parent), ui(new Ui::SequenceWizard)
+{
+	ui->setupUi(this);
+	ui->pbtRefresh->setIcon(QIcon(":/images/Refresh.png"));
+	ui->pbtViewCode->setIcon(QIcon(":/images/view_text.png"));
+	ui->pbtExportSettings->setIcon(QIcon(":/images/export_data.png"));
+	ui->tbtAddSequence->setIcon(QIcon(":/images/add_script.png"));
+	ui->tbtRefreshSeqList->setIcon(QIcon(":/images/Refresh.png"));
+	ui->tbtInfo->setIcon(QIcon(":/images/Info.png"));
+
+	ui->tbtAddSequence->setToolTip(tr("Add Sequence file to the List"));
+	ui->tbtRefreshSeqList->setToolTip(tr("Refresh Sequence file List"));
+
+	ui->tbtRefreshSeqList->setVisible(false);
+
+	QStringList headlist;
+	ui->treeWidget->setColumnCount(3);
+	headlist << tr("Parameter") << tr("Value") << tr("Units");
+	ui->treeWidget->setHeaderLabels(headlist);
+	ui->treeWidget->setColumnWidth(0,300);
+	ui->treeWidget->setColumnWidth(1,75);	
+
+	ui->treeWidget->header()->setFont(QFont("Arial", 10, 0, false));		
+
+	readSequenceCmdIndex();
+	readSequenceInstrIndex();
+
+	jseq_object = new JSeqObject(seq_cmd_index, seq_instr_index);
+
+	//engine = new QScriptEngine;
+	//script_debugger.attachTo(engine);
+
+	QStringList lusi_elist;
+
+	QString seq_path = QDir::currentPath() + "/Sequences";
+	bool res = findSequenceScripts(file_list, path_list, seq_path);
+	if (res)
+	{
+		QString file_name = path_list.first() + "/" + file_list.first();
+		QFile file(file_name);
+		QString str = "";
+		if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+		{
+			QTextStream text_stream(&file);
+			str = text_stream.readAll();
+			file.close();		
+			jseq_object->jseq_file = file_name;
+		}
+				
+		jseq_object->lusi_engine->setLUSIscript(str);		
+		if (jseq_object->lusi_engine->evaluate(lusi_elist))
+		{			
+			LUSI::ObjectList *obj_list_global = jseq_object->lusi_engine->getObjList();
+			if (obj_list_global->isEmpty())
+			{
+				int ret = QMessageBox::warning(this, tr("Warning!"), tr("Sequence program for Logging Tool was not found!"), QMessageBox::Ok, QMessageBox::Ok);
+				return;
+			}
+
+			//QAction *pact = script_debugger.action(QScriptEngineDebugger::InterruptAction);
+			//connect(pact, SIGNAL(triggered()), this, SLOT(triggerJSerror()));
+
+			QString js_script = jseq_object->lusi_engine->getJSscript();			
+			QScriptValue qscrpt_value = jseq_object->js_engine->evaluate(js_script);
+			if (qscrpt_value.isError())
+			{
+				jseq_object->lusi_Seq->js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");
+				jseq_object->lusi_Seq->comprg_list.clear();
+				jseq_object->lusi_Seq->proc_programs.clear();						
+			}
+			else
+			{
+				jseq_object->lusi_Seq->clear();
+				jseq_object->lusi_Seq->setObjects(obj_list_global);
+				jseq_object->lusi_Seq->setFilePathName(path_list.first(), file_list.first());
+			}			
+		}
+		else
+		{
+			// There are errors in LUSI code !
+			LUSI::ObjectList *obj_list_global = jseq_object->lusi_engine->getObjList();
+			if (obj_list_global->isEmpty())
+			{
+				int ret = QMessageBox::warning(this, tr("Warning!"), tr("Sequence program for Logging Tool was not found!"), QMessageBox::Ok, QMessageBox::Ok);
+				return;
+			}	
+			jseq_object->lusi_Seq->clear();
+			jseq_object->lusi_Seq->setObjects(obj_list_global);
+			jseq_object->lusi_Seq->setFilePathName(path_list.first(), file_list.first());
+
+		}
+
+		showLUSISeqParameters();
+		showLUSISeqMemo();
+
+		ui->cboxSequences->addItems(file_list);
+		ui->ledSeqName->setText(jseq_object->lusi_Seq->name);
+	}
+
 	app_settings = settings;
 	save_data.to_save = false;	
 
@@ -1380,6 +1494,7 @@ void SequenceWizard::showSeqParameters()
 	} 
 }
 */
+
 
 void SequenceWizard::showLUSISeqParameters()
 {

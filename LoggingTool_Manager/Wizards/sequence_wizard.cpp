@@ -102,7 +102,7 @@ bool JSeqObject::partOf(QList<JSeqObject*> &jseq_list)
 }
 
 
-/*
+
 SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(parent), ui(new Ui::SequenceWizard)
 {
 	ui->setupUi(this);
@@ -208,8 +208,8 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 
 	setConnections();
 }
-*/
 
+/*
 SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(parent), ui(new Ui::SequenceWizard)
 {
 	ui->setupUi(this);
@@ -314,6 +314,7 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 
 	setConnections();
 }
+*/
 
 SequenceWizard::~SequenceWizard()
 {

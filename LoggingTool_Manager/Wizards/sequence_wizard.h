@@ -88,12 +88,12 @@ protected:
 	QString jseq_file;
 	//Sequence curSeq;	
 
-	//QScriptEngine *engine;
+	QScriptEngine *engine;
 	QScriptEngineDebugger script_debugger;
-	//LUSI::Engine lusi_engine;
-	//LUSI::Sequence cur_lusi_Seq;
+	LUSI::Engine lusi_engine;
+	LUSI::Sequence cur_lusi_Seq;
 
-	JSeqObject *jseq_object;
+	//JSeqObject *jseq_object;
 
 protected:
 	void readSequenceCmdIndex();

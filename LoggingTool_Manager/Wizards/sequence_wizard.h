@@ -28,8 +28,8 @@ public:
 	JSeqObject(QList<SeqCmdInfo> &_cmd_list, QList<SeqInstrInfo> &_instr_list, QString _jseq_file = "");
 	~JSeqObject();
 
-	void evaluate();
-	bool partOf(QList<JSeqObject*> &jseq_list);
+	bool evaluate();		// Output : false - cannot open jseq file, true - successfully open jseq file and start it (no mater a result of execution)
+	bool partOf(QList<JSeqObject*> &jseq_list, int &index);
 
 	QScriptEngine *js_engine;	
 	LUSI::Engine *lusi_engine;
@@ -54,7 +54,8 @@ public:
 	explicit SequenceWizard(QWidget *parent = 0) { }
 	~SequenceWizard();
 
-	LUSI::Sequence *getCurrentSequence() { return &cur_lusi_Seq; }
+	//LUSI::Sequence *getCurrentSequence() { return &cur_lusi_Seq; }	
+	LUSI::Sequence* getCurrentSequence(); 
 	bool getDSPPrg(QVector<uint8_t> &_prg, QVector<uint8_t> &_instr);
 
 	QList<SeqCmdInfo> *getSeqCmdInfo() { return &seq_cmd_index; }
@@ -144,7 +145,7 @@ private slots:
 	void viewCode();
 	void setExportSettings();
 	void showSequenceInfo();
-	void triggerJSerror();
+	//void triggerJSerror();
 	
 signals:
 	void sequence_changed();

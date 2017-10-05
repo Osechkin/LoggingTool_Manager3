@@ -296,6 +296,7 @@ namespace LUSI
 		QVariantList getParamsArray() const { return params_array; }
 		QList<QVariantList> getVarProcProgram() const { return var_proc_program; }
 		QStringList getErrorList() const { return elist; }
+		void clear();
 
 	public slots:
 		QString getTitle() const { return title; }
@@ -335,6 +336,7 @@ namespace LUSI
 		QVariantList getParamsArray() const { return params_array; }
 		QList<QVariantList> getVarComProgram() const { return var_com_program; }
 		QStringList getErrorList() const { return elist; }
+		void clear();
 
 	public slots:
 		QString getTitle() const { return title; }
@@ -454,6 +456,7 @@ namespace LUSI
 		void init(QScriptEngine *_qsript_engine, QList<SeqCmdInfo> _cmd_list, QList<SeqInstrInfo> _instr_list);
 		bool evaluate(QStringList &_elist);
 		void clear();
+		void reset();
 		void setLUSIscript(QString _script) { lusi_script = _script; }
 		QString getLUSIscript() const { return lusi_script; }
 		QString getJSscript() const { return js_script; }
@@ -505,6 +508,7 @@ namespace LUSI
 		QList<QVariantList> getVarComProgram(int index); // программа для интервального программатора 
 		QList<QVariantList> getVarProcProgram(int index); // программа обработки данных для сигнального процессора 
 		void clear();
+		void reset();
 
 		QString name;							// название последовательности
 		QString author;							// автор последовательности

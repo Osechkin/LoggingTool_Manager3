@@ -1720,10 +1720,10 @@ void SequenceWizard::executeJSsequence()
 	LUSI::ObjectList *obj_list_global = cur_jseq_object->lusi_engine->getObjList();
 	if (obj_list_global->isEmpty()) return;
 
+	cur_jseq_object->lusi_Seq->reset();
+	cur_jseq_object->lusi_engine->reset();
 	QString js_script = cur_jseq_object->lusi_engine->getJSscript();	
-	qDebug() << js_script;
 	QScriptValue qscrpt_value = cur_jseq_object->js_engine->evaluate(js_script);	
-
 	if (qscrpt_value.isError())
 	{
 		cur_jseq_object->lusi_Seq->js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");

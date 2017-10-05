@@ -261,6 +261,12 @@ void LUSI::ProcPackage::exec(QVariantList _params_array)
 	params_array == _params_array; 
 	var_proc_program.append(_params_array);
 }
+
+void LUSI::ProcPackage::clear()
+{
+	proc_program.clear();
+	var_proc_program.clear();
+}
 // ***************************************************************************
 
 
@@ -359,6 +365,12 @@ void LUSI::COMProgram::exec(QVariantList _params_array)
 	
 	params_array = _params_array; 
 	var_com_program.append(varray);
+}
+
+void LUSI::COMProgram::clear()
+{
+	com_program.clear();
+	var_com_program.clear();
 }
 // ***************************************************************************
 
@@ -1023,6 +1035,30 @@ void LUSI::Engine::clear()
 	error_list.clear();
 }
 
+void LUSI::Engine::reset()
+{
+	for (int i = 0; i < obj_list.count(); i++)
+	{
+		LUSI::Object *lusi_obj = obj_list[i];
+		switch (lusi_obj->getType())
+			{
+		case LUSI::Definition::ComProgram:
+			{
+				LUSI::COMProgram *comprg_obj = qobject_cast<LUSI::COMProgram*>(lusi_obj);
+				if (comprg_obj) comprg_obj->clear();
+				break;
+			}
+		case LUSI::Definition::ProcPackage:
+			{
+				LUSI::ProcPackage *procpack_obj = qobject_cast<LUSI::ProcPackage*>(lusi_obj);
+				if (procpack_obj) procpack_obj->clear();
+				break;
+			}
+		default: break;
+		}
+	}
+}
+
 
 //QRegExp rx_float("(^[+-]?\d*[.]?\d*[eE]?[+-]?\d+$)");						// регулярное выражение для поиска чисел с плавающей точкой
 //QRegExp rx_var("(^_+[a-zA-Z]+\w*[^_]{1}$)|([a-zA-Z]+\w*[^_]{1}$)");		// регулярное выражение для поиска имен переменных
@@ -1517,7 +1553,7 @@ LUSI::Sequence::Sequence(ObjectList *_obj_list, QString _js_script, QStringList 
 void LUSI::Sequence::setObjects(LUSI::ObjectList *_obj_list)
 {
 	if (!_obj_list) return;
-
+	
 	for (int i = 0; i < _obj_list->size(); i++)
 	{
 		LUSI::Object *lusi_obj = qobject_cast<LUSI::Object*>(_obj_list->at(i));
@@ -1636,4 +1672,13 @@ void LUSI::Sequence::clear()
 	js_error.clear();
 
 	main_object = NULL;
+}
+
+void LUSI::Sequence::reset()
+{
+	com_programs.clear();
+	proc_programs.clear();
+	comprg_list.clear();
+	procdsp_list.clear();	
+	js_error.clear();
 }

@@ -1615,7 +1615,7 @@ void SequenceWizard::showLUSISeqParameters()
 					QList<CSettings> item_settings_list;
 
 					CSettings item_settings1("label", param->getTitle());
-					item_settings1.hint = param->getComment();
+					item_settings1.hint = QString("%1 : %2").arg(param->getObjName()).arg(param->getComment());
 					item_settings1.text_color = QColor(Qt::darkBlue);		
 					item_settings1.background_color = QColor(Qt::blue).lighter(190);
 
@@ -1721,7 +1721,20 @@ void SequenceWizard::executeJSsequence()
 	if (obj_list_global->isEmpty()) return;
 
 	QString js_script = cur_jseq_object->lusi_engine->getJSscript();	
+	qDebug() << js_script;
 	QScriptValue qscrpt_value = cur_jseq_object->js_engine->evaluate(js_script);	
+
+	if (qscrpt_value.isError())
+	{
+		cur_jseq_object->lusi_Seq->js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");
+		cur_jseq_object->lusi_Seq->comprg_list.clear();
+		cur_jseq_object->lusi_Seq->proc_programs.clear();					
+	}
+	else
+	{
+		cur_jseq_object->lusi_Seq->clear();
+		cur_jseq_object->lusi_Seq->setObjects(obj_list_global);				
+	}
 }
 
 void SequenceWizard::showLUSISeqMemo()
@@ -2244,7 +2257,12 @@ void SequenceWizard::refreshSequence()
 	else
 	{
 		QString cur_fileName = ui->cboxSequences->currentText();
-		changeCurrentSequence(cur_fileName);		// обновить все данные текущей последовательности 
+		//changeCurrentSequence(cur_fileName);		// обновить все данные текущей последовательности 
+
+		showLUSISeqParameters();
+		showLUSISeqMemo();
+
+		emit sequence_changed();
 	}
 }
 
@@ -2402,6 +2420,8 @@ void SequenceWizard::paramValueChanged(QObject *obj, QVariant &value)
 				if (ok) 
 				{
 					cur_param->setValue(d_value);
+					cur_param->exec(d_value);		// appValue = value
+
 					executeJSsequence();
 					showLUSISeqMemo();				
 
@@ -2424,6 +2444,7 @@ void SequenceWizard::paramValueChanged(QObject *obj, QVariant &value)
 			{						
 				int32_t bool_value = (int32_t)value.toBool();
 				cur_param->setValue(bool_value);
+				cur_param->exec(bool_value);		// appValue = value
 
 				executeJSsequence();
 				showLUSISeqMemo();				
@@ -2440,6 +2461,7 @@ void SequenceWizard::paramValueChanged(QObject *obj, QVariant &value)
 				if (ok) 
 				{
 					cur_param->setValue(d_value);
+					cur_param->exec(d_value);		// appValue = value
 					
 					executeJSsequence();
 					showLUSISeqMemo();				

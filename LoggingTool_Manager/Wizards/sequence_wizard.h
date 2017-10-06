@@ -141,7 +141,7 @@ private slots:
 	void paramEditingFinished(QObject *obj);
 	void addSequence();
 	void refreshSequence();
-	//void refreshSequenceList();
+	void refreshSequenceList();
 	void viewCode();
 	void setExportSettings();
 	void showSequenceInfo();

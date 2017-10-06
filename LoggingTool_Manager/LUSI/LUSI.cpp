@@ -1685,4 +1685,10 @@ void LUSI::Sequence::reset()
 	comprg_list.clear();
 	procdsp_list.clear();	
 	js_error.clear();
+
+	for (int i = 0; i < section_list.count(); i++)
+	{
+		LUSI::Section *sec = section_list[i];
+		sec->clearParameters();
+	}
 }

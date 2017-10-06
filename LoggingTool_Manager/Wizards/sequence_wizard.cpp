@@ -228,10 +228,11 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 	ui->tbtRefreshSeqList->setIcon(QIcon(":/images/Refresh.png"));
 	ui->tbtInfo->setIcon(QIcon(":/images/Info.png"));
 
-	ui->tbtAddSequence->setToolTip(tr("Add Sequence file to the List"));
+	ui->tbtAddSequence->setToolTip(tr("Refresh Sequence file to the List"));
 	ui->tbtRefreshSeqList->setToolTip(tr("Refresh Sequence file List"));
 
-	ui->tbtRefreshSeqList->setVisible(false);
+	ui->tbtAddSequence->setVisible(false);
+	ui->tbtRefreshSeqList->setVisible(true);
 
 	QStringList headlist;
 	ui->treeWidget->setColumnCount(3);
@@ -261,7 +262,7 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 				jseq_objects.append(jseq_object);
 			}
 		}
-				
+
 		if (!jseq_objects.isEmpty()) 
 		{
 			cur_jseq_object = jseq_objects.first();
@@ -287,6 +288,9 @@ SequenceWizard::~SequenceWizard()
 {
 	clearCTreeWidget();
 
+	qDeleteAll(jseq_objects.begin(), jseq_objects.end());
+	jseq_objects.clear();
+
 	delete ui;	
 }
 
@@ -299,7 +303,7 @@ void SequenceWizard::setConnections()
 	connect(ui->pbtViewCode, SIGNAL(clicked()), this, SLOT(viewCode()));
 	connect(ui->pbtRefresh, SIGNAL(clicked()), this, SLOT(refreshSequence()));
 	connect(ui->tbtInfo, SIGNAL(clicked()), this, SLOT(showSequenceInfo()));
-	//connect(ui->tbtRefreshSeqList, SIGNAL(clicked()), this, SLOT(refreshSequenceList()));
+	connect(ui->tbtRefreshSeqList, SIGNAL(clicked()), this, SLOT(refreshSequenceList()));
 	connect(ui->pbtExportSettings, SIGNAL(clicked()), this, SLOT(setExportSettings()));
 
 	connect(ui->treeWidget, SIGNAL(itemClicked(QTreeWidgetItem*,int)), this, SLOT(treeWidgetActivated(QTreeWidgetItem*,int)));
@@ -2303,6 +2307,79 @@ void SequenceWizard::refreshSequenceList()
 	}
 }
 */
+
+void SequenceWizard::refreshSequenceList()
+{
+	/*QString cur_fileName = ui->cboxSequences->currentText();
+
+	if (findSequenceScripts(file_list, path_list))	// обновить список файлов *.seq 
+	{
+		QString file_name = cur_fileName;
+		if (file_name.isEmpty()) file_name = path_list.first() + "/" + file_list.first();	// если последовательность с именем файла cur_fileName не найдена, то выбрать первую из списка в качестве текущей
+		sequence_proc = initSequenceScript(file_name);		
+		parseSequenceScript(sequence_proc, curSeq);
+
+		bool errs = false;
+		if (!curSeq.seq_errors.isEmpty()) errs = true;
+		for (int i = 0; i < curSeq.param_list.count(); i++) if (!curSeq.param_list[i]->flag) errs = true;
+
+		ui->cboxSequences->clear();
+		ui->cboxSequences->addItems(file_list);		
+		ui->ledSeqName->setText(curSeq.name);
+
+		showSequenceMemo(curSeq);
+		showSeqParameters();			
+	}
+	else
+	{
+		curSeq.clear();
+		if (sequence_proc != NULL) delete sequence_proc;
+		sequence_proc = NULL;
+
+		ui->ledSeqName->clear();
+		ui->lblDescription->clear();
+
+		clearCTreeWidget();
+		ui->treeWidget->clear();
+	}*/
+
+	disconnect(ui->cboxSequences, SIGNAL(currentIndexChanged(const QString &)), this, SLOT(changeCurrentSequence(const QString &)));
+	ui->cboxSequences->clear();
+	connect(ui->cboxSequences, SIGNAL(currentIndexChanged(const QString &)), this, SLOT(changeCurrentSequence(const QString &)));
+	
+	qDeleteAll(jseq_objects.begin(), jseq_objects.end());
+	jseq_objects.clear();
+
+	QString seq_path = QDir::currentPath() + "/Sequences";
+	bool res = findSequenceScripts(file_list, path_list, seq_path);
+	if (res)
+	{
+		for (int i = 0; i < file_list.count(); i++)
+		{
+			QString file_name = path_list[i] + "/" + file_list[i];
+			QFile file(file_name);
+			QString str = "";
+			if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+			{
+				JSeqObject *jseq_object = new JSeqObject(seq_cmd_index, seq_instr_index, file_name);
+				jseq_objects.append(jseq_object);
+			}
+		}
+
+		if (!jseq_objects.isEmpty()) 
+		{
+			cur_jseq_object = jseq_objects.first();
+			script_debugger.attachTo(cur_jseq_object->js_engine);
+			cur_jseq_object->evaluate();
+
+			showLUSISeqParameters();
+			showLUSISeqMemo();		
+
+			ui->cboxSequences->addItems(file_list);
+			ui->ledSeqName->setText(cur_jseq_object->lusi_Seq->name);
+		}
+	}	
+}
 
 
 void SequenceWizard::readSequenceCmdIndex()

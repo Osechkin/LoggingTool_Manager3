@@ -7,7 +7,7 @@
 #include "ui_about_dialog.h"
 
 
-#define APP_VERSION		"0.7.02"
+#define APP_VERSION		"0.7.03"
 #define APP_DATE		"October 6, 2017"
 
 

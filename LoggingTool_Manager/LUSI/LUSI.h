@@ -118,6 +118,7 @@ namespace LUSI
 		void setTitle(QString _title) { title = _title; }
 
 		QObjectList getParameters() { return parameters; }		
+		void clearParameters() { parameters.clear(); }
 
 		int size() const { return parameters.size(); }
 

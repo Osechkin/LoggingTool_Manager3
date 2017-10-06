@@ -474,7 +474,7 @@ uint8_t LUSI::Engine::findInstrCode(const QString &_str, bool &_flag)
 	{
 		if (_str == instr_list[i].instr_name) 
 		{
-			res = instr_list[i].instr_code;		
+			res = instr_list[i].instr_code;
 			_flag = true;
 		}
 	}
@@ -1284,7 +1284,8 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 
 								int type = param_list[1].trimmed().toInt(&ok);
 								if (ok) params.append(param_list[1].trimmed());
-								else if (qscript_engine->globalObject().property(param_list[1].trimmed()).isValid()) 
+								//else if (qscript_engine->globalObject().property(param_list[1].trimmed()).isValid()) 
+								else if (qscript_engine->globalObject().property(param_list[1].trimmed()).isObject())
 								{
 									params.append(param_list[1].trimmed() + ".getAppValue()");
 								}
@@ -1299,7 +1300,8 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 								
 								for (int i = 0; i < num; i++)
 								{
-									if (qscript_engine->globalObject().property(param_list[2+i].trimmed()).isValid()) 
+									//if (qscript_engine->globalObject().property(param_list[2+i].trimmed()).isValid()) 
+									if (qscript_engine->globalObject().property(param_list[2+i].trimmed()).isObject()) 
 									{
 										params.append(param_list[2+i].trimmed() + ".getAppValue()");
 									}
@@ -1357,7 +1359,8 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 					if (param_list.count() == 1)
 					{
 						bool _ok;						
-						if (qscript_engine->globalObject().property(param_list.first().trimmed()).isValid()) 
+						//if (qscript_engine->globalObject().property(param_list.first().trimmed()).isValid()) 
+						if (qscript_engine->globalObject().property(param_list.first().trimmed()).isObject()) 
 						{
 							params.append(param_list.first().trimmed() + ".getAppValue()");
 						}
@@ -1369,7 +1372,8 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 					{
 						for (int i = 0; i < param_list.count(); i++)
 						{
-							if (qscript_engine->globalObject().property(param_list[i].trimmed()).isValid()) 
+							//if (qscript_engine->globalObject().property(param_list[i].trimmed()).isValid()) 
+							if (qscript_engine->globalObject().property(param_list[i].trimmed()).isObject()) 
 							{
 								params.append(param_list[i].trimmed() + ".getAppValue()");
 							}

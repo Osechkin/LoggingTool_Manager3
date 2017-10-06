@@ -2153,9 +2153,6 @@ bool SequenceWizard::changeCurrentSequence(const QString &text)
 {
 	if (jseq_objects.isEmpty()) return false;
 	
-	QFileInfo file_info(cur_jseq_object->jseq_file);
-	QString file_name = file_info.fileName();
-	
 	int index = -1;
 	for (int i = 0; i < jseq_objects.count(); i++)
 	{
@@ -2173,7 +2170,10 @@ bool SequenceWizard::changeCurrentSequence(const QString &text)
 	script_debugger.detach();
 	script_debugger.attachTo(cur_jseq_object->js_engine);
 
-	cur_jseq_object->evaluate();
+	if (cur_jseq_object->lusi_Seq->com_programs.isEmpty())
+	{
+		cur_jseq_object->evaluate();
+	}	
 
 	showLUSISeqParameters();
 	showLUSISeqMemo();

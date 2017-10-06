@@ -245,6 +245,7 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 	readSequenceCmdIndex();
 	readSequenceInstrIndex();
 	
+	cur_jseq_object = NULL;
 	QString seq_path = QDir::currentPath() + "/Sequences";
 	bool res = findSequenceScripts(file_list, path_list, seq_path);
 	if (res)
@@ -260,21 +261,20 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 				jseq_objects.append(jseq_object);
 			}
 		}
-
-		cur_jseq_object = NULL;
+				
 		if (!jseq_objects.isEmpty()) 
 		{
 			cur_jseq_object = jseq_objects.first();
 			script_debugger.attachTo(cur_jseq_object->js_engine);
 			cur_jseq_object->evaluate();
+
+			showLUSISeqParameters();
+			showLUSISeqMemo();		
+
+			ui->cboxSequences->addItems(file_list);
+			ui->ledSeqName->setText(cur_jseq_object->lusi_Seq->name);
 		}
-	}
-
-	showLUSISeqParameters();
-	showLUSISeqMemo();		
-
-	ui->cboxSequences->addItems(file_list);
-	ui->ledSeqName->setText(cur_jseq_object->lusi_Seq->name);
+	}	
 
 	app_settings = settings;
 	save_data.to_save = false;	
@@ -2640,6 +2640,8 @@ QList<uint8_t> SequenceWizard::findInstrValue(const QString &str, const Sequence
 
 void SequenceWizard::viewCode()
 {
+	if (!cur_jseq_object) return;
+
 	////ViewCodeDialog view_code_dlg(&cur_lusi_Seq);
 	ViewCodeDialog view_code_dlg(cur_jseq_object->lusi_Seq);
 	if (view_code_dlg.exec());	
@@ -2833,6 +2835,8 @@ void SequenceWizard::refreshArgFormula()
 
 void SequenceWizard::showSequenceInfo()
 {
+	if (!cur_jseq_object) return;
+
 	LUSI::Sequence *cur_lusi_Seq = cur_jseq_object->lusi_Seq;
 	QString memo = "<font color = darkblue>Authors:</font> " + cur_lusi_Seq->author + "<br><br>";
 	memo += "<font color = darkblue>Created:</font> " + cur_lusi_Seq->datetime + "<br><br>";

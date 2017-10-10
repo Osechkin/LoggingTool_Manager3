@@ -315,7 +315,7 @@ function a_t_echo(N)
 	for (var i = 0; i < N; ++i) { pts[i] = 2 * tau~ * (i + 1) / 1000 }
 	return pts;
 }
-@arg t_echo = { "Time data for CPMG" }
+@argument t_echo = { "Time data for CPMG" }
 t_echo.units = "ms";
 t_echo.size = echoes_num~;
 t_echo.points = a_t_echo(t_echo.size);
@@ -348,7 +348,7 @@ t_echo.points = a_t_echo(t_echo.size);
 // [Package_003]
 @proc IDENT1 = { "Gamma measurement" }
 #begin(IDENT1)
-	INS_WR_ACC_GRIX(1, 0, 1)			// | занесение idn=1 в group_index в структуре SummationBuffer
+	INS_WR_ACC_GRIX(1, 0, t_echo)		// | занесение idn=1 в group_index в структуре SummationBuffer
 	INS_ACC_TO_OUTBUF(0, 0)				// | перенос данных (последовательность  арра-ѕарселла) из накопительного буфера в выходной буфер
 	INS_GET_GAMMA(1, 210, 4)			// | измерить гамма-данные, занести в €чеЄку X2
 	INS_WR_X1(1, 0, inv_time)			// | запись числа типа float в €чейку X1

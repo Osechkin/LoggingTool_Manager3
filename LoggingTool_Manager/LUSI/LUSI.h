@@ -401,43 +401,49 @@ namespace LUSI
 		Q_PROPERTY(QString title READ getTitle WRITE setTitle);
 		Q_PROPERTY(QString comment READ getComment WRITE setComment);
 		Q_PROPERTY(QString units READ getUnits WRITE setUnits);
-		Q_PROPERTY(QString func READ getFunc WRITE setFunc);
+		//Q_PROPERTY(QString func READ getFunc WRITE setFunc);
 		Q_PROPERTY(int size READ getSize WRITE setSize);
 		Q_PROPERTY(QVariantList points READ getPoints WRITE setPoints);
+		Q_PROPERTY(int group_index READ getAppValue WRITE setGroupIndex);
 
 	public:
-		Argument(QString _obj_name) { setObjName(_obj_name); type = Definition::Argument; }
+		Argument(QString _obj_name);
 
+	public slots:
 		QString getTitle() const { return title; }
 		void setTitle(QString _title) { title = _title; }
-
+			
 		QString getComment() const { return comment; }
 		void setComment(QString _comment) { comment = _comment; }
 
 		QString getUnits() const { return units; }
 		void setUnits(QString _units) { units = _units; }
 
-		QString getFunc() const { return func; }
-		void setFunc(QString _func) { func = _func; }
+		//QString getFunc() const { return func; }
+		//void setFunc(QString _func) { func = _func; }
 
 		int getSize() const { return size; }
 		void setSize(int _size) { size = _size; }
 
 		QVariantList getPoints() const { return points; }
 
+		int getAppValue() const { return group_index; }
+		void setGroupIndex(int _group_index) { group_index = _group_index; }
+
 		bool setField(QString _name, QString _value);
 		bool setField(QString _value, int _index);
 		
-	public slots:
+	//public slots:
 		void setPoints(QVariantList _points) { points = _points; }
 
 	public:
 		QString title;
 		QString comment;
 		QString units;
-		QString func;
+		//QString func;
 		int size;
 		QVariantList points;
+		int group_index;
 	};
 
 	
@@ -506,8 +512,9 @@ namespace LUSI
 
 		void setObjects(LUSI::ObjectList *_obj_list);
 		void setFilePathName(QString _path, QString _file_name) { file_name = _file_name; file_path = _path; }
-		QList<QVariantList> getVarComProgram(int index); // программа для интервального программатора 
-		QList<QVariantList> getVarProcProgram(int index); // программа обработки данных для сигнального процессора 
+		QList<QVariantList> getVarComProgram(int index);			// программа для интервального программатора 
+		QList<QVariantList> getVarProcProgram(int index);			// программа обработки данных для сигнального процессора 
+		LUSI::Argument* getArgument(int _group_index);				// вернуть объект-аргумент по его групповому индексу, если объект не найден, то вернуть 0
 		void clear();
 		void reset();
 

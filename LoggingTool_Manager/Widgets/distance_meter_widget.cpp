@@ -50,7 +50,7 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	connectionWidget->setReport(ConnectionState::State_No);
 
 	distance = 0.001;		// always in meters
-	k_distance = 100;		// for default units ("cm")
+	k_distance = 100;		// for default units ([cm])
 	distance_ok = true;
 
 	set_distance = 1;		// [m]
@@ -58,14 +58,14 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	direction_coef = -1;	
 	pos_is_set = false;
 
-	from_pos = 0;
-	to_pos = 0;
-	step_pos = 0;
-	zero_pos = 0;
-	k_from = 1000;
-	k_to = 1000;
-	k_step = 1000;
-	k_zero = 1000;
+	from_pos = 0.50;		// [m]
+	to_pos = 1.50;			// [m]
+	step_pos = 0.01;		// [m]
+	zero_pos = 0;			// [m]
+	k_from = 100;			// for [cm]
+	k_to = 100;				// for [cm]
+	k_step = 100;			// for [cm]
+	k_zero = 100;			// for [cm]
 	
 	distance_units_list << "mm" << "cm" << "m";	
 		
@@ -92,8 +92,23 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 		
 	ui->dsboxSetPosition->setMinimum(15);
 	ui->dsboxSetPosition->setMaximum(200);
-	ui->dsboxSetPosition->setSingleStep(0.1);
+	ui->dsboxSetPosition->setSingleStep(1);
 	ui->dsboxSetPosition->setValue(set_distance*k_set_distance);
+
+	ui->dsboxFrom->setMinimum(15);
+	ui->dsboxFrom->setMaximum(200);
+	ui->dsboxFrom->setSingleStep(1);
+	ui->dsboxFrom->setValue(from_pos*k_from);
+
+	ui->dsboxTo->setMinimum(15);
+	ui->dsboxTo->setMaximum(200);
+	ui->dsboxTo->setSingleStep(1);
+	ui->dsboxTo->setValue(to_pos*k_to);
+
+	ui->dsboxStep->setMinimum(0.1);
+	ui->dsboxStep->setMaximum(200);
+	ui->dsboxStep->setSingleStep(0.1);
+	ui->dsboxStep->setValue(step_pos*k_step);
 
 	is_connected = false;
 	ui->framePosControl->setEnabled(is_connected);
@@ -131,6 +146,9 @@ void LeuzeDistanceMeterWidget::setConnection()
 	connect(ui->cboxStep, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
 	connect(ui->cboxZero, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
 	connect(ui->cboxSetDistance, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
+	connect(ui->dsboxTo, SIGNAL(valueChanged(double)), this, SLOT(setNewTo(double)));
+	connect(ui->dsboxFrom, SIGNAL(valueChanged(double)), this, SLOT(setNewFrom(double)));
+	connect(ui->dsboxStep, SIGNAL(valueChanged(double)), this, SLOT(setNewStep(double)));
 
 	connect(ui->pbtBack, SIGNAL(toggled(bool)), this, SLOT(moveBack(bool)));
 	connect(ui->pbtForward, SIGNAL(toggled(bool)), this, SLOT(moveForward(bool)));
@@ -259,6 +277,27 @@ void LeuzeDistanceMeterWidget::startDepthMeter()
 }
 
 
+void LeuzeDistanceMeterWidget::setNewTo(double val)
+{
+	to_pos = val / k_to;
+
+	emit set_from_to_step(from_pos, to_pos, step_pos);
+}
+
+void LeuzeDistanceMeterWidget::setNewFrom(double val)
+{
+	from_pos = val / k_from;
+
+	emit set_from_to_step(from_pos, to_pos, step_pos);
+}
+
+void LeuzeDistanceMeterWidget::setNewStep(double val)
+{
+	step_pos = val / k_step;
+
+	emit set_from_to_step(from_pos, to_pos, step_pos);
+}
+
 void LeuzeDistanceMeterWidget::changeUnits(QString str)
 {
 	QComboBox *cbox = (QComboBox*)sender();
@@ -274,7 +313,7 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 		ui->ledDistance->setText(QString::number(k_distance*distance));		
 	}
 	else if (cbox == ui->cboxSetDistance)
-	{		
+	{				
 		if (str == distance_units_list[0])							// [mm]
 		{
 			ui->dsboxSetPosition->setMinimum(150);
@@ -286,7 +325,7 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 		{
 			ui->dsboxSetPosition->setMinimum(15);
 			ui->dsboxSetPosition->setMaximum(200);
-			ui->dsboxSetPosition->setSingleStep(0.1);
+			ui->dsboxSetPosition->setSingleStep(1);
 			k_set_distance = 100;		
 		}
 		else if (str == distance_units_list[2])						// [m]
@@ -302,36 +341,114 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 	}
 	else if (cbox == ui->cboxFrom)
 	{
-		if (str == distance_units_list[0]) k_from = 1000;			// [mm]
-		else if (str == distance_units_list[1]) k_from = 100;		// [cm]
-		else if (str == distance_units_list[2]) k_from = 1;			// [m]
+		disconnect(ui->dsboxFrom, SIGNAL(valueChanged(double)), this, SLOT(setNewFrom(double)));
+		if (str == distance_units_list[0]) 
+		{
+			k_from = 1000;											// [mm]
+			ui->dsboxFrom->setMinimum(150);
+			ui->dsboxFrom->setMaximum(2000);
+			ui->dsboxFrom->setSingleStep(1);
+		}
+		else if (str == distance_units_list[1]) 
+		{
+			k_from = 100;											// [cm]
+			ui->dsboxFrom->setMinimum(15);
+			ui->dsboxFrom->setMaximum(200);
+			ui->dsboxFrom->setSingleStep(1);
+		}
+		else if (str == distance_units_list[2]) 
+		{
+			k_from = 1;												// [m]
+			ui->dsboxFrom->setMinimum(0.150);
+			ui->dsboxFrom->setMaximum(2.000);
+			ui->dsboxFrom->setSingleStep(0.01);
+		}
 		else k_from = 1;
 
 		ui->dsboxFrom->setValue(k_from*from_pos);	
+		connect(ui->dsboxFrom, SIGNAL(valueChanged(double)), this, SLOT(setNewFrom(double)));
 	}
 	else if (cbox == ui->cboxTo)
 	{
-		if (str == distance_units_list[0]) k_to = 1000;				// [mm]
-		else if (str == distance_units_list[1]) k_to = 100;			// [cm]
-		else if (str == distance_units_list[2]) k_to = 1;			// [m]
+		disconnect(ui->dsboxTo, SIGNAL(valueChanged(double)), this, SLOT(setNewTo(double)));
+		if (str == distance_units_list[0]) 
+		{
+			k_to = 1000;											// [mm]
+			ui->dsboxTo->setMinimum(150);
+			ui->dsboxTo->setMaximum(2000);
+			ui->dsboxTo->setSingleStep(1);
+		}
+		else if (str == distance_units_list[1]) 
+		{
+			k_to = 100;												// [cm]
+			ui->dsboxTo->setMinimum(15);
+			ui->dsboxTo->setMaximum(200);
+			ui->dsboxTo->setSingleStep(1);
+		}
+		else if (str == distance_units_list[2]) 
+		{
+			k_to = 1;												// [m]
+			ui->dsboxTo->setMinimum(0.150);
+			ui->dsboxTo->setMaximum(2.000);
+			ui->dsboxTo->setSingleStep(0.01);
+		}
 		else k_to = 1;
 
 		ui->dsboxTo->setValue(k_to*to_pos);	
+		connect(ui->dsboxTo, SIGNAL(valueChanged(double)), this, SLOT(setNewTo(double)));
 	}
 	else if (cbox == ui->cboxStep)
 	{
-		if (str == distance_units_list[0]) k_step = 1000;			// [mm]
-		else if (str == distance_units_list[1]) k_step = 100;		// [cm]
-		else if (str == distance_units_list[2]) k_step = 1;			// [m]
+		disconnect(ui->dsboxStep, SIGNAL(valueChanged(double)), this, SLOT(setNewStep(double)));
+		if (str == distance_units_list[0]) 
+		{
+			k_step = 1000;											// [mm]
+			ui->dsboxStep->setMinimum(1);
+			ui->dsboxStep->setMaximum(2000);
+			ui->dsboxStep->setSingleStep(1);
+		}
+		else if (str == distance_units_list[1]) 
+		{
+			k_step = 100;											// [cm]
+			ui->dsboxStep->setMinimum(0.1);
+			ui->dsboxStep->setMaximum(200);
+			ui->dsboxStep->setSingleStep(0.1);
+		}
+		else if (str == distance_units_list[2]) 
+		{
+			k_step = 1;												// [m]
+			ui->dsboxStep->setMinimum(0.001);
+			ui->dsboxStep->setMaximum(2.000);
+			ui->dsboxStep->setSingleStep(0.001);
+		}
 		else k_step = 1;
 
 		ui->dsboxStep->setValue(k_step*step_pos);	
+		connect(ui->dsboxStep, SIGNAL(valueChanged(double)), this, SLOT(setNewStep(double)));
 	}
 	else if (cbox == ui->cboxZero)
 	{
-		if (str == distance_units_list[0]) k_zero = 1000;			// [mm]
-		else if (str == distance_units_list[1]) k_zero = 100;		// [cm]
-		else if (str == distance_units_list[2]) k_zero = 1;			// [m]
+		if (str == distance_units_list[0]) 
+		{
+			k_zero = 1000;											// [mm]
+			ui->dsboxZero->setMinimum(150);
+			ui->dsboxZero->setMaximum(2000);
+			ui->dsboxZero->setSingleStep(1);
+		}
+		else if (str == distance_units_list[1]) 
+		{
+			k_zero = 100;											// [cm]
+			ui->dsboxZero->setMinimum(15);
+			ui->dsboxZero->setMaximum(200);
+			ui->dsboxZero->setSingleStep(1);
+		}
+		else if (str == distance_units_list[2]) 
+		{
+			k_zero = 1;												// [m]
+			ui->dsboxZero->setMinimum(0.150);
+			ui->dsboxZero->setMaximum(2.000);
+			ui->dsboxZero->setSingleStep(0.01);
+		}
 		else k_zero = 1;
 
 		ui->dsboxZero->setValue(k_zero*zero_pos);	

@@ -2763,7 +2763,8 @@ void MainWindow::treatNewData(DeviceData *device_data)
 					int data_index = 0; 
 					//Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
 					//full_size = arg->actual_points;
-					LUSI::Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
+					////LUSI::Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
+					LUSI::Argument *arg = sequenceProc->getCurrentSequence()->getArgument(group_index);
 					full_size = arg->getSize();
 								
 					for (int j = 0; j < x_data->size(); j++)

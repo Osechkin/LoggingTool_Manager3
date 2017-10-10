@@ -61,7 +61,7 @@ function a_pack1_pts(N)
 	for (var i = 0; i < N; ++i) { pts[i] = 2 * d_tau~ * (i + 1) / 1000 }
 	return pts;
 }
-@arg a_pack1 = { "Time data for CPMG" }
+@argument a_pack1 = { "Time data for CPMG" }
 a_pack1.size = 100
 a_pack1.points = a_pack1_pts(a_pack1.size);
 

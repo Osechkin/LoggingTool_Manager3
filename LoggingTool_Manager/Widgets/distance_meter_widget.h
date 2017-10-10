@@ -94,11 +94,16 @@ private slots:
 	void moveForward(bool flag);
 	void setPosition(bool flag);
 
+	void setNewTo(double val);
+	void setNewFrom(double val);
+	void setNewStep(double val);
+
 public slots:
 
 signals:
 	void to_measure(uint32_t, uint8_t);		
 	void connected(bool);
+	void set_from_to_step(double, double, double);
 	//void new_data(double, double);		// first variable is new depth, second variable is new rate
 	
 };

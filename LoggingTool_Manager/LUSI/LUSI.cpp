@@ -404,6 +404,18 @@ bool LUSI::Condition::setField(QString _value, int _index)
 
 
 // ******************* X-Axis values for measured data ***********************
+LUSI::Argument::Argument(QString _obj_name) 
+{ 
+	setObjName(_obj_name); 
+	type = Definition::Argument; 
+	title = "";
+	comment = "";
+	units = "";
+	size = 0;	
+	
+	group_index = 0;
+}
+
 bool LUSI::Argument::setField(QString _name, QString _value)
 {
 	bool ok;
@@ -412,7 +424,7 @@ bool LUSI::Argument::setField(QString _name, QString _value)
 	if (_name == "title") if (LUSI::getStrName(_value)) title = _value; else return false;
 	else if (_name == "comment") if (LUSI::getStrName(_value)) comment = _value; else return false;
 	else if (_name == "units") if (LUSI::getStrName(_value)) units = _value; else return false;
-	else if (_name == "func") if (LUSI::getStrName(_value)) func = _value; else return false;
+	//else if (_name == "func") if (LUSI::getStrName(_value)) func = _value; else return false;
 	//else if (_name == "size") size = _value.toInt(&ok); if (!ok) return false;	
 	else return false;
 
@@ -428,7 +440,7 @@ bool LUSI::Argument::setField(QString _value, int _index)
 	//case 1: size = _value.toInt(&ok); if (!ok) return false; break;
 	case 1: if (LUSI::getStrName(_value)) comment = _value; else return false; break;
 	case 2: if (LUSI::getStrName(_value)) units = _value; else return false; break;	
-	case 3: if (LUSI::getStrName(_value)) func = _value; else return false; break;
+	//case 3: if (LUSI::getStrName(_value)) func = _value; else return false; break;
 	default: return false;
 	}
 
@@ -759,7 +771,7 @@ bool LUSI::Engine::findLUSIDefinition(QString &_str, Definition &_def, QString &
 	//_str = removeComments(_str);
 
 	// проверка на соответствие строки макроопределению LUSI
-	QRegExp rx("^(@section|@output|@parameter|@proc|@comm|@condition|@arg)\\s+.*$");	
+	QRegExp rx("^(@section|@output|@parameter|@proc|@comm|@condition|@argument)\\s+.*$");	
 	int pos = 0;
 	if ((pos = rx.indexIn(_str, pos)) != -1)    
 	{
@@ -868,9 +880,9 @@ bool LUSI::Engine::findLUSIDefinition(QString &_str, Definition &_def, QString &
 				return false;
 			}
 		}
-		else if (_str.indexOf("@arg") == 0) 
+		else if (_str.indexOf("@argument") == 0) 
 		{
-			QString def_name = left_part.split("@arg").last().simplified();
+			QString def_name = left_part.split("@argument").last().simplified();
 			if ((pos = rx_var.indexIn(def_name,0)) != -1)
 			{
 				_def.type = Definition::Argument;
@@ -1088,6 +1100,7 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 	obj_list.append(seqMain);
 
 	int str_count = 0;
+	int group_index = 1;
 	while (str_count < str_lines.count())
 	{
 		QString txt = str_lines[str_count];
@@ -1232,6 +1245,7 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 						if (field.first.isEmpty()) seqArg->setField(field.second, cnt++);
 						else seqArg->setField(field.first, field.second);
 					}
+					seqArg->setGroupIndex(group_index++);
 
 					QScriptValue objectValue = qscript_engine->newQObject(seqArg);
 					qscript_engine->globalObject().setProperty(def_name, objectValue);
@@ -1647,6 +1661,19 @@ QList<QVariantList> LUSI::Sequence::getVarProcProgram(int index)
 {	
 	LUSI::ProcPackage *obj = procdsp_list[index];
 	return obj->getVarProcProgram();	
+}
+
+LUSI::Argument* LUSI::Sequence::getArgument(int _group_index)
+{
+	if (arg_list.isEmpty()) return NULL;
+
+	for (int i = 0; i < arg_list.count(); i++)
+	{
+		LUSI::Argument *arg_obj = arg_list[i];
+		if (arg_obj->getAppValue() == _group_index) return arg_obj;
+	}
+
+	return NULL;
 }
 
 void LUSI::Sequence::clear()

@@ -80,7 +80,7 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, DepthTemplateWizard *depth
 
 SchedulerWizard::~SchedulerWizard()
 {
-	
+	delete ui;
 }
 
 bool SchedulerWizard::eventFilter(QObject *obj, QEvent *event)

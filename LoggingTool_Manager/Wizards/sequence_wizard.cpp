@@ -2187,6 +2187,68 @@ bool SequenceWizard::changeCurrentSequence(const QString &text)
 	return true;	
 }
 
+bool SequenceWizard::compileSequence(const QString &text, QByteVector &instr_prg, QByteVector &comm_prg, QStringList &e)
+{
+	if (jseq_objects.isEmpty()) 
+	{
+		e.append("<font color=red>" + tr("Sequences weren't found!") + "</font>");
+		return false;
+	}
+
+	int index = -1;
+	for (int i = 0; i < jseq_objects.count(); i++)
+	{
+		QFileInfo file_info(jseq_objects[i]->jseq_file);
+		QString file_name = file_info.fileName();
+		if (file_name == text) 
+		{ 
+			index = i; 
+			break; 
+		}
+	}
+	if (index < 0) 
+	{
+		e.append("<font color=red>" + tr("Sequence %1 wasn't found!").arg(text) + "</font>");
+		return false;
+	}
+
+	JSeqObject *jseq_obj = jseq_objects[index];	
+	if (jseq_obj->lusi_Seq->com_programs.isEmpty())
+	{
+		jseq_obj->evaluate();
+	}	
+
+	LUSI::Sequence *lusi_Seq = jseq_obj->lusi_Seq;
+
+	bool flag = true;
+	if (!lusi_Seq->seq_errors.isEmpty()) { e << lusi_Seq->seq_errors; flag = false; }
+	if (!lusi_Seq->comprg_errors.isEmpty()) { e << lusi_Seq->comprg_errors; flag = false; }
+	if (!lusi_Seq->procdsp_errors.isEmpty()) { e << lusi_Seq->procdsp_errors; flag = false; }
+	if (!lusi_Seq->cond_errors.isEmpty()) { e << lusi_Seq->cond_errors; flag = false; }
+	if (!lusi_Seq->js_error.isEmpty()) { e << lusi_Seq->js_error; flag = false; }
+
+	if (!flag) return false;
+
+	comm_prg.clear();
+	QByteVector cmd_prg = lusi_Seq->com_programs.first();	// временно ! Принимается только первая программа для интервального программатора
+	if (cmd_prg.isEmpty()) return false;
+	comm_prg << cmd_prg;
+
+	instr_prg.clear();
+	if (lusi_Seq->proc_programs.isEmpty()) return false;
+	for (int i = 0; i < lusi_Seq->proc_programs.count(); i++)
+	{
+		QByteVector instr_pack = lusi_Seq->proc_programs[i];
+		instr_prg << instr_pack;
+		if (i < lusi_Seq->proc_programs.count()-1)
+		{
+			instr_prg.append(0xFF);
+		}
+	}
+
+	return true;
+}
+
 void SequenceWizard::addSequence()
 {
 	QString full_fileName = QFileDialog::getOpenFileName(this, tr("Add Sequence File"), QDir::currentPath(), tr("Sequences (*.seq)"));

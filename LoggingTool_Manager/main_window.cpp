@@ -392,6 +392,10 @@ MainWindow::~MainWindow()
 	delete comm_settings;
 	delete COM_Port_depth->COM_port;
 	delete COM_Port_depth;
+	delete COM_Port_stepmotor->COM_port;
+	delete COM_Port_stepmotor;
+
+	//delete expScheduler;
 
 	qDeleteAll(tools_settings.begin(), tools_settings.end());
 

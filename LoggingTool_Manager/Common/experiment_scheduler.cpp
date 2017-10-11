@@ -294,6 +294,13 @@ Scheduler::SchedulerObject* Scheduler::Engine::get(int index)
 	else return NULL; 
 }
 
+Scheduler::SchedulerObject* Scheduler::Engine::next()
+{
+	if (cur_pos < 0) return NULL;	// Experiment hasn't started yet
+	else if (cur_pos >= obj_list.count()) { cur_pos = -1; return NULL; }
+	else return get(cur_pos++);
+}
+
 void Scheduler::Engine::remove(int index)
 {
 	Scheduler::SchedulerObject *obj = obj_list.takeAt(index);
@@ -304,6 +311,7 @@ void Scheduler::Engine::clear()
 {
 	qDeleteAll(obj_list.begin(), obj_list.end());
 	obj_list.clear();
+	cur_pos = -1;
 }
 
 Scheduler::SchedulerObject* Scheduler::Engine::take(int index)

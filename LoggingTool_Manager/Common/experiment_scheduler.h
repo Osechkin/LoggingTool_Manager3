@@ -5,6 +5,8 @@
 #include <QComboBox>
 #include <QFileInfo>
 
+#include "../LUSI/LUSI.h"
+
 
 namespace Scheduler
 {
@@ -78,6 +80,9 @@ namespace Scheduler
 		QStringList jseq_list;
 		QString jseq_name;		
 		QString data_file;
+		
+		QByteVector comm_prg;
+		QByteVector instr_prg;
 
 	public slots:
 		void changeJSeq(const QString &_jseq) { jseq_name = _jseq; emit changed(); }
@@ -175,16 +180,16 @@ namespace Scheduler
 	public: 
 		explicit NOP();
 	};
-
-
+	
 	typedef QList<SchedulerObject*>		SchedulerObjList;
+
 
 	class Engine : public QObject
 	{
 		Q_OBJECT
 
 	public:
-		Engine() { }
+		Engine() { cur_pos = -1; }
 		~Engine();
 		
 		SchedulerObjList getObjectList() { return obj_list; }
@@ -201,13 +206,18 @@ namespace Scheduler
 			SchedulerObject *sch_obj = static_cast<SchedulerObject*>(obj);
 			if (sch_obj) obj_list.insert(index, obj);
 		}		
-		SchedulerObject* get(int index);	
+		SchedulerObject* get(int index);
+		SchedulerObject* next();
 		void remove(int index);
 		SchedulerObject* take(int index);
 		void clear();
+		void start() { cur_pos = 0; }
+		//void stop();
+		//void exec();
 		
 	private:
 		SchedulerObjList obj_list;
+		int cur_pos;
 	};
 }
 

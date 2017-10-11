@@ -27,6 +27,8 @@ public:
 	SchedulerWizard(QSettings *settings, DepthTemplateWizard *depth_wiz, QWidget *parent = 0);
 	~SchedulerWizard();
 
+	Scheduler::Engine* getSchedulerEngine() { return &scheduler_engine; } 
+	
 public slots:
 	void setJSeqList(QStringList _jseq_list) { jseq_list = _jseq_list; }
 	void setJSeqFile(const QString &_file_name) { jseq_file = _file_name; }

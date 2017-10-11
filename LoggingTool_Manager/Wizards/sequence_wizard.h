@@ -58,6 +58,8 @@ public:
 	LUSI::Sequence* getCurrentSequence(); 
 	bool getDSPPrg(QVector<uint8_t> &_prg, QVector<uint8_t> &_instr);
 
+	bool compileSequence(const QString &text, QByteVector &instr_prg, QByteVector &comm_prg, QStringList &e);
+
 	QList<SeqCmdInfo> *getSeqCmdInfo() { return &seq_cmd_index; }
 	QList<SeqInstrInfo> *getSeqInstrIndex() { return &seq_instr_index; }
 	QList<SeqDataTypeInfo> *getSeqDataTypeInfo() { return &seq_datatype_index; }
@@ -136,7 +138,7 @@ private:
 private slots:		
 	void descriptionLinkActivated(const QString &link);
 	void treeWidgetActivated(QTreeWidgetItem* item, int index);
-	bool changeCurrentSequence(const QString &text);	
+	bool changeCurrentSequence(const QString &text);		
 	void paramValueChanged(QObject *obj, QVariant &value);
 	void paramEditingFinished(QObject *obj);
 	void addSequence();

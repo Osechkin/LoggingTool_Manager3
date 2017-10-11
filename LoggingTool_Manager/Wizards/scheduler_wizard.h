@@ -14,6 +14,7 @@
 #include "../Common/settings_tree.h"
 #include "../Common/experiment_scheduler.h"
 #include "../Wizards/depth_template_wizard.h"
+#include "../Wizards/sequence_wizard.h"
 
 #include "ui_scheduler_wizard.h"
 
@@ -24,10 +25,12 @@ class SchedulerWizard : public QWidget, public Ui::SchedulerWizard
 	Q_OBJECT
 
 public:
-	SchedulerWizard(QSettings *settings, DepthTemplateWizard *depth_wiz, QWidget *parent = 0);
+	SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, QWidget *parent = 0);
 	~SchedulerWizard();
 
 	Scheduler::Engine* getSchedulerEngine() { return &scheduler_engine; } 
+
+	bool scheduling();
 	
 public slots:
 	void setJSeqList(QStringList _jseq_list) { jseq_list = _jseq_list; }
@@ -60,6 +63,7 @@ private:
 	
 	QSettings *app_settings;
 	DepthTemplateWizard *depth_wizard;
+	SequenceWizard *sequence_wizard;
 
 	QList<QTreeWidgetItem*> tree_items;	
 		

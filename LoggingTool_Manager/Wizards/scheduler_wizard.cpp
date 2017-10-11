@@ -5,15 +5,14 @@
 #include <QDoubleSpinBox>
 #include <QDir>
 
-#include "../Widgets/distance_meter_widget.h"
-
 #include "scheduler_wizard.h"
 
 
-SchedulerWizard::SchedulerWizard(QSettings *settings, DepthTemplateWizard *depth_wiz, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWizard)
+SchedulerWizard::SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWizard)
 {
 	ui->setupUi(this);
 
+	sequence_wizard = seq_wiz;
 	depth_wizard = depth_wiz;
 	app_settings = settings;
 	setDataFileSettings();
@@ -98,6 +97,37 @@ bool SchedulerWizard::eventFilter(QObject *obj, QEvent *event)
 }
 
 
+bool SchedulerWizard::scheduling()
+{
+	bool res = false;
+	Scheduler::SchedulerObjList scheduler_objects = scheduler_engine.getObjectList();
+	for (int i = 0; i < scheduler_objects.count(); i++)
+	{
+		Scheduler::SchedulerObject *obj = scheduler_objects[i];
+		Scheduler::Command cmd = obj->type;
+
+		switch (cmd)
+		{
+		case Scheduler::Loop_Cmd:
+		{
+			Scheduler::Loop *loop_obj = qobject_cast<Scheduler::Loop*>(obj);
+			if (loop_obj) loop_obj->index = 0;
+			break;
+		}
+		case Scheduler::End_Cmd:
+		{
+			Scheduler::End *end_obj = qobject_cast<Scheduler::End*>(obj);
+			Scheduler::SchedulerObject *ref_obj = end_obj->ref_obj;
+			break;
+		}
+		default: break;
+		}
+	}
+
+	return true;
+}
+
+
 void SchedulerWizard::addItemNOP()
 {
 	int rows = ui->tableWidgetExp->rowCount();
@@ -158,7 +188,12 @@ void SchedulerWizard::addItem()
 		connect(dist_range_obj, SIGNAL(changed()), this, SLOT(update()));
 		
 		cmd_obj_list.append(dist_range_obj); 		
-		cmd_obj_list.append(new Scheduler::End); 
+		//cmd_obj_list.append(new Scheduler::End); 
+
+		Scheduler::End *end_obj = new Scheduler::End;
+		end_obj->ref_obj = dist_range_obj;
+
+		cmd_obj_list.append(end_obj); 
 	}
 	else if (txt == "SET_POSITION")	
 	{
@@ -184,9 +219,14 @@ void SchedulerWizard::addItem()
 	{ 
 		Scheduler::Loop *loop_obj = new Scheduler::Loop;
 		connect(loop_obj, SIGNAL(changed()), this, SLOT(update()));
-
+		
 		cmd_obj_list.append(loop_obj); 
-		cmd_obj_list.append(new Scheduler::End); 
+		//cmd_obj_list.append(new Scheduler::End); 
+		
+		Scheduler::End *end_obj = new Scheduler::End;
+		end_obj->ref_obj = loop_obj;
+
+		cmd_obj_list.append(end_obj);
 	}	
 	else if (txt == "SLEEP")	
 	{

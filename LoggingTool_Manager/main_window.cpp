@@ -272,7 +272,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	fontManager.setPointSize(9);
 	dock_expScheduler->setFont(fontManager);
 	dock_expScheduler->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
-	expScheduler = new SchedulerWizard(app_settings, depthTemplate, dock_expScheduler);	
+	expScheduler = new SchedulerWizard(app_settings, sequenceProc, depthTemplate, dock_expScheduler);	
 	expScheduler->setJSeqList(sequenceProc->getSeqFileList());
 	expScheduler->setJSeqFile(sequenceProc->getJSeqFile());
 	dock_expScheduler->setWidget(expScheduler);    
@@ -532,7 +532,7 @@ void MainWindow::setConnections()
 	connect(ui->a_COMPort, SIGNAL(triggered()), this, SLOT(setCOMPortSettings()));   
 	connect(ui->a_Communication, SIGNAL(triggered()), this, SLOT(setCommunicationSettings()));
 	connect(ui->a_TCP_Connection, SIGNAL(triggered()), this, SLOT(setTCPConnectionSettings()));
-	connect(ui->a_CDiag_Connection, SIGNAL(triggered()), this, SLOT(setCDiagConnectionSettings()));
+	//connect(ui->a_CDiag_Connection, SIGNAL(triggered()), this, SLOT(setCDiagConnectionSettings()));
 	connect(ui->a_Processing, SIGNAL(triggered()), this, SLOT(setProcessingSettings()));
 	connect(ui->a_About, SIGNAL(triggered()), this, SLOT(showAboutDialog()));
 	connect(ui->a_toOil, SIGNAL(triggered()), this, SLOT(setExportToOilData()));
@@ -2081,6 +2081,8 @@ void MainWindow::connectToNMRTool(bool flag)
 	}
 	//else if (!flag) disconnectFromNMRTool();
 
+	expScheduler->scheduling();		// temporary ! For tests only !
+
 	nmrtoolLinker->startConnection(true);
 }
 
@@ -2105,7 +2107,7 @@ void MainWindow::disconnectFromNMRTool()
 	lblDataCounter->setVisible(false);
 }
 
-
+/*
 void MainWindow::startNMRTool(bool flag)
 {	
 	if (!flag) 
@@ -2141,12 +2143,47 @@ void MainWindow::startNMRTool(bool flag)
 		setCmdResult(DATA_PROC, ConnectionState::State_Connecting);	
 		nmrtoolLinker->applyProcPrg(proc_prg, proc_instr);
 	}
-	/*else
-	{
-		setCmdResult(NMRTOOL_START, ConnectionState::State_Connecting);
-		nmrtoolLinker->startNMRTool();
-	}	*/
+	//else
+	//{
+	//	setCmdResult(NMRTOOL_START, ConnectionState::State_Connecting);
+	//	nmrtoolLinker->startNMRTool();
+	//}	
 		
+	delete save_data_file;
+	save_data_file = NULL;	
+}
+*/
+
+void MainWindow::startNMRTool(bool flag)
+{	
+	if (!flag) 
+	{
+		a_start->setChecked(true);
+		return;
+	}
+
+	data_set_windows.clear();
+	data_set_windows.append(DataSetWindow(processing_relax.win_aver_len));
+		
+	experiment_id++;
+	start_data_export = true;
+
+	QVector<uint8_t> proc_prg;
+	QVector<uint8_t> proc_instr;
+	bool res = sequenceProc->getDSPPrg(proc_prg, proc_instr);
+	if (proc_prg.isEmpty() || !res) 
+	{
+		int ret = QMessageBox::warning(this, "Warning!", tr("The Program for FPGA not found, or contains errors!"), QMessageBox::Ok);	
+		a_apply_prg->setChecked(false);
+		a_start->setChecked(false);
+		return;
+	}
+
+	emit sdsp_is_enabled(false);
+
+	setCmdResult(DATA_PROC, ConnectionState::State_Connecting);	
+	nmrtoolLinker->applyProcPrg(proc_prg, proc_instr);
+
 	delete save_data_file;
 	save_data_file = NULL;	
 }

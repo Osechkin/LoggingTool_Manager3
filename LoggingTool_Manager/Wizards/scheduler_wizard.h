@@ -30,7 +30,11 @@ public:
 
 	Scheduler::Engine* getSchedulerEngine() { return &scheduler_engine; } 
 
-	bool scheduling();
+	bool scheduling(QStringList &e);
+	bool generateDistanceScanPrg(QStringList &e);
+	bool generateExecPrg(QStringList &e);
+	bool isEmpty() { return scheduler_engine.getObjectList().isEmpty(); }
+	void clear() { removeAllItems(); }
 	
 public slots:
 	void setJSeqList(QStringList _jseq_list) { jseq_list = _jseq_list; }

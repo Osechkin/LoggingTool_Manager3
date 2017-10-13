@@ -177,6 +177,7 @@ LUSI::ProcPackage::ProcPackage(QString _obj_name, QList<SeqInstrInfo> _instr_lis
 	setObjName(_obj_name); 
 	instr_list = _instr_list; 
 	type = Definition::ProcPackage; 
+	id = 0;
 }
 
 bool LUSI::ProcPackage::setField(QString _name, QString _value)
@@ -249,6 +250,7 @@ void LUSI::ProcPackage::exec(QVariantList _params_array)
 	proc_program << ins_code << N << type;
 	for (int i = 0; i < N; i++)
 	{
+		/*
 		uint8_t val = _params_array[i+3].toUInt(&_ok);
 		if (!_ok)
 		{
@@ -257,8 +259,26 @@ void LUSI::ProcPackage::exec(QVariantList _params_array)
 			return;
 		}
 		proc_program << val;
+		*/
+
+		int param = _params_array[i+3].toInt(&_ok);
+		if (_ok)
+		{
+			uint8_t byte1 = (uint8_t)(param & 0x000000FF); 
+			uint8_t byte2 = (uint8_t)((param & 0x0000FF00) >> 8); 
+			uint8_t byte3 = (uint8_t)((param & 0x00FF0000) >> 16);
+			uint8_t byte4 = (uint8_t)((param & 0xFF000000) >> 24);
+
+			proc_program << byte1 << byte2 << byte3 << byte4;
+		}
+		else
+		{
+			QString e = tr("Cannot read parameter #%1 in instruction '%2' in Processing Packet '%3'!").arg(i+1).arg(_params_array.first().toString()).arg(title);
+			elist << tr("<font color=red>JS: Error ! : </font>") + e;
+			return;
+		}
 	}	
-	params_array == _params_array; 
+	params_array = _params_array; 
 	var_proc_program.append(_params_array);
 }
 
@@ -1101,6 +1121,7 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 
 	int str_count = 0;
 	int group_index = 1;
+	int pack_id = 1;
 	while (str_count < str_lines.count())
 	{
 		QString txt = str_lines[str_count];
@@ -1191,6 +1212,7 @@ void LUSI::Engine::startLusiing(QString _script, QStringList &_elist, Definition
 						if (field.first.isEmpty()) seqProcPackage->setField(field.second, cnt++);
 						else seqProcPackage->setField(field.first, field.second);
 					}
+					seqProcPackage->setId(pack_id++);
 
 					QScriptValue objectValue = qscript_engine->newQObject(seqProcPackage);
 					qscript_engine->globalObject().setProperty(def_name, objectValue);
@@ -1701,7 +1723,7 @@ void LUSI::Sequence::clear()
 	procdsp_errors.clear();
 	cond_errors.clear();
 	js_error.clear();
-
+	
 	main_object = NULL;
 }
 

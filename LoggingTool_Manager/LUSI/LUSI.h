@@ -286,6 +286,7 @@ namespace LUSI
 
 		Q_PROPERTY(QString title READ getTitle WRITE setTitle);	
 		Q_PROPERTY(QVariantList params_array READ getParamsArray WRITE exec);
+		Q_PROPERTY(int id READ getAppValue WRITE setId);
 		
 	public:
 		ProcPackage(QString _obj_name, QList<SeqInstrInfo> _instr_list);
@@ -305,6 +306,9 @@ namespace LUSI
 		
 		void exec(QVariantList _params_array);
 
+		void setId(int _id) { id = _id; }
+		int getAppValue() const { return id; }
+
 	public:
 		QString title;
 
@@ -316,6 +320,7 @@ namespace LUSI
 		QList<QVariantList> var_proc_program;
 		QVariantList params_array;
 		QList<SeqInstrInfo> instr_list;
+		int id;
 	};
 
 

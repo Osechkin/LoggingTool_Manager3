@@ -2072,6 +2072,12 @@ void MainWindow::setSequenceStatus(SeqStatus status)
 }
 
 
+void MainWindow::controlSchedulerCmd()
+{
+	
+}
+
+
 void MainWindow::connectToNMRTool(bool flag)
 {		
 	if (!flag) 
@@ -2081,7 +2087,8 @@ void MainWindow::connectToNMRTool(bool flag)
 	}
 	//else if (!flag) disconnectFromNMRTool();
 
-	expScheduler->scheduling();		// temporary ! For tests only !
+	//QStringList e;
+	//expScheduler->scheduling(e);		// temporary ! For tests only !
 
 	nmrtoolLinker->startConnection(true);
 }
@@ -2161,6 +2168,40 @@ void MainWindow::startNMRTool(bool flag)
 		a_start->setChecked(true);
 		return;
 	}
+
+	// Temporary commented !
+	/*QStringList e;
+	if (expScheduler->isEmpty()) 
+	{
+		AbstractDepthMeter *abs_depthmeter = depthTemplate->getCurrentDepthMeter();
+		if (abs_depthmeter)		
+		{
+			if (abs_depthmeter->getType() == AbstractDepthMeter::LeuzeDistanceMeter)	// if KERN is in use
+			{		
+				if (!expScheduler->generateDistanceScanPrg(e))
+				{
+					int ret = QMessageBox::warning(this, tr("Warning!"), e.join("\n"), QMessageBox::Ok, QMessageBox::Ok);
+					return;
+				}
+			}
+			else // else if other Logging Tools are in use (KMRK, NMKT)
+			{
+				if (!expScheduler->generateExecPrg(e))
+				{
+					int ret = QMessageBox::warning(this, tr("Warning!"), e.join("\n"), QMessageBox::Ok, QMessageBox::Ok);
+					return;
+				}
+			}
+		}
+	}	
+	
+	if (!expScheduler->scheduling(e))
+	{
+		int ret = QMessageBox::warning(this, "Warning!", e.join("\n"), QMessageBox::Ok);	
+		return;
+	}
+	*/
+
 
 	data_set_windows.clear();
 	data_set_windows.append(DataSetWindow(processing_relax.win_aver_len));

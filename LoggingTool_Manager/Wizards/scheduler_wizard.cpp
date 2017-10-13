@@ -97,9 +97,11 @@ bool SchedulerWizard::eventFilter(QObject *obj, QEvent *event)
 }
 
 
-bool SchedulerWizard::scheduling()
+bool SchedulerWizard::scheduling(QStringList &e)
 {
-	bool res = false;
+	bool res = true;
+	e.clear();
+
 	Scheduler::SchedulerObjList scheduler_objects = scheduler_engine.getObjectList();
 	for (int i = 0; i < scheduler_objects.count(); i++)
 	{
@@ -109,19 +111,187 @@ bool SchedulerWizard::scheduling()
 		switch (cmd)
 		{
 		case Scheduler::Loop_Cmd:
-		{
-			Scheduler::Loop *loop_obj = qobject_cast<Scheduler::Loop*>(obj);
-			if (loop_obj) loop_obj->index = 0;
-			break;
-		}
+			{
+				Scheduler::Loop *loop_obj = qobject_cast<Scheduler::Loop*>(obj);
+				if (loop_obj) loop_obj->index = 0;
+				else
+				{
+					e.append(tr("Unknown object in line %1!").arg(i+1));
+					res = false;
+				}
+				break;
+			}
 		case Scheduler::End_Cmd:
-		{
-			Scheduler::End *end_obj = qobject_cast<Scheduler::End*>(obj);
-			Scheduler::SchedulerObject *ref_obj = end_obj->ref_obj;
-			break;
-		}
+			{
+				Scheduler::End *end_obj = qobject_cast<Scheduler::End*>(obj);
+				if (end_obj) 
+				{
+					Scheduler::SchedulerObject *ref_obj = end_obj->ref_obj;
+					if (!ref_obj) 
+					{
+						e.append(tr("Error in line %1: 'LOOP' was not found for 'END_LOOP'!").arg(i+1));
+						res = false;
+					}
+				}
+				else 
+				{
+					e.append(tr("Unknown object in line %1!").arg(i+1));
+					res = false;
+				}				
+				break;
+			}
+		case Scheduler::DistanceRange_Cmd:
+			{
+				Scheduler::DistanceRange *end_range_obj = qobject_cast<Scheduler::DistanceRange*>(obj);
+				if (end_range_obj) end_range_obj->pos = end_range_obj->from;
+				else
+				{
+					e.append(tr("Unknown object in line %1!").arg(i+1));
+					res = false;
+				}
+				break;
+			}	
+		case Scheduler::SetPosition_Cmd:
+			{
+				Scheduler::SetPosition *setpos_obj = qobject_cast<Scheduler::SetPosition*>(obj);
+				if (!setpos_obj) 
+				{
+					e.append(tr("Unknown object in line %1!").arg(i+1));
+					res = false;
+				}
+				break;
+			}
+		case Scheduler::Exec_Cmd:
+			{
+				Scheduler::Exec *exec_obj = qobject_cast<Scheduler::Exec*>(obj);
+				if (!exec_obj) 
+				{
+					e.append(tr("Unknown object in line %1!").arg(i+1));
+					res = false;
+				}
+				
+				QStringList ee;
+				QString jseq_name = exec_obj->jseq_name;
+				if (!sequence_wizard->executeJSsequence(jseq_name, ee))
+				{					
+					e.append(tr("Error in line %1: Errors were found in Sequence %2!").arg(i+1).arg(jseq_name));
+					res = false;
+				}
+				break;
+			}
+		case Scheduler::Sleep_Cmd:
+			{
+				Scheduler::Sleep *sleep_obj = qobject_cast<Scheduler::Sleep*>(obj);
+				if (!sleep_obj) 
+				{
+					e.append(tr("Unknown object in line %1!").arg(i+1));
+					res = false;
+				}
+				break;
+			}
 		default: break;
 		}
+	}
+
+	return res;
+}
+
+
+bool SchedulerWizard::generateDistanceScanPrg(QStringList &e)
+{
+	Scheduler::SchedulerObjList cmd_obj_list;
+
+	Scheduler::DistanceRange *dist_range_obj = new Scheduler::DistanceRange;
+	AbstractDepthMeter *abs_depthmeter = depth_wizard->getCurrentDepthMeter();
+	if (abs_depthmeter)
+	{
+		if (abs_depthmeter->getType() == AbstractDepthMeter::LeuzeDistanceMeter)
+		{
+			if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
+			{
+				QPair<double,double> bounds = leuze_meter->getBounds();
+				QPair<double,double> from_to = leuze_meter->getFromTo();
+				double _step = leuze_meter->getStep();
+
+				dist_range_obj->setFromToStep(from_to, _step);
+				dist_range_obj->setBounds(bounds);
+			}				
+		}
+		else
+		{
+			e.append(tr("Error: Cannot find Leuze distance meter!"));
+			return false;
+		}
+	}
+	connect(dist_range_obj, SIGNAL(changed()), this, SLOT(update()));
+
+	data_file = generateDataFileName();
+	Scheduler::Exec *exec_obj = new Scheduler::Exec(jseq_list, jseq_file, data_file);
+	connect(exec_obj, SIGNAL(changed()), this, SLOT(update()));
+	
+	Scheduler::End *end_obj = new Scheduler::End;
+	end_obj->ref_obj = dist_range_obj;
+	
+	cmd_obj_list.append(dist_range_obj);	// Add POSITION_LOOP
+	cmd_obj_list.append(exec_obj);			// Add EXEC
+	cmd_obj_list.append(end_obj);			// Add END_LOOP
+
+	
+	for (int i = 0; i < cmd_obj_list.count(); i++)
+	{
+		int rows = ui->tableWidgetExp->rowCount();
+		int cur_row = ui->tableWidgetExp->currentRow();	
+
+		Scheduler::SchedulerObject *cmd_obj = cmd_obj_list.at(i);
+		if (cur_row < 0 || cur_row == rows-1) 
+		{		
+			ui->tableWidgetExp->setRowCount(rows+1);
+			scheduler_engine.add(cmd_obj);
+
+			QLabel *lb = new QLabel(cmd_obj->cell_text);
+			ui->tableWidgetExp->setCellWidget(rows, 0, lb);
+			ui->tableWidgetExp->setCurrentCell(rows, 0);		
+		}
+		else 
+		{		
+			scheduler_engine.insert(cur_row, cmd_obj);			
+			insertItem(cur_row, cmd_obj->cell_text);			
+		}	
+	}
+
+	return true;
+}
+
+bool SchedulerWizard::generateExecPrg(QStringList &e)
+{
+	Scheduler::SchedulerObjList cmd_obj_list;
+
+	data_file = generateDataFileName();
+	Scheduler::Exec *exec_obj = new Scheduler::Exec(jseq_list, jseq_file, data_file);
+	connect(exec_obj, SIGNAL(changed()), this, SLOT(update()));
+	
+	cmd_obj_list.append(exec_obj);			// Add EXEC
+	
+	for (int i = 0; i < cmd_obj_list.count(); i++)
+	{
+		int rows = ui->tableWidgetExp->rowCount();
+		int cur_row = ui->tableWidgetExp->currentRow();	
+
+		Scheduler::SchedulerObject *cmd_obj = cmd_obj_list.at(i);
+		if (cur_row < 0 || cur_row == rows-1) 
+		{		
+			ui->tableWidgetExp->setRowCount(rows+1);
+			scheduler_engine.add(cmd_obj);
+
+			QLabel *lb = new QLabel(cmd_obj->cell_text);
+			ui->tableWidgetExp->setCellWidget(rows, 0, lb);
+			ui->tableWidgetExp->setCurrentCell(rows, 0);		
+		}
+		else 
+		{		
+			scheduler_engine.insert(cur_row, cmd_obj);			
+			insertItem(cur_row, cmd_obj->cell_text);			
+		}	
 	}
 
 	return true;

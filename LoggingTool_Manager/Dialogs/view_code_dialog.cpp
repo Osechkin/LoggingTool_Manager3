@@ -65,7 +65,7 @@ void ViewCodeDialog::showLUSISeqProgram()
 		LUSI::ProcPackage *dsp_prg = lusi_seq->procdsp_list[i];
 		QString proc_dsp_name = dsp_prg->getTitle();
 
-		QList<QVariantList> var_dsp_prg = lusi_seq->getVarProcProgram(i);
+		//QList<QVariantList> var_dsp_prg = lusi_seq->getVarProcProgram(i);
 		QString prg_str = procPrgToString(i);
 		QString bytecode_str = "";
 		if (view_bytecode) bytecode_str = procPrgToByteCodeString(i);
@@ -255,13 +255,14 @@ QString ViewCodeDialog::procPrgToByteCodeString(int index)
 		else res += type_clr + pre + type_str + "</font>, ";
 
 		QString byte_str = "";
-		for (int j = 0; j < ins_len; j++)
+		int number_size = 4;	// 4 bytes for each value
+		for (int j = 0; j < ins_len*number_size; j++)
 		{			
 			if ( (i+j) < _byte_vec.count() )  
 			{
 				uint8_t byte = _byte_vec[i+j];
 				byte_str = QString::number(byte, base).toUpper();	
-				if (j < ins_len-1)
+				if (j < number_size*ins_len-1)
 				{
 					res += str_clr + pre + byte_str + "</font>" + comma_clr + ",</font>" + '\t';
 				}
@@ -271,7 +272,7 @@ QString ViewCodeDialog::procPrgToByteCodeString(int index)
 				}
 			}			 
 		}
-		i += ins_len;
+		i += number_size*ins_len;
 
 		res += "<br>";		
 	}

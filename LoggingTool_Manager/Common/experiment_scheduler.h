@@ -111,6 +111,7 @@ namespace Scheduler
 		double step;	
 		double upper_bound;		// in [cm]
 		double lower_bound;		// in [cm]
+		double pos;
 	};
 
 	class SetPosition : public SchedulerObject

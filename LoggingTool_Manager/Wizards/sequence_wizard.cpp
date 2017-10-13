@@ -70,11 +70,13 @@ bool JSeqObject::evaluate()
 			{
 				lusi_Seq->js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");
 				lusi_Seq->comprg_list.clear();
-				lusi_Seq->proc_programs.clear();					
+				lusi_Seq->proc_programs.clear();	
+				lusi_Seq->js_script.clear();
 			}
 			else
 			{
 				lusi_Seq->clear();
+				lusi_Seq->js_script = js_script;
 				lusi_Seq->setObjects(obj_list_global);				
 			}	
 		}				
@@ -88,7 +90,9 @@ bool JSeqObject::evaluate()
 			lusi_Seq->seq_errors.append(tr("Sequence program for Logging Tool was not found in %1 file!").arg(jseq_file));	
 		}	
 		lusi_Seq->clear();
-		lusi_Seq->setObjects(obj_list_global);			
+		lusi_Seq->setObjects(obj_list_global);		
+
+		if (!lusi_engine->getErrorList().isEmpty()) return false;		
 	}
 	return true;
 }
@@ -1719,32 +1723,105 @@ void SequenceWizard::executeJSsequence()
 ////
 */
 
-void SequenceWizard::executeJSsequence()
+bool SequenceWizard::executeJSsequence()
 {	
 	LUSI::ObjectList *obj_list_global = cur_jseq_object->lusi_engine->getObjList();
-	if (obj_list_global->isEmpty()) return;
+	if (obj_list_global->isEmpty()) return false;
 
 	cur_jseq_object->lusi_Seq->reset();
 	cur_jseq_object->lusi_engine->reset();
 	QString js_script = cur_jseq_object->lusi_engine->getJSscript();	
+	if (js_script.isEmpty()) 
+	{
+		cur_jseq_object->lusi_Seq->js_error = tr("Available JavaScript code was not found in the Pulse Sequence!");
+		cur_jseq_object->lusi_Seq->comprg_list.clear();
+		cur_jseq_object->lusi_Seq->proc_programs.clear();	
+		return false;
+	}
+
 	QScriptValue qscrpt_value = cur_jseq_object->js_engine->evaluate(js_script);	
 	if (qscrpt_value.isError())
 	{
 		cur_jseq_object->lusi_Seq->js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");
 		cur_jseq_object->lusi_Seq->comprg_list.clear();
-		cur_jseq_object->lusi_Seq->proc_programs.clear();					
+		cur_jseq_object->lusi_Seq->proc_programs.clear();	
+		return false;
 	}
 	else
 	{
 		cur_jseq_object->lusi_Seq->clear();
 		cur_jseq_object->lusi_Seq->setObjects(obj_list_global);				
 	}
+
+	return true;
+}
+
+bool SequenceWizard::executeJSsequence(const QString &text, QStringList &e)
+{
+	JSeqObject *jseq_obj = NULL;
+	for (int i = 0; i < jseq_objects.count(); i++)
+	{
+		jseq_obj = jseq_objects[i];
+		QFileInfo fi(jseq_obj->jseq_file);
+		if (fi.fileName() == text) break;		
+		jseq_obj = NULL;
+	}
+	if (!jseq_obj)
+	{
+		e.append(tr("Error: Sequence %1 was not found!").arg(text));
+		return false;
+	}
+	
+	if (!jseq_obj->lusi_engine->getErrorList().isEmpty())
+	{
+		jseq_obj->lusi_Seq->js_error = tr("Errors were found in Sequence %1!").arg(text);
+		jseq_obj->lusi_Seq->comprg_list.clear();
+		jseq_obj->lusi_Seq->proc_programs.clear();	
+		e.append(jseq_obj->lusi_Seq->js_error);
+		return false;
+	}
+
+	QString js_script = jseq_obj->lusi_engine->getJSscript();
+	if (jseq_obj->lusi_Seq->com_programs.isEmpty() || js_script.isEmpty())
+	{
+		jseq_obj->evaluate();
+		if (!jseq_obj->lusi_Seq->js_error.isEmpty())
+		{
+			jseq_obj->lusi_Seq->js_error = tr("Errors were found in Sequence %1!").arg(text);
+			jseq_obj->lusi_Seq->comprg_list.clear();
+			jseq_obj->lusi_Seq->proc_programs.clear();	
+			e.append(jseq_obj->lusi_Seq->js_error);
+			return false;
+		}
+		else return true;
+	}
+		
+	jseq_obj->lusi_Seq->reset();
+	jseq_obj->lusi_engine->reset();
+	QScriptValue qscrpt_value = jseq_obj->js_engine->evaluate(js_script);	
+	if (qscrpt_value.isError())
+	{
+		jseq_obj->lusi_Seq->js_error = tr("Runtime error executing JavaScript code of the Pulse Sequence!");
+		jseq_obj->lusi_Seq->comprg_list.clear();
+		jseq_obj->lusi_Seq->proc_programs.clear();	
+		e.append(jseq_obj->lusi_Seq->js_error);
+		return false;
+	}
+	else
+	{
+		jseq_obj->lusi_Seq->clear();
+		LUSI::ObjectList *obj_list_global = jseq_obj->lusi_engine->getObjList();
+		jseq_obj->lusi_Seq->setObjects(obj_list_global);				
+	}
+
+	return true;
 }
 
 void SequenceWizard::showLUSISeqMemo()
 {	
 	if (cur_jseq_object == NULL) return;
 	LUSI::Sequence *cur_lusi_Seq = cur_jseq_object->lusi_Seq;
+	LUSI::Engine *cur_lusi_Engine = cur_jseq_object->lusi_engine;
 
 	bool parse_errs = false;
 	if (!cur_lusi_Seq->seq_errors.isEmpty()) parse_errs = true;
@@ -1758,11 +1835,14 @@ void SequenceWizard::showLUSISeqMemo()
 	bool cond_errs = false;
 	if (!cur_lusi_Seq->cond_errors.isEmpty()) cond_errs = true;
 
+	bool lusi_errs = false;
+	if (!cur_lusi_Engine->getErrorList().isEmpty()) lusi_errs = true;
+
 	bool js_error = !cur_lusi_Seq->js_error.isEmpty();
 	
 	QString memo = "";
 	memo += QString("<font color = darkblue>%1</font> ").arg(tr("Parsing & Run-time Errors:"));
-	if (parse_errs || js_error) memo += QString("<a href=#parse_error><font color=red><b><u>%1</u></b></font></a><br>").arg(tr("Found!"));
+	if (parse_errs || js_error || lusi_errs) memo += QString("<a href=#parse_error><font color=red><b><u>%1</u></b></font></a><br>").arg(tr("Found!"));
 	else memo += QString("<font color=darkgreen>%1</font><br>").arg(tr("Not Found."));
 	
 	memo += QString("<font color = darkblue>%1</font> ").arg(tr("Errors in the FPGA Program:"));
@@ -2014,18 +2094,26 @@ void SequenceWizard::descriptionLinkActivated(const QString &link)
 {
 	if (cur_jseq_object == NULL) return;
 	LUSI::Sequence *cur_lusi_Seq = cur_jseq_object->lusi_Seq;
+	LUSI::Engine *cur_lusi_Engine = cur_jseq_object->lusi_engine;
 
 	QString err_msg = "<b>" + tr("Sequence file parsing and execution errors:") + "</b><br><br><font color=red>";
 
 	if( link == "#parse_error" || link == "#fpga_error" || link == "#dsp_error" || link == "#params_error" )
 	{		
 		int cnt = 1;
+		
+		QStringList lusi_errors = cur_lusi_Engine->getErrorList();
+		for (int i = 0; i < lusi_errors.count(); i++)
+		{
+			err_msg += tr("%1. %2<br>").arg(cnt++).arg(lusi_errors[i]);				
+		}
+
 		QStringList seq_errors = cur_lusi_Seq->seq_errors;
 		for (int i = 0; i < seq_errors.count(); i++)
 		{
 			err_msg += tr("%1. %2<br>").arg(cnt++).arg(seq_errors[i]);				
 		}
-
+		
 		QStringList comprg_errors = cur_lusi_Seq->comprg_errors;
 		for (int i = 0; i < comprg_errors.count(); i++)
 		{

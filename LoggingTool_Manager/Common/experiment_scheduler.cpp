@@ -126,6 +126,7 @@ Scheduler::DistanceRange::DistanceRange()
 	from = 0;
 	to = 0;
 	step = 0;
+	pos = from;
 
 	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("From:"), Scheduler::SpinBox, " cm");	
 	param_objects.append(param_item_1);	
@@ -154,6 +155,7 @@ void Scheduler::DistanceRange::setFromToStep(QPair<double,double> from_to, doubl
 	from = 100*from_to.first;			// convert to [cm]
 	to = 100*from_to.second;			// convert to [cm]
 	step = 100*_step;					// convert to [cm]
+	pos = from;
 
 	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
 }
@@ -161,6 +163,7 @@ void Scheduler::DistanceRange::setFromToStep(QPair<double,double> from_to, doubl
 void Scheduler::DistanceRange::changeFrom(double val)
 {
 	from = val; 
+	pos = from;
 	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
 	emit changed();
 }

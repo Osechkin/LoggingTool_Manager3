@@ -59,6 +59,8 @@ public:
 	bool getDSPPrg(QVector<uint8_t> &_prg, QVector<uint8_t> &_instr);
 
 	bool compileSequence(const QString &text, QByteVector &instr_prg, QByteVector &comm_prg, QStringList &e);
+	bool executeJSsequence(const QString &text, QStringList &e);
+	bool executeJSsequence();
 
 	QList<SeqCmdInfo> *getSeqCmdInfo() { return &seq_cmd_index; }
 	QList<SeqInstrInfo> *getSeqInstrIndex() { return &seq_instr_index; }
@@ -113,7 +115,7 @@ protected:
 
 	void showLUSISeqParameters();
 	void showLUSISeqMemo();
-	void executeJSsequence();
+	
 
 private:
 	void setConnections();

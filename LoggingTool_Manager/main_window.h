@@ -264,6 +264,8 @@ private slots:
 	void changeLoggingTool();
 	void setToolSettingsApplied(bool flag);
 
+	void controlSchedulerCmd();
+
 private:
 	void loadToolsSettings();
 	void loadAppSettings();

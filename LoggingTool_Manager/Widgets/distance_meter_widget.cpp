@@ -152,6 +152,8 @@ void LeuzeDistanceMeterWidget::setConnection()
 
 	connect(ui->pbtBack, SIGNAL(toggled(bool)), this, SLOT(moveBack(bool)));
 	connect(ui->pbtForward, SIGNAL(toggled(bool)), this, SLOT(moveForward(bool)));
+	connect(ui->pbtBegin, SIGNAL(toggled(bool)), this, SLOT(moveBack(bool)));
+	connect(ui->pbtEnd, SIGNAL(toggled(bool)), this, SLOT(moveForward(bool)));
 	connect(ui->pbtSet, SIGNAL(toggled(bool)), this, SLOT(setPosition(bool)));
 	
 	connect(ui->pbtConnect, SIGNAL(toggled(bool)), this, SLOT(connectAllMeters(bool)));
@@ -175,6 +177,14 @@ void LeuzeDistanceMeterWidget::setStepMotorCommunicatorConnections()
 
 void LeuzeDistanceMeterWidget::moveBack(bool flag)
 {	
+	QPushButton *pbt = qobject_cast<QPushButton*>(sender());
+	if (!pbt) return;
+
+	QString str_cmd = "";
+	if (pbt == ui->pbtBack) str_cmd = "\EN*DL*SD50*MV*";
+	else if (pbt == ui->pbtBegin) str_cmd = "\EN*DL*SD1000*MV*";
+	else return;
+
 	if (!flag)
 	{
 		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
@@ -186,7 +196,7 @@ void LeuzeDistanceMeterWidget::moveBack(bool flag)
 
 		if (distance > lower_bound && distance < upper_bound)
 		{
-			stepmotor_communicator->toSend("\EN*DL*SD1000*MV*");		// Move step motor left
+			stepmotor_communicator->toSend(str_cmd);	// Move step motor left
 		}
 		else 
 		{
@@ -198,6 +208,14 @@ void LeuzeDistanceMeterWidget::moveBack(bool flag)
 
 void LeuzeDistanceMeterWidget::moveForward(bool flag)
 {
+	QPushButton *pbt = qobject_cast<QPushButton*>(sender());
+	if (!pbt) return;
+
+	QString str_cmd = "";
+	if (pbt == ui->pbtForward) str_cmd = "\EN*DR*SD50*MV*";
+	else if (pbt == ui->pbtEnd) str_cmd = "\EN*DR*SD1000*MV*";
+	else return;
+
 	if (!flag)
 	{
 		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
@@ -209,7 +227,7 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 
 		if (distance > lower_bound && distance < upper_bound)
 		{			
-			stepmotor_communicator->toSend("\EN*DR*SD1000*MV*");		// Move step motor left
+			stepmotor_communicator->toSend(str_cmd);	// Move step motor left
 		}
 		else 
 		{

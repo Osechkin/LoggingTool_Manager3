@@ -8,14 +8,18 @@
 #include "scheduler_wizard.h"
 
 
-SchedulerWizard::SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWizard)
+SchedulerWizard::SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, NMRToolLinker *nmrtool_wiz, Clocker *clocker, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWizard)
 {
 	ui->setupUi(this);
 
 	sequence_wizard = seq_wiz;
-	depth_wizard = depth_wiz;
+	depth_wizard = depth_wiz;	
+	nmrtool_linker = nmrtool_wiz;
+	this->clocker = clocker;
 	app_settings = settings;
 	setDataFileSettings();
+
+	current_cmd = NULL;
 
 	ui->tbtAdd->setIcon(QIcon(":/images/add_button.png"));
 	ui->tbtRemove->setIcon(QIcon(":/images/disconnect.png"));
@@ -113,7 +117,7 @@ bool SchedulerWizard::scheduling(QStringList &e)
 		case Scheduler::Loop_Cmd:
 			{
 				Scheduler::Loop *loop_obj = qobject_cast<Scheduler::Loop*>(obj);
-				if (loop_obj) loop_obj->index = 0;
+				if (loop_obj) loop_obj->init();
 				else
 				{
 					e.append(tr("Unknown object in line %1!").arg(i+1));
@@ -143,7 +147,7 @@ bool SchedulerWizard::scheduling(QStringList &e)
 		case Scheduler::DistanceRange_Cmd:
 			{
 				Scheduler::DistanceRange *end_range_obj = qobject_cast<Scheduler::DistanceRange*>(obj);
-				if (end_range_obj) end_range_obj->pos = end_range_obj->from;
+				if (end_range_obj) end_range_obj->init();
 				else
 				{
 					e.append(tr("Unknown object in line %1!").arg(i+1));
@@ -194,6 +198,205 @@ bool SchedulerWizard::scheduling(QStringList &e)
 	}
 
 	return res;
+}
+
+void SchedulerWizard::start()
+{
+	if (scheduler_engine.isEmpty()) return;
+
+	//Scheduler::SchedulerObject *cmd_obj = scheduler_engine.get(0); 
+	//if (!cmd_obj) emit finished();
+
+	ui->tbtAdd->setEnabled(false);
+	ui->tbtRemove->setEnabled(false);
+	ui->tbtOpen->setEnabled(false);
+
+	is_started = true;
+	scheduler_engine.start();
+	if (current_cmd)
+	{
+		delete current_cmd;
+		current_cmd = NULL;
+	}
+	obj_cmd_list.clear();
+	connect(clocker, SIGNAL(clock()), this, SLOT(process()));	
+}
+
+void SchedulerWizard::stop()
+{
+	ui->tbtAdd->setEnabled(true);
+	ui->tbtRemove->setEnabled(true);
+	ui->tbtOpen->setEnabled(true);
+
+	disconnect(clocker, SIGNAL(clock()), this, SLOT(process()));
+	scheduler_engine.stop();
+	is_started = false;
+
+	if (current_cmd) 
+	{ 
+		delete current_cmd; 
+		current_cmd = NULL; 
+	}
+	obj_cmd_list.clear();
+}
+
+void SchedulerWizard::process()
+{
+	if (current_cmd) 
+	{
+		if (current_cmd->isFinished())
+		{
+			delete current_cmd;
+			current_cmd = NULL;
+		}
+		return;
+	}
+
+	if (obj_cmd_list.isEmpty() && is_started)
+	{
+		Scheduler::SchedulerObject *cmd_obj = scheduler_engine.next();
+		if (!cmd_obj) 
+		{
+			is_started = false;
+			emit finished();
+		}
+
+		Scheduler::Command cmd_type = cmd_obj->type;
+		switch (cmd_type)
+		{
+		case Scheduler::Exec_Cmd:			obj_cmd_list.append(cmd_obj); break;
+		case Scheduler::SetPosition_Cmd:	obj_cmd_list.append(cmd_obj); break;
+		case Scheduler::Sleep_Cmd:			obj_cmd_list.append(cmd_obj); break;
+		case Scheduler::DistanceRange_Cmd:	
+			{
+				Scheduler::DistanceRange *dist_obj = qobject_cast<Scheduler::DistanceRange*>(cmd_obj);
+				if (dist_obj)
+				{
+					dist_obj->getNextPos();					
+					obj_cmd_list.append(dist_obj); 					
+				}
+				break;
+			}		
+		case Scheduler::Loop_Cmd: 		
+			{
+				Scheduler::Loop *loop_obj = qobject_cast<Scheduler::Loop*>(cmd_obj);
+				if (loop_obj)
+				{
+					loop_obj->getNextIndex();
+					obj_cmd_list.append(loop_obj); 
+				}
+				break;				
+			}
+		case Scheduler::End_Cmd:
+		/*	{
+				Scheduler::End *end_obj = qobject_cast<Scheduler::End*>(cmd_obj);
+				if (end_obj)
+				{
+					Scheduler::SchedulerObject *ref_cmd_obj = end_obj->ref_obj;
+					Scheduler::Command ref_type = ref_cmd_obj->type;
+					if (ref_type == Scheduler::DistanceRange_Cmd)
+					{
+						Scheduler::DistanceRange *ref_dist_range_obj = qobject_cast<Scheduler::DistanceRange*>(ref_cmd_obj);
+						if (ref_dist_range_obj)
+						{
+							if (!ref_dist_range_obj->finished) obj_cmd_list.append(ref_cmd_obj);
+						}
+						else
+						{
+							Scheduler::Loop *ref_loop_obj = qobject_cast<Scheduler::Loop*>(ref_cmd_obj);
+							if (ref_loop_obj) 
+							{								
+								if (!ref_loop_obj->finished) obj_cmd_list.append(ref_cmd_obj);
+							}
+						}
+					}
+
+					
+				}
+				break;
+			}*/		
+		case Scheduler::NoP_Cmd: break;
+		default: break;
+		}
+		
+	}		
+	else if (!obj_cmd_list.isEmpty() && is_started)
+	{
+		Scheduler::SchedulerObject *cmd_obj = obj_cmd_list.front();
+		obj_cmd_list.takeFirst();
+		execute(cmd_obj);
+	}  
+}
+
+void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
+{	
+	switch (obj->type)
+	{
+	case Scheduler::Exec_Cmd:
+		{
+			QVector<uint8_t> proc_prg;
+			QVector<uint8_t> proc_instr;
+			bool res = sequence_wizard->getDSPPrg(proc_prg, proc_instr);
+			nmrtool_linker->applyProcPrg(proc_prg, proc_instr);		
+			uint32_t uid = nmrtool_linker->getMsgContainer()->last()->uid;
+
+			current_cmd = new Scheduler::CommandController(uid);			
+			connect(nmrtool_linker, SIGNAL(cmd_resulted(bool, uint32_t)), current_cmd, SLOT(processResult(bool, uint32_t)));
+			break;
+		}
+	case Scheduler::DistanceRange_Cmd:
+		{			
+			Scheduler::DistanceRange *dist_range_obj = qobject_cast<Scheduler::DistanceRange*>(obj);
+			if (dist_range_obj)
+			{
+				AbstractDepthMeter *abs_depthmeter = depth_wizard->getCurrentDepthMeter();
+				if (abs_depthmeter)
+				{
+					if (abs_depthmeter->getType() == AbstractDepthMeter::LeuzeDistanceMeter)
+					{
+						if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
+						{
+							double pos = dist_range_obj->pos;
+							leuze_meter->setPosition(pos);
+
+							current_cmd = new Scheduler::CommandController(0);
+							connect(leuze_meter, SIGNAL(cmd_resulted(bool, uint32_t)), current_cmd, SLOT(processResult(bool, uint32_t)));
+						}
+					}
+				}
+			}			
+			break;			
+		}
+	case Scheduler::SetPosition_Cmd:
+		{
+			Scheduler::SetPosition *set_pos_obj = qobject_cast<Scheduler::SetPosition*>(obj);
+			if (set_pos_obj)
+			{
+				AbstractDepthMeter *abs_depthmeter = depth_wizard->getCurrentDepthMeter();
+				if (abs_depthmeter)
+				{
+					if (abs_depthmeter->getType() == AbstractDepthMeter::LeuzeDistanceMeter)
+					{
+						if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
+						{
+							double pos = set_pos_obj->position;
+							leuze_meter->setPosition(pos);
+
+							current_cmd = new Scheduler::CommandController(0);
+							connect(leuze_meter, SIGNAL(cmd_resulted(bool, uint32_t)), current_cmd, SLOT(processResult(bool, uint32_t)));
+						}
+					}
+				}
+			}	
+			break;
+		}
+	case Scheduler::Loop_Cmd:
+	case Scheduler::End_Cmd:
+	case Scheduler::Sleep_Cmd: break;
+	default:
+		break;
+	}
+	
 }
 
 

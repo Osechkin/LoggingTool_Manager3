@@ -115,7 +115,11 @@ bool LUSI::Parameter::setField(QString _name, QString _value)
 	if (_name.isEmpty()) return false;
 	
 	if (_name == "title") if (LUSI::getStrName(_value)) title = _value; else return false;
-	else if (_name == "value") value = _value.toDouble(&ok); if (!ok) return false;
+	else if (_name == "value") 
+	{
+		if (_value.contains("|")) { str_value = _value; value = 0; app_value = value; }
+		else { value = _value.toDouble(&ok); if (!ok) return false; } 		
+	}
 	else if (_name == "min") min = _value.toDouble(&ok); if (!ok) return false;
 	else if (_name == "max") max = _value.toDouble(&ok); if (!ok) return false;
 	else if (_name == "units") if (LUSI::getStrName(_value)) units = _value; else return false;
@@ -144,7 +148,12 @@ bool LUSI::Parameter::setField(QString _value, int _index)
 	switch (_index)
 	{
 	case 0: if (LUSI::getStrName(_value)) title = _value; else return false; break;
-	case 1: value = _value.toDouble(&ok); if (!ok) return false; else app_value = value; break;
+	case 1: 
+		{
+			if (_value.contains("|")) { str_value = _value; value = 0; app_value = value; }
+			else { value = _value.toDouble(&ok); if (!ok) return false; else app_value = value; } 
+			break; 
+		}
 	case 2: min = _value.toDouble(&ok); if (!ok) return false; break;
 	case 3: max = _value.toDouble(&ok); if (!ok) return false; break;
 	case 4: if (LUSI::getStrName(_value)) units = _value; else return false; break;
@@ -247,6 +256,7 @@ void LUSI::ProcPackage::exec(QVariantList _params_array)
 		return;
 	}
 	
+	if (proc_program.isEmpty()) proc_program << id;
 	proc_program << ins_code << N << type;
 	for (int i = 0; i < N; i++)
 	{

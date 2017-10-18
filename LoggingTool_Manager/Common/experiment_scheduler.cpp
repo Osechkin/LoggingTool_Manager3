@@ -126,7 +126,8 @@ Scheduler::DistanceRange::DistanceRange()
 	from = 0;
 	to = 0;
 	step = 0;
-	pos = from;
+	pos = nan;
+	finished = false;
 
 	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("From:"), Scheduler::SpinBox, " cm");	
 	param_objects.append(param_item_1);	
@@ -155,7 +156,7 @@ void Scheduler::DistanceRange::setFromToStep(QPair<double,double> from_to, doubl
 	from = 100*from_to.first;			// convert to [cm]
 	to = 100*from_to.second;			// convert to [cm]
 	step = 100*_step;					// convert to [cm]
-	pos = from;
+	//pos = nan;
 
 	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
 }
@@ -163,7 +164,7 @@ void Scheduler::DistanceRange::setFromToStep(QPair<double,double> from_to, doubl
 void Scheduler::DistanceRange::changeFrom(double val)
 {
 	from = val; 
-	pos = from;
+	//pos = from;
 	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
 	emit changed();
 }
@@ -180,6 +181,23 @@ void Scheduler::DistanceRange::changeStep(double val)
 	step = val; 
 	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
 	emit changed();
+}
+
+double Scheduler::DistanceRange::getNextPos()
+{
+	if (pos != -pos) pos = from;
+	else if (from < to)
+	{
+		if (pos < to-step) pos += step;
+		else finished = true;
+	}
+	else if (from > to)
+	{
+		if (pos > from+step) pos -= step;
+		else finished = true;
+	}
+
+	return pos;
 }
 
 
@@ -220,6 +238,7 @@ Scheduler::Loop::Loop()
 	index = 0;	
 	counts = 1;
 	lower_bound = 1;
+	finished = false;
 
 	cell_text_template = QString("<font size=3><font color=darkgreen>LOOP </font>( <font color=blue>%1</font> )</font>");
 	cell_text = cell_text_template.arg(counts);
@@ -291,10 +310,51 @@ Scheduler::Engine::~Engine()
 	clear();
 }
 
+void Scheduler::Engine::setPos(Scheduler::SchedulerObject* obj)
+{
+	if (!obj) return;
+
+	cur_pos = -1;
+	for (int i = 0; i < obj_list.count(); i++)
+	{
+		SchedulerObject *cur_obj = obj_list.at(i);
+		if (cur_obj == obj) cur_pos = i;
+	}
+}
+
 Scheduler::SchedulerObject* Scheduler::Engine::get(int index) 
 { 
-	if (index < obj_list.count()) return obj_list.at(index);
-	else return NULL; 
+	Scheduler::SchedulerObject *obj = NULL;
+	if (index < obj_list.count()) 
+	{
+		obj = obj_list.at(index);
+		if (obj->type == Scheduler::End_Cmd)
+		{
+			if (Scheduler::End *end_obj = qobject_cast<Scheduler::End*>(obj)) 
+			{
+				if (Scheduler::Loop *loop_obj = qobject_cast<Scheduler::Loop*>(end_obj->ref_obj))
+				{
+					if (loop_obj->finished) get(cur_pos++);
+					else 
+					{
+						setPos(loop_obj);
+						obj = loop_obj;
+					}
+				}
+				else if (Scheduler::DistanceRange *dist_range_obj = qobject_cast<Scheduler::DistanceRange*>(end_obj->ref_obj))
+				{
+					if (dist_range_obj->finished) get(cur_pos++);
+					else 
+					{
+						setPos(dist_range_obj);
+						obj = dist_range_obj;
+					}
+				}
+			}
+		}		
+	}
+	
+	return obj; 
 }
 
 Scheduler::SchedulerObject* Scheduler::Engine::next()
@@ -323,3 +383,15 @@ Scheduler::SchedulerObject* Scheduler::Engine::take(int index)
 	return obj_list.takeAt(index);
 }
 
+
+void Scheduler::CommandController::processResult(bool flag, uint32_t _uid)
+{
+	if ((_uid == cmd_uid || _uid == 0) && flag)
+	{
+		if (flag) job_finished = true;
+	}
+	else if (!flag)
+	{
+		//job_finished = true;
+	}
+}

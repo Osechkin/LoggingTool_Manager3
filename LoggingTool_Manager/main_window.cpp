@@ -272,7 +272,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	fontManager.setPointSize(9);
 	dock_expScheduler->setFont(fontManager);
 	dock_expScheduler->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
-	expScheduler = new SchedulerWizard(app_settings, sequenceProc, depthTemplate, dock_expScheduler);	
+	expScheduler = new SchedulerWizard(app_settings, sequenceProc, depthTemplate, nmrtoolLinker, clocker, dock_expScheduler);	
 	expScheduler->setJSeqList(sequenceProc->getSeqFileList());
 	expScheduler->setJSeqFile(sequenceProc->getJSeqFile());
 	dock_expScheduler->setWidget(expScheduler);    
@@ -732,6 +732,8 @@ void MainWindow::startExperiment(bool flag)
 
 	starting_time = QTime::currentTime();	
 	obtained_data_counter = 0;
+
+	//expScheduler->stop();
 }
 
 void MainWindow::initExperimentalInfo()
@@ -1530,6 +1532,32 @@ double MainWindow::getDepthDisplacement(uint8_t _channel_id, QVector<ToolChannel
 }
 
 
+void MainWindow::saveCOMSettings(COM_PORT *com_port, QString objName)
+{
+	QString key_value = QString("%1/PortName").arg(objName);
+	app_settings->setValue(key_value, com_port->COM_port->portName());
+
+	key_value = QString("%1/BaudRate").arg(objName);
+	app_settings->setValue(key_value, com_port->COM_Settings.BaudRate);
+	
+	key_value = QString("%1/DataBits").arg(objName);
+	app_settings->setValue(key_value, com_port->COM_Settings.DataBits);
+
+	key_value = QString("%1/Parity").arg(objName);
+	app_settings->setValue(key_value, toString(com_port->COM_Settings.Parity));
+
+	key_value = QString("%1/StopBits").arg(objName);
+	app_settings->setValue(key_value, toString(com_port->COM_Settings.StopBits));
+
+	key_value = QString("%1/FlowControl").arg(objName);
+	app_settings->setValue(key_value, toString(com_port->COM_Settings.FlowControl));
+
+	key_value = QString("%1/Timeout_ms").arg(objName);
+	app_settings->setValue(key_value, com_port->COM_Settings.Timeout_Millisec);
+
+	app_settings->sync();
+}
+
 void MainWindow::initCOMSettings(COM_PORT *com_port)
 {
 	com_port->COM_port = 0;
@@ -1737,6 +1765,8 @@ void MainWindow::setDepthMeterSettings()
 		com_port->setParity(port_settings.Parity);
 		//com_port->setFlowControl(port_settings.FlowControl);
 		com_port->setStopBits(port_settings.StopBits);		
+
+		//saveCOMSettings(COM_Port_depth, "DepthMeter");
 	}
 }
 
@@ -1757,6 +1787,8 @@ void MainWindow::setStepMotorCOMSettings()
 		com_port->setDataBits(port_settings.DataBits);
 		com_port->setParity(port_settings.Parity);		
 		com_port->setStopBits(port_settings.StopBits);		
+
+		//saveCOMSettings(COM_Port_stepmotor, "StepMotor");
 	}
 }
 
@@ -2170,7 +2202,7 @@ void MainWindow::startNMRTool(bool flag)
 	}
 
 	// Temporary commented !
-	/*QStringList e;
+	QStringList e;
 	if (expScheduler->isEmpty()) 
 	{
 		AbstractDepthMeter *abs_depthmeter = depthTemplate->getCurrentDepthMeter();
@@ -2200,7 +2232,7 @@ void MainWindow::startNMRTool(bool flag)
 		int ret = QMessageBox::warning(this, "Warning!", e.join("\n"), QMessageBox::Ok);	
 		return;
 	}
-	*/
+	
 
 
 	data_set_windows.clear();
@@ -2209,7 +2241,8 @@ void MainWindow::startNMRTool(bool flag)
 	experiment_id++;
 	start_data_export = true;
 
-	QVector<uint8_t> proc_prg;
+	// Removed temporary
+	/*QVector<uint8_t> proc_prg;
 	QVector<uint8_t> proc_instr;
 	bool res = sequenceProc->getDSPPrg(proc_prg, proc_instr);
 	if (proc_prg.isEmpty() || !res) 
@@ -2224,9 +2257,14 @@ void MainWindow::startNMRTool(bool flag)
 
 	setCmdResult(DATA_PROC, ConnectionState::State_Connecting);	
 	nmrtoolLinker->applyProcPrg(proc_prg, proc_instr);
+	*/
 
+	emit sdsp_is_enabled(false);	// удалить, т.к. имеется в строке 2224 !
+		
 	delete save_data_file;
 	save_data_file = NULL;	
+
+	expScheduler->start();
 }
 
 void MainWindow::stopNMRTool(bool flag)
@@ -2239,6 +2277,7 @@ void MainWindow::stopNMRTool(bool flag)
 
 	setCmdResult(NMRTOOL_STOP, ConnectionState::State_Connecting);
 	nmrtoolLinker->stopNMRTool();
+	expScheduler->stop();
 }
 
 
@@ -2471,6 +2510,8 @@ void MainWindow::breakAllActions()
 
 	emit sdsp_is_enabled(true);			
 	sdsp_widget->adjustmentWasStarted(false);
+
+	expScheduler->stop();
 	
 	QApplication::restoreOverrideCursor();	
 }
@@ -4744,6 +4785,10 @@ void MainWindow::saveAllSettings()
 	
 	// SDSP settings
 	sdsp_widget->saveSettings();
+
+	// Depth meter, step motor COM port settings
+	saveCOMSettings(COM_Port_depth, "DepthMeter");
+	saveCOMSettings(COM_Port_stepmotor, "StepMotor");
 }
 
 void MainWindow::showPowerStatus(unsigned char pow_status)

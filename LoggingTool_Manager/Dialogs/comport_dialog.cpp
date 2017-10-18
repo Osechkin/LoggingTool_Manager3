@@ -38,9 +38,9 @@ COMPortDialog::COMPortDialog(QString _port, PortSettings _settings, bool _auto_s
 #if defined(Q_OS_WIN)
     st_bits << "1" << "1.5" << "2";       // FOR WINDOWS
     cboxStopBits->addItems(st_bits);
-    if (COM_Settings.DataBits == STOP_1) cboxStopBits->setCurrentIndex(0);
-    else if (COM_Settings.DataBits == STOP_1_5) cboxStopBits->setCurrentIndex(1);
-    else if (COM_Settings.DataBits == STOP_2) cboxStopBits->setCurrentIndex(2);
+    if (COM_Settings.StopBits == STOP_1) cboxStopBits->setCurrentIndex(0);
+    else if (COM_Settings.StopBits == STOP_1_5) cboxStopBits->setCurrentIndex(1);
+    else if (COM_Settings.StopBits == STOP_2) cboxStopBits->setCurrentIndex(2);
 #else
     st_bits << "1" << "2";
     cboxStopBits->addItems(st_bits);

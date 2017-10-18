@@ -66,6 +66,7 @@ private:
 	void setConnections();
 	void initCOMSettings(COM_PORT *com_port);
 	void initCOMSettings(COM_PORT *com_port, QString objName);
+	void saveCOMSettings(COM_PORT *com_port, QString objName);
 	void initSaveDataAttrs();
 	void initDataTypes();
 	bool setupCOMPort(COM_PORT *com_port, QString _port_name);

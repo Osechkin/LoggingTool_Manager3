@@ -8,6 +8,8 @@
 #include "../LUSI/LUSI.h"
 
 
+#define		nan		std::numeric_limits<double>::quiet_NaN()
+
 namespace Scheduler
 {
 	enum Command { Exec_Cmd, DistanceRange_Cmd, SetPosition_Cmd, Loop_Cmd, Sleep_Cmd, End_Cmd, NoP_Cmd };
@@ -99,6 +101,8 @@ namespace Scheduler
 
 		void setBounds(QPair<double,double> bounds);
 		void setFromToStep(QPair<double,double> from_to, double _step);
+		double getNextPos();
+		void init() { pos = nan; finished = false; }
 		
 	public slots:
 		void changeFrom(double val);
@@ -112,6 +116,7 @@ namespace Scheduler
 		double upper_bound;		// in [cm]
 		double lower_bound;		// in [cm]
 		double pos;
+		bool finished;
 	};
 
 	class SetPosition : public SchedulerObject
@@ -141,9 +146,19 @@ namespace Scheduler
 		explicit Loop();
 		~Loop();
 
+		void init() { index = 0; finished = false; }
+
+		int getNextIndex()
+		{
+			if (index < counts) index++;
+			else finished = true;
+			return index;
+		}
+
 		int index;
 		int counts;
 		int lower_bound;
+		bool finished;
 
 	public slots:
 		void changeCounts(int val);		
@@ -213,6 +228,10 @@ namespace Scheduler
 		SchedulerObject* take(int index);
 		void clear();
 		void start() { cur_pos = 0; }
+		void stop() { cur_pos = -1; }
+		void setPos(int index) { cur_pos = index; }
+		void setPos(Scheduler::SchedulerObject* obj);
+		bool isEmpty() { return obj_list.isEmpty(); }
 		//void stop();
 		//void exec();
 		
@@ -220,6 +239,40 @@ namespace Scheduler
 		SchedulerObjList obj_list;
 		int cur_pos;
 	};
+
+	
+	class CommandController : public QObject
+	{
+		Q_OBJECT
+
+	public:
+		CommandController(int _cmd_uid)
+		{
+			cmd_uid = _cmd_uid;
+			repetitions = 0;
+			job_finished = false;			
+		}
+		~CommandController() { }
+
+		void quitThread() { emit quit_thread(); }
+		bool isFinished() { return job_finished; }		
+
+		void setCmdUid( int _uid) { cmd_uid = _uid; }
+		int getRepetitions() const { return repetitions; }
+		
+	public slots:
+		void processResult(bool flag, uint32_t _uid);
+
+	private:
+		bool job_finished;	// = true, если работа завершилась		
+		uint32_t cmd_uid;
+		int repetitions;	
+
+	signals:
+		void finished();
+		void quit_thread();
+	};
+	
 }
 
 

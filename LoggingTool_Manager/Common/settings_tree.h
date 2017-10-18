@@ -177,16 +177,16 @@ private:
 
 
 
-class CSpinBox : public QDoubleSpinBox
+class CDSpinBox : public QDoubleSpinBox
 {
     Q_OBJECT
 
 public:
-    CSpinBox(QWidget *parent = 0);
-    CSpinBox(double _val, QWidget *parent = 0);
-    CSpinBox(double _val, QString _name, QWidget *parent = 0);
-    CSpinBox(QSize _size, QWidget *parent = 0);
-    CSpinBox(double _val, QSize _size, QWidget *parent = 0);
+    CDSpinBox(QWidget *parent = 0);
+    CDSpinBox(double _val, QWidget *parent = 0);
+    CDSpinBox(double _val, QString _name, QWidget *parent = 0);
+    CDSpinBox(QSize _size, QWidget *parent = 0);
+    CDSpinBox(double _val, QSize _size, QWidget *parent = 0);
 
     QSize sizeHint() const;
     void setTextColor(QColor _color);
@@ -213,6 +213,45 @@ private:
     QColor text_Color;
     QColor background_Color;
     QColor alter_background_Color;
+};
+
+
+class CSpinBox : public QSpinBox
+{
+	Q_OBJECT
+
+public:
+	CSpinBox(QWidget *parent = 0);
+	CSpinBox(int _val, QWidget *parent = 0);
+	CSpinBox(int _val, QString _name, QWidget *parent = 0);
+	CSpinBox(QSize _size, QWidget *parent = 0);
+	CSpinBox(int _val, QSize _size, QWidget *parent = 0);
+
+	QSize sizeHint() const;
+	void setTextColor(QColor _color);
+	void setBackgroundColor(QColor _color);
+	void setAlterBackgroundColor(QColor _color);
+	void repaintAll();
+
+	void setFrameWidth(int _val);
+	void setFrameHeight(int _val);
+	void setFrameSize(QSize _size);
+
+	QColor getTextColor() { return text_Color; }
+	QColor getBackgroundColor() { return background_Color; }
+	QColor getAlterBackgroundColor() { return alter_background_Color; }
+
+	int getFrameWidth() { return frame_width; }
+	int getFrameHeight() { return frame_height; }
+	QSize getFrameSize() { return QSize(frame_width, frame_height); }
+
+private:
+	int frame_width;
+	int frame_height;
+
+	QColor text_Color;
+	QColor background_Color;
+	QColor alter_background_Color;
 };
 
 

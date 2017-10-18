@@ -518,7 +518,7 @@ void CComboBox::repaintAll()
 
 
 
-CSpinBox::CSpinBox(QWidget *parent)
+CDSpinBox::CDSpinBox(QWidget *parent)
 {
     this->setParent(parent);
     //this->setStyle(new QPlastiqueStyle);
@@ -535,7 +535,7 @@ CSpinBox::CSpinBox(QWidget *parent)
     repaintAll();
 }
 
-CSpinBox::CSpinBox(double _val, QWidget *parent)
+CDSpinBox::CDSpinBox(double _val, QWidget *parent)
 {
     this->setParent(parent);
     //this->setStyle(new QPlastiqueStyle);
@@ -557,7 +557,7 @@ CSpinBox::CSpinBox(double _val, QWidget *parent)
     repaintAll();
 }
 
-CSpinBox::CSpinBox(double _val, QString _name, QWidget *parent)
+CDSpinBox::CDSpinBox(double _val, QString _name, QWidget *parent)
 {
     this->setParent(parent);
     this->setObjectName(_name);
@@ -580,7 +580,7 @@ CSpinBox::CSpinBox(double _val, QString _name, QWidget *parent)
     repaintAll();
 }
 
-CSpinBox::CSpinBox(double _val, QSize _size, QWidget *parent)
+CDSpinBox::CDSpinBox(double _val, QSize _size, QWidget *parent)
 {
     this->setParent(parent);
     //this->setStyle(new QPlastiqueStyle);
@@ -602,7 +602,7 @@ CSpinBox::CSpinBox(double _val, QSize _size, QWidget *parent)
     repaintAll();
 }
 
-CSpinBox::CSpinBox(QSize _size, QWidget *parent)
+CDSpinBox::CDSpinBox(QSize _size, QWidget *parent)
 {
     this->setParent(parent);
     //this->setStyle(new QPlastiqueStyle);
@@ -622,52 +622,200 @@ CSpinBox::CSpinBox(QSize _size, QWidget *parent)
     repaintAll();
 }
 
-QSize CSpinBox::sizeHint() const
+QSize CDSpinBox::sizeHint() const
 {
     return QSize(frame_width, frame_height);
 }
 
-void CSpinBox::setFrameHeight(int _val)
+void CDSpinBox::setFrameHeight(int _val)
 {
     frame_height = _val;
 }
 
-void CSpinBox::setFrameWidth(int _val)
+void CDSpinBox::setFrameWidth(int _val)
 {
     frame_width = _val;
 }
 
-void CSpinBox::setFrameSize(QSize _size)
+void CDSpinBox::setFrameSize(QSize _size)
 {
     frame_width = _size.width();
     frame_height = _size.height();
 }
 
-void CSpinBox::setBackgroundColor(QColor _color)
+void CDSpinBox::setBackgroundColor(QColor _color)
 {
     background_Color = _color;
     repaintAll();
 }
 
-void CSpinBox::setAlterBackgroundColor(QColor _color)
+void CDSpinBox::setAlterBackgroundColor(QColor _color)
 {
     alter_background_Color = _color;
     repaintAll();
 }
 
-void CSpinBox::setTextColor(QColor _color)
+void CDSpinBox::setTextColor(QColor _color)
 {
     text_Color = _color;
     repaintAll();
 }
 
-void CSpinBox::repaintAll()
+void CDSpinBox::repaintAll()
 {
     QPalette palette;
     palette.setColor(QPalette::Text, text_Color);
     palette.setColor(QPalette::Base, background_Color);
     palette.setColor(QPalette::AlternateBase, alter_background_Color);
     setPalette(palette);
+}
+
+
+
+CSpinBox::CSpinBox(QWidget *parent)
+{
+	this->setParent(parent);
+	//this->setStyle(new QPlastiqueStyle);
+	this->setStyle(QStyleFactory::create("Fusion"));
+	this->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+	frame_height = 20;
+	frame_width = 70;
+
+	this->setFont(QFont("Arial", 10));	
+	this->setSingleStep(1.0);
+
+	repaintAll();
+}
+
+CSpinBox::CSpinBox(int _val, QWidget *parent)
+{
+	this->setParent(parent);
+	//this->setStyle(new QPlastiqueStyle);
+	this->setStyle(QStyleFactory::create("Fusion"));
+	this->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+	frame_height = 20;
+	frame_width = 70;
+
+	this->setFont(QFont("Arial", 10));
+
+	this->setSingleStep(1.0);
+
+	if (_val < this->minimum()) this->setMinimum(_val);
+	if (_val > this->maximum()) this->setMaximum(_val);
+	this->setValue(_val);
+
+	repaintAll();
+}
+
+CSpinBox::CSpinBox(int _val, QString _name, QWidget *parent)
+{
+	this->setParent(parent);
+	this->setObjectName(_name);
+	//this->setStyle(new QPlastiqueStyle);
+	this->setStyle(QStyleFactory::create("Fusion"));
+	this->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+	frame_height = 20;
+	frame_width = 70;
+
+	this->setFont(QFont("Arial", 10));
+
+	this->setSingleStep(1.0);
+
+	if (_val < this->minimum()) this->setMinimum(_val);
+	if (_val > this->maximum()) this->setMaximum(_val);
+	this->setValue(_val);
+
+	repaintAll();
+}
+
+CSpinBox::CSpinBox(int _val, QSize _size, QWidget *parent)
+{
+	this->setParent(parent);
+	//this->setStyle(new QPlastiqueStyle);
+	this->setStyle(QStyleFactory::create("Fusion"));
+	this->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+	frame_height = _size.height();
+	frame_width = _size.width();
+
+	this->setFont(QFont("Arial", 10));
+
+	this->setSingleStep(1.0);
+
+	if (_val < this->minimum()) this->setMinimum(_val);
+	if (_val > this->maximum()) this->setMaximum(_val);
+	this->setValue(_val);
+
+	repaintAll();
+}
+
+CSpinBox::CSpinBox(QSize _size, QWidget *parent)
+{
+	this->setParent(parent);
+	//this->setStyle(new QPlastiqueStyle);
+	this->setStyle(QStyleFactory::create("Fusion"));
+	this->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+	frame_height = _size.height();
+	frame_width = _size.width();
+
+	this->setSingleStep(1.0);
+
+	this->setFont(QFont("Arial", 10));
+	this->setSingleStep(1.0);
+
+	repaintAll();
+}
+
+QSize CSpinBox::sizeHint() const
+{
+	return QSize(frame_width, frame_height);
+}
+
+void CSpinBox::setFrameHeight(int _val)
+{
+	frame_height = _val;
+}
+
+void CSpinBox::setFrameWidth(int _val)
+{
+	frame_width = _val;
+}
+
+void CSpinBox::setFrameSize(QSize _size)
+{
+	frame_width = _size.width();
+	frame_height = _size.height();
+}
+
+void CSpinBox::setBackgroundColor(QColor _color)
+{
+	background_Color = _color;
+	repaintAll();
+}
+
+void CSpinBox::setAlterBackgroundColor(QColor _color)
+{
+	alter_background_Color = _color;
+	repaintAll();
+}
+
+void CSpinBox::setTextColor(QColor _color)
+{
+	text_Color = _color;
+	repaintAll();
+}
+
+void CSpinBox::repaintAll()
+{
+	QPalette palette;
+	palette.setColor(QPalette::Text, text_Color);
+	palette.setColor(QPalette::Base, background_Color);
+	palette.setColor(QPalette::AlternateBase, alter_background_Color);
+	setPalette(palette);
 }
 
 
@@ -944,10 +1092,31 @@ void CTreeWidgetItem::initObjects()
                 return;
             }            
         }
-        else if (c_settings[i].type == "spinbox")
-        {
-            CSpinBox *sbx = new CSpinBox(c_settings[i].value.toDouble());
+		else if (c_settings[i].type == "spinbox")
+		{
+			CSpinBox *sbx = new CSpinBox(c_settings[i].value.toDouble());
 			sbx->setObjectName(QString("spinbox%1").arg(obj_number++));
+			if (!c_settings[i].name.isEmpty()) sbx->setObjectName(sbx->objectName() + QString("_%1").arg(c_settings[i].name));
+			sbx->setToolTip(c_settings[i].hint);
+			sbx->setMinimum(c_settings[i].min_max.first);
+			sbx->setMaximum(c_settings[i].min_max.second);
+			sbx->setFont(c_settings[i].font);
+			sbx->setTextColor(c_settings[i].text_color);
+			sbx->setBackgroundColor(c_settings[i].background_color);
+			sbx->setAlterBackgroundColor(c_settings[i].alter_background_color);
+			sbx->setReadOnly(c_settings[i].read_only);
+			sbx->setFrameSize(QSize(c_settings[i].frame_width, c_settings[i].frame_height));
+			sub_twi->setIcon(i,c_settings[i].icon);
+
+			connect(sbx, SIGNAL(valueChanged(int)), this, SLOT(valueChanged(int)));
+			connect(sbx, SIGNAL(editingFinished()), this, SLOT(changingFinished()));
+
+			c_objects.append(sbx);
+		}
+        else if (c_settings[i].type == "dspinbox")
+        {
+            CDSpinBox *sbx = new CDSpinBox(c_settings[i].value.toDouble());
+			sbx->setObjectName(QString("dspinbox%1").arg(obj_number++));
 			if (!c_settings[i].name.isEmpty()) sbx->setObjectName(sbx->objectName() + QString("_%1").arg(c_settings[i].name));
 			sbx->setToolTip(c_settings[i].hint);
             sbx->setMinimum(c_settings[i].min_max.first);
@@ -987,7 +1156,10 @@ void CTreeWidgetItem::initObjects()
         }
         else if (c_settings[i].type == "combobox")
         {
-            QStringList list = c_settings[i].value.toString().split("|");
+			QString str_value = c_settings[i].value.toString();
+			str_value.remove('"');
+			str_value.remove('\'');
+            QStringList list = str_value.split("|");
             CComboBox *cbox = new CComboBox(list);
 			cbox->setObjectName(QString("combobox%1").arg(obj_number++));
 			if (!c_settings[i].name.isEmpty()) cbox->setObjectName(cbox->objectName() + QString("_%1").arg(c_settings[i].name));
@@ -1004,7 +1176,8 @@ void CTreeWidgetItem::initObjects()
         }
         else if (c_settings[i].type == "checkbox")
         {
-            CCheckBox *chbox = new CCheckBox(c_settings[i].value.toString());
+            //CCheckBox *chbox = new CCheckBox(c_settings[i].value.toString());
+			CCheckBox *chbox = new CCheckBox("");
 			chbox->setObjectName(QString("checkbox%1").arg(obj_number++));
 			if (!c_settings[i].name.isEmpty()) chbox->setObjectName(chbox->objectName() + QString("_%1").arg(c_settings[i].name));
             chbox->setFont(c_settings[i].font);
@@ -1045,7 +1218,8 @@ void CTreeWidgetItem::valueChanged(QString value)
 	CComboBox *ccbox = qobject_cast<CComboBox*>(sender());
 	if (ccbox) 
 	{
-		QVariant v_value = QVariant(value);
+		int index = ccbox->findText(value);
+		QVariant v_value = QVariant(index);
 		emit value_changed(qobject_cast<QObject*>(ccbox), v_value);
 		return;
 	}	
@@ -1060,10 +1234,7 @@ void CTreeWidgetItem::valueChanged(int value)
 		emit value_changed(qobject_cast<QObject*>(chbox), v_value);
 		return;
 	}
-}
-
-void CTreeWidgetItem::valueChanged(double value)
-{
+	
 	CSpinBox *sbox = qobject_cast<CSpinBox*>(sender());
 	if (sbox) 
 	{
@@ -1071,21 +1242,47 @@ void CTreeWidgetItem::valueChanged(double value)
 		emit value_changed(qobject_cast<QObject*>(sbox), v_value);
 		return;
 	}
+
+}
+
+void CTreeWidgetItem::valueChanged(double value)
+{
+	CDSpinBox *dsbox = qobject_cast<CDSpinBox*>(sender());
+	if (dsbox) 
+	{
+		QVariant v_value = QVariant(value);
+		emit value_changed(qobject_cast<QObject*>(dsbox), v_value);
+		return;
+	}
 }
 
 void CTreeWidgetItem::changingFinished()
 {
+	CDSpinBox *dsbox = qobject_cast<CDSpinBox*>(sender());
+	if (dsbox) 
+	{		
+		emit editing_finished(qobject_cast<QObject*>(dsbox));
+		return;
+	}
+	
 	CSpinBox *sbox = qobject_cast<CSpinBox*>(sender());
 	if (sbox) 
 	{		
 		emit editing_finished(qobject_cast<QObject*>(sbox));
 		return;
 	}
+
 }
 
 void CTreeWidgetItem::valueChanged(bool value)
 {
-	
+	/*CCheckBox *chbox = qobject_cast<CCheckBox*>(sender());
+	if (chbox) 
+	{
+		QVariant v_value = QVariant(value);
+		emit value_changed(qobject_cast<QObject*>(chbox), v_value);
+		return;
+	}*/
 }
 
 void CTreeWidgetItem::show()

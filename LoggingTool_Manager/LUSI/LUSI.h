@@ -198,7 +198,8 @@ namespace LUSI
 			ron = false;
 			app_value = (int)value; 
 			type = Definition::Parameter;
-			uitype = "spinbox";
+			uitype = "dspinbox";
+			str_value = "";
 		}
 		Parameter(QString _obj_name, QString _title) 
 		{ 
@@ -212,7 +213,8 @@ namespace LUSI
 			ron = false;
 			app_value = (int)value; 
 			type = Definition::Parameter;
-			uitype = "spinbox";
+			uitype = "dspinbox";
+			str_value = "";
 		}	
 		Parameter(QString _obj_name, QString _title, double _value) 
 		{ 
@@ -226,7 +228,8 @@ namespace LUSI
 			ron = false;
 			app_value = (int)value; 
 			type = Definition::Parameter;
-			uitype = "spinbox";
+			uitype = "dspinbox";
+			str_value = "";
 		}		
 
 	public slots:
@@ -263,6 +266,8 @@ namespace LUSI
 	public:
 		bool setField(QString _name, QString _value);
 		bool setField(QString _value, int _index);		
+		void setStrValue(QString _str_value) { str_value = _str_value; }
+		QString getStrValue() const { return str_value; }
 		
 	public:
 		QString title;			// Ќазвание параметра (отображаетс€ в виджете последовательностей) 
@@ -277,6 +282,7 @@ namespace LUSI
 	private:
 		double value;			// «начение параметра (отображаемое и редактируемое значение)
 		int app_value;			// «начение параметра, примен€емое в программах дл€ интервального программатора и сигнального процессора
+		QString str_value;		// —трокое значение параметра, примен€етс€ дл€ отображени€ значений, если параметр имеет тип ccombobox
 	};
 
 

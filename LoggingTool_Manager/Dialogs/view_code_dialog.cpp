@@ -64,6 +64,7 @@ void ViewCodeDialog::showLUSISeqProgram()
 	{
 		LUSI::ProcPackage *dsp_prg = lusi_seq->procdsp_list[i];
 		QString proc_dsp_name = dsp_prg->getTitle();
+		QString proc_dsp_id = QString::number(dsp_prg->getAppValue());
 
 		//QList<QVariantList> var_dsp_prg = lusi_seq->getVarProcProgram(i);
 		QString prg_str = procPrgToString(i);
@@ -73,7 +74,7 @@ void ViewCodeDialog::showLUSISeqProgram()
 
 		QString str_ = "";
 		if (view_bytecode) str_ = tr("<b>Byte-code:</b>");
-		QString table_header = QString("<table><tr bgcolor=""#DDA0DD""><td><b>Processing Package ('%1'):</b></td><td>%2</td></tr>").arg(proc_dsp_name).arg(str_); 
+		QString table_header = QString("<table><tr bgcolor=""#DDA0DD""><td><b>Processing Package ('%1, id = %2'):</b></td><td>%3</td></tr>").arg(proc_dsp_name).arg(proc_dsp_id).arg(str_); 
 		prg_str = "<tr><td>" + prg_str + "</td>" + "<td>" + bytecode_str + "</td>" + "</tr>";
 		QString table_footer = "</table>";
 		prg_str = table_header + prg_str + table_footer;
@@ -239,7 +240,7 @@ QString ViewCodeDialog::procPrgToByteCodeString(int index)
 
 	QString res = "";	
 	int cnt = 1;
-	int i = 0;
+	int i = 1;
 	while (i < _byte_vec.count())
 	{		
 		QString instr_str = QString::number(_byte_vec[i++], base).toUpper();		
@@ -298,6 +299,7 @@ QString ViewCodeDialog::procPrgToString(int index)
 	QString num_clr = "<font color=grey>";
 	QString mnem_clr = "<font color=darkgreen>";	
 	QString comma_clr = "<font color=black>";
+	QString service_clr = "<font color=blue>";
 	
 	QString res = "";
 	QStringList bytes;
@@ -312,19 +314,30 @@ QString ViewCodeDialog::procPrgToString(int index)
 		res += num_clr + QString::number(i+1) + ". </font>";
 		res += mnem_clr + instr_str + "</font>( ";
 
-		for (int j = 1; j < _var.count(); j++)
-		{			
-			uint8_t byte = _var[j].toUInt(&_ok);
-			if (_ok) byte_str = QString::number(byte, base).toUpper();	
-			if (j < _var.count()-1)
-			{
-				res += str_clr + pre + byte_str + "</font>" + comma_clr + ",</font>" + '\t';
-			}
-			else
-			{
-				res += str_clr + pre + byte_str + "</font> )";
-			}			
+		res += service_clr + _var[1].toString() + "</font>" + comma_clr + ", </font>";
+		res += service_clr + _var[2].toString() + "</font>";
+		if (_var.count() == 3)
+		{
+			res += str_clr + pre + byte_str + "</font> )";
 		}
+		else
+		{
+			res += comma_clr + ", </font>";
+			for (int j = 3; j < _var.count(); j++)
+			{			
+				int byte = _var[j].toInt(&_ok);
+				if (_ok) byte_str = QString::number(byte, base).toUpper();	
+				if (j < _var.count()-1)
+				{
+					res += str_clr + pre + byte_str + "</font>" + comma_clr + ",</font>" + '\t';
+				}
+				else
+				{
+					res += str_clr + pre + byte_str + "</font> )";
+				}			
+			}
+		}
+		
 		res += "<br>";
 		bytes.clear();
 	}

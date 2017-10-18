@@ -78,8 +78,8 @@ private:
 	bool distance_ok;
 	
 	bool is_connected;
-	bool is_started;
-	bool device_is_searching;
+	bool is_started;	
+	//bool device_is_searching;
 		
 
 private slots:
@@ -99,11 +99,13 @@ private slots:
 	void setNewStep(double val);
 
 public slots:
+	void setPosition(double pos);
 
 signals:
 	void to_measure(uint32_t, uint8_t);		
 	void connected(bool);
 	void set_from_to_step(double, double, double);
+	void cmd_resulted(bool, uint32_t);
 	//void new_data(double, double);		// first variable is new depth, second variable is new rate
 	
 };

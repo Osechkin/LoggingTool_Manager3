@@ -1629,8 +1629,21 @@ void SequenceWizard::showLUSISeqParameters()
 
 					QString ui_type = param->getUIType();
 					CSettings item_settings3(ui_type.toLower(), param->getValue());
+					if (ui_type.toLower() == "combobox") 
+					{
+						item_settings3.value = param->getStrValue();	
+						item_settings3.data_type = String_Data;
+					}
+					else if (ui_type.toLower() == "checkbox") 
+					{
+						item_settings3.check_state = param->getValue();	
+						item_settings3.data_type = Bool_Data;
+					}
+					else 
+					{
+						item_settings3.data_type = Double_Data;
+					}
 					QString str_minmax = QString("[ %1 ... %2 ]").arg(param->getMin()).arg(param->getMax());	
-					item_settings3.data_type = Double_Data;
 					item_settings3.hint = str_minmax;
 					double d_min = (double)param->getMin();
 					double d_max = (double)param->getMax();		
@@ -2652,7 +2665,7 @@ void SequenceWizard::paramValueChanged(QObject *obj, QVariant &value)
 					executeJSsequence();
 					showLUSISeqMemo();				
 
-					emit sequence_changed();					
+					emit sequence_changed();
 					return;
 				}
 			}
@@ -2661,9 +2674,16 @@ void SequenceWizard::paramValueChanged(QObject *obj, QVariant &value)
 			if (ccbox)
 			{
 				bool ok;
-				QString str_value = value.toString();
-				// ...
-				return;			
+				int index_value = value.toInt();
+
+				cur_param->setValue(index_value);
+				cur_param->exec(index_value);		// appValue = value
+
+				executeJSsequence();
+				showLUSISeqMemo();				
+
+				emit sequence_changed();
+				return;		
 			}
 
 			CCheckBox *chbox = qobject_cast<CCheckBox*>(obj);
@@ -2680,8 +2700,8 @@ void SequenceWizard::paramValueChanged(QObject *obj, QVariant &value)
 				return;
 			}
 
-			CSpinBox *csbox = qobject_cast<CSpinBox*>(obj);
-			if (csbox)
+			CDSpinBox *cdsbox = qobject_cast<CDSpinBox*>(obj);
+			if (cdsbox)
 			{
 				bool ok;
 				double d_value = value.toDouble(&ok);
@@ -2690,6 +2710,24 @@ void SequenceWizard::paramValueChanged(QObject *obj, QVariant &value)
 					cur_param->setValue(d_value);
 					cur_param->exec(d_value);		// appValue = value
 					
+					executeJSsequence();
+					showLUSISeqMemo();				
+
+					emit sequence_changed();					
+					return;
+				}
+			}
+
+			CSpinBox *csbox = qobject_cast<CSpinBox*>(obj);
+			if (csbox)
+			{
+				bool ok;
+				double i_value = value.toInt(&ok);
+				if (ok) 
+				{
+					cur_param->setValue(i_value);
+					cur_param->exec(i_value);		// appValue = value
+
 					executeJSsequence();
 					showLUSISeqMemo();				
 
@@ -2732,15 +2770,29 @@ void SequenceWizard::paramEditingFinished(QObject *obj)
 				return;			
 			}
 
-			CSpinBox *csbox = qobject_cast<CSpinBox*>(obj);
-			if (csbox)
+			CDSpinBox *cdsbox = qobject_cast<CDSpinBox*>(obj);
+			if (cdsbox)
 			{				
-				double d_value = csbox->value();					
+				double d_value = cdsbox->value();					
 				cur_param->setValue(d_value);
 								
 				executeJSsequence();
 				showLUSISeqMemo();				
 				
+				emit sequence_changed();
+
+				return;
+			}
+
+			CSpinBox *csbox = qobject_cast<CSpinBox*>(obj);
+			if (csbox)
+			{				
+				int i_value = csbox->value();					
+				cur_param->setValue(i_value);
+
+				executeJSsequence();
+				showLUSISeqMemo();				
+
 				emit sequence_changed();
 
 				return;

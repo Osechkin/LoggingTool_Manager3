@@ -15,6 +15,7 @@
 #include "../Common/experiment_scheduler.h"
 #include "../Wizards/depth_template_wizard.h"
 #include "../Wizards/sequence_wizard.h"
+#include "../Wizards/nmrtool_connect_wizard.h"
 
 #include "ui_scheduler_wizard.h"
 
@@ -25,16 +26,18 @@ class SchedulerWizard : public QWidget, public Ui::SchedulerWizard
 	Q_OBJECT
 
 public:
-	SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, QWidget *parent = 0);
+	SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, NMRToolLinker *nmrtool_wiz, Clocker *clocker, QWidget *parent = 0);
 	~SchedulerWizard();
 
 	Scheduler::Engine* getSchedulerEngine() { return &scheduler_engine; } 
-
-	bool scheduling(QStringList &e);
+		
 	bool generateDistanceScanPrg(QStringList &e);
 	bool generateExecPrg(QStringList &e);
 	bool isEmpty() { return scheduler_engine.getObjectList().isEmpty(); }
 	void clear() { removeAllItems(); }
+	bool scheduling(QStringList &e);
+	void start();
+	void stop();
 	
 public slots:
 	void setJSeqList(QStringList _jseq_list) { jseq_list = _jseq_list; }
@@ -60,6 +63,9 @@ private slots:
 	void removeAllItems();
 	void update();
 
+	void process();
+	void execute(Scheduler::SchedulerObject* obj);
+
 	void currentItemSelected(QModelIndex index1, QModelIndex index2);
 
 private:
@@ -68,6 +74,8 @@ private:
 	QSettings *app_settings;
 	DepthTemplateWizard *depth_wizard;
 	SequenceWizard *sequence_wizard;
+	NMRToolLinker *nmrtool_linker;
+	Clocker *clocker;
 
 	QList<QTreeWidgetItem*> tree_items;	
 		
@@ -81,6 +89,13 @@ private:
 	QString datafile_prefix;
 	QString datafile_postfix;
 	QString datafile_extension;
+
+	bool is_started;
+	Scheduler::CommandController *current_cmd;
+	Scheduler::SchedulerObjList obj_cmd_list;
+
+signals:
+	void finished();
 };
 
 #endif // SCHEDULER_WIZARD_H

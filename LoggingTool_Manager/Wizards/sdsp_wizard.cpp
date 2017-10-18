@@ -845,7 +845,7 @@ void SDSPWizard::showSeqParameters()
 		item_settings2.read_only = true;
 		item_settings2.set_frame = true;*/
 
-		CSettings item_settings3("spinbox", param->def_value);
+		CSettings item_settings3("dspinbox", param->def_value);
 		QString str_minmax = QString("[ %1 ... %2 ]").arg(param->min_value).arg(param->max_value);	
 		item_settings3.hint = str_minmax;
 		double d_min = (double)param->min_value;
@@ -1467,8 +1467,8 @@ void SDSPWizard::paramValueChanged(QObject *obj, QVariant &value)
 				emit sequence_changed();
 			}
 
-			CSpinBox *csbox = qobject_cast<CSpinBox*>(obj);
-			if (csbox)
+			CDSpinBox *cdsbox = qobject_cast<CDSpinBox*>(obj);
+			if (cdsbox)
 			{
 				bool ok;
 				int32_t i32_value = value.toInt(&ok);
@@ -1560,10 +1560,10 @@ void SDSPWizard::paramEditingFinished(QObject *obj)
 				return;			
 			}
 
-			CSpinBox *csbox = qobject_cast<CSpinBox*>(obj);
-			if (csbox)
+			CDSpinBox *cdsbox = qobject_cast<CDSpinBox*>(obj);
+			if (cdsbox)
 			{				
-				int32_t i32_value = csbox->value();					
+				int32_t i32_value = cdsbox->value();					
 				cur_param->def_value = i32_value;
 
 				for (int i = 0; i < curSeq.param_list.count(); i++)

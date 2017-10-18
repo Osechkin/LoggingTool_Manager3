@@ -38,9 +38,15 @@ s_delays.append(d_tau);
 @section s_probe = { "Probe" }
 
 @parameter p_probe = { "Probe Number", 1, 1, 3 }
+p_probe.uitype = "spinbox";
 p_probe.comment = "Number of NMR Probe";
 
+@parameter p_emul = { "Data Source", "Emulator|NMR Tool" }
+p_emul.comment = "Please, select the Source of NMR data"
+p_emul.uitype = "combobox"
+
 s_probe.append(p_probe);
+s_probe.append(p_emul);
 // *******************************************************************
 
 

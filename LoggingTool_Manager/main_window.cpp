@@ -569,6 +569,7 @@ void MainWindow::setConnections()
 	connect(msg_processor, SIGNAL(new_data(DeviceData*)), this, SLOT(treatNewData(DeviceData*)));
 	connect(msg_processor, SIGNAL(execute_cmd(DeviceData*)), com_commander, SLOT(addCmdToQueue(DeviceData*)));
 	connect(msg_processor, SIGNAL(power_status(unsigned char)), this, SLOT(showPowerStatus(unsigned char)));
+	connect(msg_processor, SIGNAL(fpga_seq_status(unsigned char)), expScheduler, SLOT(setSeqStatus(unsigned char)));
 	connect(msg_processor, SIGNAL(apply_tool_id(unsigned char)), this, SLOT(setToolId(unsigned char)));
 	
 	connect(nmrtoolLinker, SIGNAL(send_msg(DeviceData*, const QString&)), msg_processor, SLOT(sendMsg(DeviceData*, const QString&)));
@@ -591,6 +592,9 @@ void MainWindow::setConnections()
 
 	connect(sdsp_widget, SIGNAL(apply_sdsp_params(QVector<int>&)), this, SLOT(applySDSPParams(QVector<int>&)));
 	connect(sdsp_widget, SIGNAL(place_to_statusbar(QString&)), this, SLOT(placeInfoToStatusBar(QString&)));
+
+	connect(expScheduler, SIGNAL(finished()), this, SLOT(setExpSchedulerFinished()));
+	connect(expScheduler, SIGNAL(started()), this, SLOT(setExpSchedulerStarted()));
 
 	connect(clocker, SIGNAL(clock()), com_commander, SLOT(timeClocked()));	
 	connect(this, SIGNAL(stop_clocker()), clocker, SLOT(stopThread()));
@@ -2103,12 +2107,15 @@ void MainWindow::setSequenceStatus(SeqStatus status)
 	}
 }
 
-
-void MainWindow::controlSchedulerCmd()
+void MainWindow::setExpSchedulerFinished()
 {
-	
+	setCmdResult(NMRTOOL_STOP, ConnectionState::State_OK);
 }
 
+void MainWindow::setExpSchedulerStarted()
+{
+	setCmdResult(NMRTOOL_START, ConnectionState::State_OK);
+}
 
 void MainWindow::connectToNMRTool(bool flag)
 {		
@@ -2144,6 +2151,8 @@ void MainWindow::disconnectFromNMRTool()
 	experiment_timer.stop();
 	lblStartTime->setVisible(false);
 	lblDataCounter->setVisible(false);
+
+	expScheduler->stop();
 }
 
 /*
@@ -2210,7 +2219,8 @@ void MainWindow::startNMRTool(bool flag)
 		{
 			if (abs_depthmeter->getType() == AbstractDepthMeter::LeuzeDistanceMeter)	// if KERN is in use
 			{		
-				if (!expScheduler->generateDistanceScanPrg(e))
+				//if (!expScheduler->generateDistanceScanPrg(e))
+				if (!expScheduler->generateExecPrg(e))
 				{
 					int ret = QMessageBox::warning(this, tr("Warning!"), e.join("\n"), QMessageBox::Ok, QMessageBox::Ok);
 					return;
@@ -2312,11 +2322,11 @@ void MainWindow::applyWinFuncParams(QVector<int>& params)
 		int ret = QMessageBox::warning(this, "Warning!", tr("NMR Tool is not connected!"), QMessageBox::Ok);
 		return;
 	}
-	else if (nmrtoolLinker->getConnectionState() == ConnectionState::State_Connecting)
+	/*else if (nmrtoolLinker->getConnectionState() == ConnectionState::State_Connecting)
 	{
 		int ret = QMessageBox::warning(this, "Warning!", tr("NMR Tool is busy!"), QMessageBox::Ok);
 		return;
-	}
+	}*/
 
 	OscilloscopeWidget *widget = (OscilloscopeWidget*)sender();
 	if (widget)

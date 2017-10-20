@@ -112,7 +112,8 @@ signals:
 	void execute_cmd(DeviceData*);
 	void show_cmd_result(uint32_t, QString, QVariantList);	
 	void power_status(unsigned char);	
-	void finished();
+	void fpga_seq_status(unsigned char);	// proger sequence completed/not completed (1/0)
+	//void finished();
 	void send_to_cdiag(QVector<uint8_t>);
 	void apply_tool_id(unsigned char);
 	//void send_to_sdsp

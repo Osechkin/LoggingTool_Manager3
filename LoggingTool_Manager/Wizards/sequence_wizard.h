@@ -57,6 +57,7 @@ public:
 	//LUSI::Sequence *getCurrentSequence() { return &cur_lusi_Seq; }	
 	LUSI::Sequence* getCurrentSequence(); 
 	bool getDSPPrg(QVector<uint8_t> &_prg, QVector<uint8_t> &_instr);
+	bool getDSPPrg(QString &jseq_name, QVector<uint8_t> &_prg, QVector<uint8_t> &_instr);
 
 	bool compileSequence(const QString &text, QByteVector &instr_prg, QByteVector &comm_prg, QStringList &e);
 	bool executeJSsequence(const QString &text, QStringList &e);

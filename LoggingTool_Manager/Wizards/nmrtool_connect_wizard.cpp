@@ -185,7 +185,7 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 							emit place_to_statusbar(tr(" NMR Tool is started !"));
 							emit control_nmrtool(true);
 							emit start_experiment(true);
-							//emit cmd_resulted(true, _uid);
+							emit cmd_resulted(true, _uid);
 						}
 						else 
 						{
@@ -193,7 +193,7 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 							addText(report);	
 							connection_state = ConnectionState::State_No;
 							emit place_to_statusbar(tr(" Cannot start NMR Tool !"));
-							//emit cmd_resulted(false, _uid);
+							emit cmd_resulted(false, _uid);
 						}					
 					}
 					dev_data = msg_container.takeAt(i);

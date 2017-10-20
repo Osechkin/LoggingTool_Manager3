@@ -520,11 +520,23 @@ void MsgProcessor::receiveMsgFromCOMComander(COM_Message *_msg, uint32_t _uid)
 				}
 			case NMRTOOL_IS_READY:
 				{
+					// Биты состояния прибора в 5-ом байте служебного сообщения (BYTE1 - см. описание в message_class.h) о готовности прибора к сеансу связи:
+					// бит 0 - напряжение питания: 							0/1 - понижено / нормальное
+					// бит 1 - готовность телеметрии: 						0/1 - не готова / готова
+					// бит 2 - состояние программатора ПЛИС: 				0/1 - запущен командой proger_start() / остановлен командой proger_stop()
+					// бит 3 - состояние программы в программаторе ПЛИС: 	0/1 - исполняется / завершилась					
 					SmartArr arr = _msg->getMsgHeader()->getShortData();
 					unsigned char pow_status = (arr.data[1] & 0x1);
-					unsigned char telemetry_on = (arr.data[1] & 0x2); // see COMCommander::executeServiceMsg
+					unsigned char telemetry_on = (arr.data[1] & 0x2);		// see COMCommander::executeServiceMsg
+					unsigned char proger_started = (arr.data[1] & 0x4);		// интервальный программатор ПЛИС был запущен командой proger_start()
+					unsigned char seq_finished = (arr.data[1] & 0x8);		// закончилась или нет последовательность в программаторе ПЛИС командой COM_STOP
 					
 					emit power_status(pow_status);
+					emit fpga_seq_status(seq_finished);
+					if (seq_finished)
+					{
+						int tt = 0;
+					}
 					break;
 				}
 			default: 

@@ -185,15 +185,15 @@ void Scheduler::DistanceRange::changeStep(double val)
 
 double Scheduler::DistanceRange::getNextPos()
 {
-	if (pos != -pos) pos = from;
+	if (pos != pos) pos = from;
 	else if (from < to)
 	{
-		if (pos < to-step) pos += step;
+		if (pos <= to-step) pos += step;
 		else finished = true;
 	}
 	else if (from > to)
 	{
-		if (pos > from+step) pos -= step;
+		if (pos >= from+step) pos -= step;
 		else finished = true;
 	}
 
@@ -334,20 +334,30 @@ Scheduler::SchedulerObject* Scheduler::Engine::get(int index)
 			{
 				if (Scheduler::Loop *loop_obj = qobject_cast<Scheduler::Loop*>(end_obj->ref_obj))
 				{
-					if (loop_obj->finished) get(cur_pos++);
+					if (loop_obj->finished) 
+					{
+						obj = get(index+1);
+						cur_pos = index+1;
+					}
 					else 
 					{
 						setPos(loop_obj);
 						obj = loop_obj;
+						cur_pos++;
 					}
 				}
 				else if (Scheduler::DistanceRange *dist_range_obj = qobject_cast<Scheduler::DistanceRange*>(end_obj->ref_obj))
 				{
-					if (dist_range_obj->finished) get(cur_pos++);
+					if (dist_range_obj->finished) 
+					{
+						obj = get(index+1);
+						cur_pos = index+1;
+					}
 					else 
 					{
 						setPos(dist_range_obj);
 						obj = dist_range_obj;
+						cur_pos++;
 					}
 				}
 			}

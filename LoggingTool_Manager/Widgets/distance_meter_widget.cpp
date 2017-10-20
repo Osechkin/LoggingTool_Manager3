@@ -245,6 +245,8 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 
 void LeuzeDistanceMeterWidget::setPosition(double pos)
 {
+	if (pos == distance) emit cmd_resulted(true, 0); // if position is ready reached
+
 	if (!is_connected) 
 	{
 		connectAllMeters(true);
@@ -278,6 +280,8 @@ void LeuzeDistanceMeterWidget::setPosition(double pos)
 		ui->pbtBack->setChecked(false);
 		ui->pbtForward->setChecked(false);
 		ui->pbtSet->setChecked(false);
+
+		emit cmd_resulted(true, 0);
 	}
 }
 
@@ -527,7 +531,8 @@ void LeuzeDistanceMeterWidget::connectAllMeters(bool flag)
 		if (stepmotor_COM_Port->COM_port != NULL) 
 		{
 			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
-			stepmotor_COM_Port->COM_port->close();		
+			stepmotor_COM_Port->COM_port->close();	
+			emit cmd_resulted(false, 0);				// inform expScheduler
 		}
 
 		if (leuze_communicator != NULL)
@@ -656,6 +661,7 @@ void LeuzeDistanceMeterWidget::connectAllMeters(bool flag)
 void LeuzeDistanceMeterWidget::showErrorMsg(QString msg)
 {
 	stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
+	emit cmd_resulted(false, 0);				// Inform expScheduler  
 
 	QPalette palette; 
 	palette.setColor(QPalette::Base,Qt::red);
@@ -687,6 +693,8 @@ void LeuzeDistanceMeterWidget::getMeasuredData(uint32_t _uid, uint8_t _type, dou
 		stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
 		ui->pbtBack->setChecked(false);
 		ui->pbtForward->setChecked(false);
+
+		emit cmd_resulted(true, 0);
 	}
 	else distance_ok = true;
 

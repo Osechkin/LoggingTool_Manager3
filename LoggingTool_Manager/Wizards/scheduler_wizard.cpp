@@ -5,6 +5,12 @@
 #include <QDoubleSpinBox>
 #include <QDir>
 
+//#include <iostream>
+//#include <Windows.h>
+//#include <stdlib.h>
+
+#include "../Communication/message_class.h"
+
 #include "scheduler_wizard.h"
 
 
@@ -79,6 +85,8 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, D
 	connect(a_sleep, SIGNAL(triggered()), this, SLOT(addItem()));
 	connect(ui->tbtRemove, SIGNAL(clicked()), this, SLOT(removeItem()));
 	connect(a_remove_all, SIGNAL(triggered()), this, SLOT(removeAllItems()));
+
+	crc16_last_jseq = 0xFFFF;
 }
 
 SchedulerWizard::~SchedulerWizard()
@@ -210,6 +218,7 @@ void SchedulerWizard::start()
 	ui->tbtAdd->setEnabled(false);
 	ui->tbtRemove->setEnabled(false);
 	ui->tbtOpen->setEnabled(false);
+	ui->treeWidgetParam->setEnabled(false);
 
 	is_started = true;
 	scheduler_engine.start();
@@ -220,6 +229,10 @@ void SchedulerWizard::start()
 	}
 	obj_cmd_list.clear();
 	connect(clocker, SIGNAL(clock()), this, SLOT(process()));	
+	
+	crc16_last_jseq = 0xFFFF;
+
+	emit started();
 }
 
 void SchedulerWizard::stop()
@@ -227,6 +240,7 @@ void SchedulerWizard::stop()
 	ui->tbtAdd->setEnabled(true);
 	ui->tbtRemove->setEnabled(true);
 	ui->tbtOpen->setEnabled(true);
+	ui->treeWidgetParam->setEnabled(true);
 
 	disconnect(clocker, SIGNAL(clock()), this, SLOT(process()));
 	scheduler_engine.stop();
@@ -252,19 +266,25 @@ void SchedulerWizard::process()
 		return;
 	}
 
-	if (obj_cmd_list.isEmpty() && is_started)
+	if (obj_cmd_list.isEmpty() && is_started && current_cmd == NULL) 
 	{
 		Scheduler::SchedulerObject *cmd_obj = scheduler_engine.next();
 		if (!cmd_obj) 
 		{
 			is_started = false;
+			stop();
 			emit finished();
+			return;
 		}
 
 		Scheduler::Command cmd_type = cmd_obj->type;
 		switch (cmd_type)
 		{
-		case Scheduler::Exec_Cmd:			obj_cmd_list.append(cmd_obj); break;
+		case Scheduler::Exec_Cmd:			
+			{
+				obj_cmd_list.append(cmd_obj); 
+				break;
+			}
 		case Scheduler::SetPosition_Cmd:	obj_cmd_list.append(cmd_obj); break;
 		case Scheduler::Sleep_Cmd:			obj_cmd_list.append(cmd_obj); break;
 		case Scheduler::DistanceRange_Cmd:	
@@ -273,7 +293,7 @@ void SchedulerWizard::process()
 				if (dist_obj)
 				{
 					dist_obj->getNextPos();					
-					obj_cmd_list.append(dist_obj); 					
+					if (!dist_obj->finished) obj_cmd_list.append(dist_obj); 					
 				}
 				break;
 			}		
@@ -283,7 +303,7 @@ void SchedulerWizard::process()
 				if (loop_obj)
 				{
 					loop_obj->getNextIndex();
-					obj_cmd_list.append(loop_obj); 
+					if (!loop_obj->finished) obj_cmd_list.append(loop_obj); 
 				}
 				break;				
 			}
@@ -320,7 +340,7 @@ void SchedulerWizard::process()
 		}
 		
 	}		
-	else if (!obj_cmd_list.isEmpty() && is_started)
+	else if (!obj_cmd_list.isEmpty() && is_started && current_cmd == NULL)
 	{
 		Scheduler::SchedulerObject *cmd_obj = obj_cmd_list.front();
 		obj_cmd_list.takeFirst();
@@ -334,14 +354,39 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 	{
 	case Scheduler::Exec_Cmd:
 		{
-			QVector<uint8_t> proc_prg;
-			QVector<uint8_t> proc_instr;
-			bool res = sequence_wizard->getDSPPrg(proc_prg, proc_instr);
-			nmrtool_linker->applyProcPrg(proc_prg, proc_instr);		
-			uint32_t uid = nmrtool_linker->getMsgContainer()->last()->uid;
+			Scheduler::Exec *exec_obj = qobject_cast<Scheduler::Exec*>(obj);
+			if (exec_obj)
+			{
+				QString jseq_name = exec_obj->jseq_name;
 
-			current_cmd = new Scheduler::CommandController(uid);			
-			connect(nmrtool_linker, SIGNAL(cmd_resulted(bool, uint32_t)), current_cmd, SLOT(processResult(bool, uint32_t)));
+				QVector<uint8_t> proc_prg;
+				QVector<uint8_t> proc_instr;
+				bool res = sequence_wizard->getDSPPrg(jseq_name, proc_prg, proc_instr);
+				
+				int full_len = proc_prg.count() + proc_instr.count();
+				QVector<uint8_t> jseq_arr(full_len);
+				memcpy(jseq_arr.data(), proc_prg.data(), proc_prg.count());
+				memcpy(jseq_arr.data()+proc_prg.count(), proc_instr.data(), proc_instr.count());
+				unsigned int crc16_jseq = Crc16(jseq_arr.data(), full_len);
+				if (crc16_jseq != crc16_last_jseq)
+				{
+					nmrtool_linker->applyProcPrg(proc_prg, proc_instr);		
+				}
+				else 
+				{
+					nmrtool_linker->startNMRTool();
+				}
+				crc16_last_jseq = crc16_jseq;
+				
+				//bool res = sequence_wizard->getDSPPrg(proc_prg, proc_instr);
+				
+				//Sleep(500);
+				//nmrtool_linker->applyProcPrg(proc_prg, proc_instr);		
+				uint32_t uid = nmrtool_linker->getMsgContainer()->last()->uid;
+				current_cmd = new Scheduler::CommandController(uid);		
+				
+				//delete jseq_arr;
+			}
 			break;
 		}
 	case Scheduler::DistanceRange_Cmd:
@@ -356,7 +401,7 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 					{
 						if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
 						{
-							double pos = dist_range_obj->pos;
+							double pos = dist_range_obj->pos/100; // [cm] -> [m]
 							leuze_meter->setPosition(pos);
 
 							current_cmd = new Scheduler::CommandController(0);
@@ -379,7 +424,7 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 					{
 						if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
 						{
-							double pos = set_pos_obj->position;
+							double pos = set_pos_obj->position/100;	// [cm] -> [m]
 							leuze_meter->setPosition(pos);
 
 							current_cmd = new Scheduler::CommandController(0);
@@ -399,6 +444,17 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 	
 }
 
+
+void SchedulerWizard::setSeqStatus(unsigned char _seq_finished)
+{
+	if (_seq_finished)
+	{
+		if (current_cmd) 
+		{
+			current_cmd->processResult(true, 0);
+		}
+	}
+}
 
 bool SchedulerWizard::generateDistanceScanPrg(QStringList &e)
 {

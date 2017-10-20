@@ -44,6 +44,8 @@ public slots:
 	void setJSeqFile(const QString &_file_name) { jseq_file = _file_name; }
 	void setDataFile(const QString &_file_name) { data_file = _file_name; }
 
+	void setSeqStatus(unsigned char _seq_finished);
+
 protected:
 	bool eventFilter(QObject *obj, QEvent *event);
 	
@@ -93,9 +95,11 @@ private:
 	bool is_started;
 	Scheduler::CommandController *current_cmd;
 	Scheduler::SchedulerObjList obj_cmd_list;
+	unsigned int crc16_last_jseq;
 
 signals:
 	void finished();
+	void started();
 };
 
 #endif // SCHEDULER_WIZARD_H

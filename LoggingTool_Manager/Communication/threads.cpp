@@ -128,13 +128,7 @@ void COMCommander::run()
 		emit error_msg("Bad pointer to COM-port!");
 		return;
 	}
-	/*if (!COM_port->isOpen())
-	{
-		freeze();
-		emit error_msg("COM-port is closed!");
-		return;
-	}*/
-
+	
 	is_freezed = false;
 	is_running = true;
 
@@ -992,8 +986,22 @@ void COMCommander::executeServiceMsg(COM_Message *_msg)
 	SmartArr arr = _msg->getMsgHeader()->getShortData();
 	uint8_t comm = arr.data[0];	
 	uint8_t byte0 = arr.data[1];
+
+	// Биты состояния прибора в 5-ом байте служебного сообщения (arr.data[1] - в данном случае) о готовности прибора к сеансу связи:
+	// бит 0 - напряжение питания: 							0/1 - понижено / нормальное
+	// бит 1 - готовность телеметрии: 						0/1 - не готова / готова
+	// бит 2 - состояние программатора ПЛИС: 				0/1 - запущен командой proger_start() / остановлен командой proger_stop()
+	// бит 3 - состояние программы в программаторе ПЛИС: 	0/1 - исполняется / завершилась
 	bool telemetry_on = (byte0 & 0x2) > 0;
 	uint8_t incomming_id = _msg->getMsgHeader()->getSessionId();
+
+	unsigned char proger_started = (byte0 & 0x4);		// интервальный программатор ПЛИС был запущен командой proger_start()
+	unsigned char seq_finished = (byte0 & 0x8);		// закончилась или нет последовательность в программаторе ПЛИС командой COM_STOP
+	
+	//if (seq_finished || !proger_started) nmrtool_state = false;
+	//if (!proger_started) nmrtool_state = false;
+	nmrtool_state = proger_started;
+	//if (seq_finished) nmrtool_state = true;
 
 	switch (comm)
 	{
@@ -2357,70 +2365,6 @@ void CDiagCommunicator::establishDirectAccessToSDSP(bool flag)
 		
 	}
 }
-
-/*void CDiagCommunicator::calcClocks()
-{
-	clocks++;
-	if (clocks > CLOCK_PERIOD_COUNT) 
-	{
-		if (bytes_from_cdiag.count() < 3) 
-		{
-			clocks = 0;
-			return;
-		}
-	
-		QByteArray arr;
-		bool eod = false;
-		while (!eod && !bytes_from_cdiag.empty())
-		{
-			uint8_t byte0 = bytes_from_cdiag.first();
-			bytes_from_cdiag.pop_front();
-			if (byte0 != 0x06 && byte0 != 0x08 && byte0 != 0xC8 && byte0 != 0x88)
-			{
-				bytes_from_cdiag.clear();				
-				eod = true;
-			}
-			else if (byte0 == 0xC8 || byte0 == 0x88) 
-			{
-				QString out = "";
-				for (int i = 0; i < arr.size(); i++) out += QString::number(arr[i]) + " ";
-				qDebug() << QString("Send data to SDSP: %1").arg(out);
-				emit send_to_sdsp(arr);
-
-				arr.clear();
-				arr.push_back(byte0);
-				
-				out.clear();
-				out += QString::number(arr[0]);
-				qDebug() << QString("Request to SDSP: %1").arg(out);
-				emit send_to_sdsp(arr);
-
-				eod = true;
-			}
-			else if (bytes_from_cdiag.count() >= 2) 
-			{
-				arr.push_back(char(byte0));
-
-				uint8_t byte1 = bytes_from_cdiag.first();
-				bytes_from_cdiag.pop_front();
-				arr.push_back(char(byte1));
-
-				uint8_t byte2 = bytes_from_cdiag.first();
-				bytes_from_cdiag.pop_front();
-				arr.push_back(char(byte2));				
-			}			
-		}
-		if (!eod && !arr.isEmpty())
-		{
-			QString out = "";
-			for (int i = 0; i < arr.size(); i++) out += QString::number(arr[i]) + " ";
-			qDebug() << QString("Send data to SDSP: %1").arg(out);
-			emit send_to_sdsp(arr);
-		}
-		
-		clocks = 0;	
-	}	
-}*/
 
 void CDiagCommunicator::calcClocks()
 {

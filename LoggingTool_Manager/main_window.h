@@ -265,7 +265,8 @@ private slots:
 	void changeLoggingTool();
 	void setToolSettingsApplied(bool flag);
 
-	void controlSchedulerCmd();
+	void setExpSchedulerFinished();
+	void setExpSchedulerStarted();
 
 private:
 	void loadToolsSettings();

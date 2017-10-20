@@ -3002,6 +3002,47 @@ bool SequenceWizard::getDSPPrg(QVector<uint8_t> &_prg, QVector<uint8_t> &_instr)
 	return true;
 }
 
+bool SequenceWizard::getDSPPrg(QString &jseq_name, QVector<uint8_t> &_prg, QVector<uint8_t> &_instr)
+{
+	//LUSI::Sequence *cur_lusi_Seq = cur_jseq_object->lusi_Seq;
+	LUSI::Sequence *lusi_Seq = NULL;
+	for (int i = 0; i < jseq_objects.count(); i++)
+	{
+		JSeqObject *jseq_obj = jseq_objects.at(i);
+		lusi_Seq = jseq_obj->lusi_Seq;
+		if (lusi_Seq->file_name == jseq_name) break;
+	}
+	if (lusi_Seq == NULL) return false;
+
+	bool flag = true;
+	if (!lusi_Seq->seq_errors.isEmpty()) flag = false;
+	if (!lusi_Seq->comprg_errors.isEmpty()) flag = false;
+	if (!lusi_Seq->procdsp_errors.isEmpty()) flag = false;
+	if (!lusi_Seq->cond_errors.isEmpty()) flag = false;
+	if (!lusi_Seq->js_error.isEmpty()) flag = false;
+
+	if (!flag) return false;
+
+	_prg.clear();
+	QByteVector cmd_prg = lusi_Seq->com_programs.first();	// временно ! Принимается только первая программа для интервального программатора
+	if (cmd_prg.isEmpty()) return false;
+	_prg << cmd_prg;
+
+	_instr.clear();
+	if (lusi_Seq->proc_programs.isEmpty()) return false;
+	for (int i = 0; i < lusi_Seq->proc_programs.count(); i++)
+	{
+		QByteVector instr_pack = lusi_Seq->proc_programs[i];
+		_instr << instr_pack;
+		if (i < lusi_Seq->proc_programs.count()-1)
+		{
+			_instr.append(0xFF);
+		}
+	}
+
+	return true;
+}
+
 QString SequenceWizard::simplifyFormula(QString _formula, Sequence *_seq)
 {
 	QList<QPair<int,int> > list1;	

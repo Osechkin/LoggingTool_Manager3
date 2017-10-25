@@ -274,7 +274,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_expScheduler->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
 	expScheduler = new SchedulerWizard(app_settings, sequenceProc, depthTemplate, nmrtoolLinker, clocker, dock_expScheduler);	
 	expScheduler->setJSeqList(sequenceProc->getSeqFileList());
-	expScheduler->setJSeqFile(sequenceProc->getJSeqFile());
+	//expScheduler->setJSeqFile(sequenceProc->getJSeqFile());
 	dock_expScheduler->setWidget(expScheduler);    
 	addDockWidget(Qt::LeftDockWidgetArea, dock_expScheduler);	
 	
@@ -296,12 +296,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 			
 	this->tabifyDockWidget(dock_sdspProc, dock_expScheduler);
 	this->tabifyDockWidget(dock_expScheduler, dock_sequenceProc);
-	this->setTabPosition(Qt::LeftDockWidgetArea, QTabWidget::South);
+	this->setTabPosition(Qt::LeftDockWidgetArea, QTabWidget::North);
 	
 
 	relax_widget = new RelaxationWidget(ui->tabDataViewer, app_settings);
-	
-	osc_widget = new OscilloscopeWidget(ui->tabOscilloscope, app_settings);
+		
+	osc_widget = new OscilloscopeWidget(ui->tabOscilloscope, app_settings, tool_channels);
 	//ui->tabOscilloscope->setContentsMargins(1,1,1,1);
 
 	monitoring_widget = new MonitoringWidget(app_settings, ui->tabMonitoring);
@@ -1500,23 +1500,24 @@ void MainWindow::setToolChannels(QSettings *settings)
 		{
 			bool ok;
 			QString data_type = settings->value(channel_head + "/type").toString();
-			uint8_t channel_id = settings->value(channel_head + "/channel_id").toInt(&ok);
-			uint8_t frq_set_num = settings->value(channel_head + "/frq_set_num").toInt(&ok);
+			uint8_t channel_id = settings->value(channel_head + "/channel_id").toInt(&ok);			if (!ok) channel_id = 0;
+			uint8_t frq_set_num = settings->value(channel_head + "/frq_set_num").toInt(&ok);		if (!ok) frq_set_num = 0;
 			QString channel_name = settings->value(channel_head + "/descp").toString();
-			double depth_displ = settings->value(channel_head + "/depth_displ").toDouble(&ok);
-			double norm_coef1 = settings->value(channel_head + "/normalize_coef1").toDouble(&ok);
-			double norm_coef2 = settings->value(channel_head + "/normalize_coef2").toDouble(&ok);
-			double meas_frq = settings->value(channel_head + "/meas_frq").toDouble(&ok);	
-			uint32_t addr_rx = settings->value(channel_head + "/addr_rx").toInt(&ok);	
-			uint32_t addr_tx = settings->value(channel_head + "/addr_tx").toInt(&ok);	
-			uint32_t frq1 = settings->value(channel_head + "/frq1").toInt(&ok);	
-			uint32_t frq2 = settings->value(channel_head + "/frq2").toInt(&ok);
-			uint32_t frq3 = settings->value(channel_head + "/frq3").toInt(&ok);
-			uint32_t frq4 = settings->value(channel_head + "/frq4").toInt(&ok);
-			uint32_t frq5 = settings->value(channel_head + "/frq5").toInt(&ok);
-			uint32_t frq6 = settings->value(channel_head + "/frq6").toInt(&ok);
+			double depth_displ = settings->value(channel_head + "/depth_displ").toDouble(&ok);		if (!ok) depth_displ = 0;
+			double norm_coef1 = settings->value(channel_head + "/normalize_coef1").toDouble(&ok);	if (!ok) norm_coef1 = 1;
+			double norm_coef2 = settings->value(channel_head + "/normalize_coef2").toDouble(&ok);	if (!ok) norm_coef2 = 1;
+			double meas_frq = settings->value(channel_head + "/meas_frq").toDouble(&ok);			if (!ok) meas_frq = 1;
+			double sample_frq = settings->value(channel_head + "/sample_frq").toDouble(&ok);		if (!ok) sample_frq = 1;
+			uint32_t addr_rx = settings->value(channel_head + "/addr_rx").toInt(&ok);				if (!ok) addr_rx = 0;
+			uint32_t addr_tx = settings->value(channel_head + "/addr_tx").toInt(&ok);				if (!ok) addr_tx = 0;	
+			uint32_t frq1 = settings->value(channel_head + "/frq1").toInt(&ok);						if (!ok) frq1 = 0;	
+			uint32_t frq2 = settings->value(channel_head + "/frq2").toInt(&ok);						if (!ok) frq2 = 0;
+			uint32_t frq3 = settings->value(channel_head + "/frq3").toInt(&ok);						if (!ok) frq3 = 0;
+			uint32_t frq4 = settings->value(channel_head + "/frq4").toInt(&ok);						if (!ok) frq4 = 0;
+			uint32_t frq5 = settings->value(channel_head + "/frq5").toInt(&ok);						if (!ok) frq5 = 0;
+			uint32_t frq6 = settings->value(channel_head + "/frq6").toInt(&ok);						if (!ok) frq6 = 0;
 			
-			ToolChannel *channel = new ToolChannel(channel_id, data_type, frq_set_num, channel_name, depth_displ, norm_coef1, norm_coef2, meas_frq, addr_rx, addr_tx, frq1, frq2, frq3, frq4, frq5, frq6);
+			ToolChannel *channel = new ToolChannel(channel_id, data_type, frq_set_num, channel_name, depth_displ, norm_coef1, norm_coef2, meas_frq, sample_frq, addr_rx, addr_tx, frq1, frq2, frq3, frq4, frq5, frq6);
 			tool_channels.append(channel);
 		}
 		else finish = true;		
@@ -2828,39 +2829,39 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		QString ds_name_base = "";
 		switch (comm_id)
 		{
-		case DT_SGN_SE_ORG:			ds_name_base = "nmr_echo_sgn#%1"; break;
-		case DT_NS_SE_ORG:			ds_name_base = "nmr_echo_noise#%1"; break;
-		case DT_SGN_FID_ORG:		ds_name_base = "nmr_fid_sgn#%1"; break;
-		case DT_NS_FID_ORG:			ds_name_base = "nmr_fid_noise#%1"; break;
-		case DT_SGN_SE:				ds_name_base = "nmr_echo_sgn#%1"; break;
-		case DT_NS_SE:				ds_name_base = "nmr_echo_noise#%1"; break;
-		case DT_NS_QUAD_FID_RE:		ds_name_base = "nmr_fid_noise_re#%1"; break;
-		case DT_NS_QUAD_FID_IM:		ds_name_base = "nmr_fid_noise_im#%1"; break;
-		case DT_NS_QUAD_SE_RE:		ds_name_base = "nmr_se_noise_re#%1"; break;
-		case DT_NS_QUAD_SE_IM:		ds_name_base = "nmr_se_noise_im#%1"; break;
-		case DT_SGN_QUAD_FID_RE:	ds_name_base = "nmr_fid_sgn_re#%1"; break;
-		case DT_SGN_QUAD_FID_IM:	ds_name_base = "nmr_fid_sgn_im#%1"; break;
-		case DT_SGN_QUAD_SE_RE:		ds_name_base = "nmr_se_sgn_re#%1"; break;
-		case DT_SGN_QUAD_SE_IM:		ds_name_base = "nmr_se_sgn_im#%1"; break;
-		case DT_NS_FFT_FID_RE:		ds_name_base = "nmr_fid_noise_re#%1"; break;
-		case DT_NS_FFT_SE_RE:		ds_name_base = "nmr_se_noise_re#%1"; break;
-		case DT_SGN_FFT_FID_RE:		ds_name_base = "nmr_fid_sgn_re#%1"; break;
-		case DT_SGN_FFT_SE_RE:		ds_name_base = "nmr_se_sgn_re#%1"; break;
-		case DT_NS_FFT_FID_IM:		ds_name_base = "nmr_fid_noise_im#%1"; break;
-		case DT_NS_FFT_SE_IM:		ds_name_base = "nmr_se_noise_im#%1"; break;
-		case DT_SGN_FFT_FID_IM:		ds_name_base = "nmr_fid_sgn_im#%1"; break;
-		case DT_SGN_FFT_SE_IM:		ds_name_base = "nmr_se_sgn_im#%1"; break;
+		case DT_SGN_SE_ORG:			ds_name_base = "nmr_echo_sgn%1#%2"; break;
+		case DT_NS_SE_ORG:			ds_name_base = "nmr_echo_noise%1#%2"; break;
+		case DT_SGN_FID_ORG:		ds_name_base = "nmr_fid_sgn%1#%2"; break;
+		case DT_NS_FID_ORG:			ds_name_base = "nmr_fid_noise%1#%2"; break;
+		case DT_SGN_SE:				ds_name_base = "nmr_echo_sgn%1#%2"; break;
+		case DT_NS_SE:				ds_name_base = "nmr_echo_noise%1#%2"; break;
+		case DT_NS_QUAD_FID_RE:		ds_name_base = "nmr_fid_noise_re%1#%2"; break;
+		case DT_NS_QUAD_FID_IM:		ds_name_base = "nmr_fid_noise_im%1#%2"; break;
+		case DT_NS_QUAD_SE_RE:		ds_name_base = "nmr_se_noise_re%1#%2"; break;
+		case DT_NS_QUAD_SE_IM:		ds_name_base = "nmr_se_noise_im%1#%2"; break;
+		case DT_SGN_QUAD_FID_RE:	ds_name_base = "nmr_fid_sgn_re%1#%2"; break;
+		case DT_SGN_QUAD_FID_IM:	ds_name_base = "nmr_fid_sgn_im%1#%2"; break;
+		case DT_SGN_QUAD_SE_RE:		ds_name_base = "nmr_se_sgn_re%1#%2"; break;
+		case DT_SGN_QUAD_SE_IM:		ds_name_base = "nmr_se_sgn_im%1#%2"; break;
+		case DT_NS_FFT_FID_RE:		ds_name_base = "nmr_fid_noise_re%1#%2"; break;
+		case DT_NS_FFT_SE_RE:		ds_name_base = "nmr_se_noise_re%1#%2"; break;
+		case DT_SGN_FFT_FID_RE:		ds_name_base = "nmr_fid_sgn_re%1#%2"; break;
+		case DT_SGN_FFT_SE_RE:		ds_name_base = "nmr_se_sgn_re%1#%2"; break;
+		case DT_NS_FFT_FID_IM:		ds_name_base = "nmr_fid_noise_im%1#%2"; break;
+		case DT_NS_FFT_SE_IM:		ds_name_base = "nmr_se_noise_im%1#%2"; break;
+		case DT_SGN_FFT_FID_IM:		ds_name_base = "nmr_fid_sgn_im%1#%2"; break;
+		case DT_SGN_FFT_SE_IM:		ds_name_base = "nmr_se_sgn_im%1#%2"; break;
 		case DT_SGN_RELAX:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
 		case DT_SGN_RELAX2:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
 		case DT_SGN_RELAX3:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
-		case DT_SGN_POWER_SE:		ds_name_base = "nmr_se_power_sgn#%1"; break;
-		case DT_SGN_POWER_FID:		ds_name_base = "nmr_fft_power_sgn#%1"; break;
-		case DT_NS_POWER_SE:		ds_name_base = "nmr_se_power_ns#%1"; break;
-		case DT_NS_POWER_FID:		ds_name_base = "nmr_fft_power_ns#%1"; break;
-		case DT_SGN_FFT_FID_AM:		ds_name_base = "nmr_fid_sgn_ampl#%1"; break;
-		case DT_NS_FFT_FID_AM:		ds_name_base = "nmr_fid_ns_ampl#%1"; break;
-		case DT_SGN_FFT_SE_AM:		ds_name_base = "nmr_se_sgn_ampl#%1"; break;
-		case DT_NS_FFT_SE_AM:		ds_name_base = "nmr_se_ns_ampl#%1"; break;
+		case DT_SGN_POWER_SE:		ds_name_base = "nmr_se_power_sgn%1#%2"; break;
+		case DT_SGN_POWER_FID:		ds_name_base = "nmr_fft_power_sgn%1#%2"; break;
+		case DT_NS_POWER_SE:		ds_name_base = "nmr_se_power_ns%1#%2"; break;
+		case DT_NS_POWER_FID:		ds_name_base = "nmr_fft_power_ns%1#%2"; break;
+		case DT_SGN_FFT_FID_AM:		ds_name_base = "nmr_fid_sgn_ampl%1#%2"; break;
+		case DT_NS_FFT_FID_AM:		ds_name_base = "nmr_fid_ns_ampl%1#%2"; break;
+		case DT_SGN_FFT_SE_AM:		ds_name_base = "nmr_se_sgn_ampl%1#%2"; break;
+		case DT_NS_FFT_SE_AM:		ds_name_base = "nmr_se_ns_ampl%1#%2"; break;
 		case DT_GAMMA:				ds_name_base = "gamma%1#%2"; break;
 		case DT_DIEL:				ds_name_base = "dielectric%1#%2"; break;
 		case DT_DIEL_ADJUST:		ds_name_base = "dielectric_adjust%1#%2"; break;
@@ -3104,6 +3105,15 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				int full_size = 0;
 				int data_index = 0;
 				uint8_t channel_data_id = fields->at(i)->channel;
+				double NMR_SAMPLE_FREQ = 4*250000;
+				if (channel_data_id >= 0 || channel_data_id < tool_channels.count())
+				{
+					if (tool_channels[channel_data_id]->sample_freq > 1) 
+					{
+						NMR_SAMPLE_FREQ = tool_channels[channel_data_id]->sample_freq;
+					}
+				}
+				
 				for (int j = 0; j < x_data->size(); j++) 
 				{				
 					full_size++;
@@ -3127,7 +3137,7 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				y_data->resize(data_index);
 				
 				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
+				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
 				ds->setInitialDataSize(full_size);	
 				ds->setChannelId(channel_data_id);
 				//double x_displ = getDepthDisplacement(comm_id, tool_channels);
@@ -3148,6 +3158,15 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				int full_size = 0;
 				int data_index = 0;
 				uint8_t channel_data_id = fields->at(i)->channel;
+				double NMR_SAMPLE_FREQ = 4*250000;
+				if (channel_data_id >= 0 || channel_data_id < tool_channels.count())
+				{
+					if (tool_channels[channel_data_id]->sample_freq > 1) 
+					{
+						NMR_SAMPLE_FREQ = tool_channels[channel_data_id]->sample_freq;
+					}
+				}
+
 				for (int j = 0; j < x_data->size(); j++) 
 				{				
 					full_size++;
@@ -3195,6 +3214,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		case DT_SGN_QUAD_FID_IM:		
 		case DT_SGN_QUAD_SE_IM:		
 			{		
+				uint8_t channel_data_id = fields->at(i)->channel;
+				double NMR_SAMPLE_FREQ = 4*250000;
+				if (channel_data_id >= 0 || channel_data_id < tool_channels.count())
+				{
+					if (tool_channels[channel_data_id]->sample_freq > 1) 
+					{
+						NMR_SAMPLE_FREQ = tool_channels[channel_data_id]->sample_freq;
+					}
+				}
+
 				int full_size = 0;
 				int data_index = 0;
 				for (int j = 0; j < x_data->size(); j++) 
@@ -3220,8 +3249,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				y_data->resize(data_index);
 
 				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);				
+				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
+				ds->setInitialDataSize(full_size);		
+				ds->setChannelId(channel_data_id);
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
@@ -3239,9 +3269,19 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		case DT_NS_FFT_SE_IM:
 		case DT_SGN_FFT_FID_IM:
 		case DT_SGN_FFT_SE_IM:
-			{				
+			{			
 				int full_size = 0;
 				int data_index = 0;
+				uint8_t channel_data_id = fields->at(i)->channel;
+				double NMR_SAMPLE_FREQ = 4*250000;
+				if (channel_data_id >= 0 || channel_data_id < tool_channels.count())
+				{
+					if (tool_channels[channel_data_id]->sample_freq > 1) 
+					{
+						NMR_SAMPLE_FREQ = tool_channels[channel_data_id]->sample_freq;
+					}
+				}
+
 				for (int j = 0; j < x_data->size(); j++) 
 				{
 					full_size++;
@@ -3265,8 +3305,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				y_data->resize(data_index);
 
 				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
-				ds->setInitialDataSize(full_size);				
+				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
+				ds->setInitialDataSize(full_size);		
+				ds->setChannelId(channel_data_id);
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
@@ -3284,6 +3325,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				// построение данных на графике Data Preview...		
 				int full_size = 0;
 				int data_index = 0;
+				uint8_t channel_data_id = fields->at(i)->channel;
+				double NMR_SAMPLE_FREQ_HALF = 2*250000;
+				if (channel_data_id >= 0 || channel_data_id < tool_channels.count())
+				{
+					if (tool_channels[channel_data_id]->sample_freq > 1) 
+					{
+						NMR_SAMPLE_FREQ_HALF = tool_channels[channel_data_id]->sample_freq/2;
+					}
+				}
+
 				for (int j = 0; j < x_data->size(); j++) 
 				{		
 					full_size++;
@@ -3307,8 +3358,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				y_data->resize(data_index);
 
 				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
+				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
 				ds->setInitialDataSize(full_size);
+				ds->setChannelId(channel_data_id);
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
@@ -3326,6 +3378,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				// построение данных на графике Data Preview...		
 				int full_size = 0;
 				int data_index = 0;
+				uint8_t channel_data_id = fields->at(i)->channel;
+				double NMR_SAMPLE_FREQ_HALF = 2*250000;
+				if (channel_data_id >= 0 || channel_data_id < tool_channels.count())
+				{
+					if (tool_channels[channel_data_id]->sample_freq > 1) 
+					{
+						NMR_SAMPLE_FREQ_HALF = tool_channels[channel_data_id]->sample_freq;
+					}
+				}
+
 				for (int j = 0; j < x_data->size(); j++) 
 				{
 					full_size++;
@@ -3349,8 +3411,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				y_data->resize(data_index);
 
 				static int num_data = 0;
-				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
+				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
 				ds->setInitialDataSize(full_size);
+				ds->setChannelId(channel_data_id);
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
@@ -4404,6 +4467,7 @@ void MainWindow::plotLoggingData(DataSets &_dss)
 	logging_widget->addDataSets(_dss);
 }
 
+/*
 void MainWindow::generateXData(const uint8_t cmd_id, QVector<double> *x_data)
 {
 	switch (cmd_id)
@@ -4496,6 +4560,7 @@ void MainWindow::generateXData(const uint8_t cmd_id, QVector<double> *x_data)
 	default: break;
 	}		
 }
+*/
 
 bool MainWindow::doQualityControl(QVector<double> *vec)
 {

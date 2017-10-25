@@ -76,7 +76,7 @@ private:
 	void initSettingsBar();
 	void clearStartExperimentData();
 	void initStatusBar();	// инициализировать StatusBar
-	void generateXData(const uint8_t cmd_id, QVector<double> *x_data);
+	//void generateXData(const uint8_t cmd_id, QVector<double> *x_data);
 	
 	void setSequenceStatus(SeqStatus status);
 

@@ -97,9 +97,10 @@ Scheduler::Exec::Exec(QStringList jseqs, QString jseq_file, QString _data_file)
 {
 	type = Scheduler::Exec_Cmd;			
 	jseq_list = jseqs;
-	jseq_name = jseq_file;
+	QFileInfo jseq_file_info(jseq_file);
+	jseq_name = jseq_file_info.fileName();
 	if (jseq_list.isEmpty()) jseq_name = "";
-	else if (!jseq_list.contains(jseq_file)) jseq_name = jseq_list.first();
+	else if (!jseq_list.contains(jseq_name)) jseq_name = jseq_list.first();
 
 	data_file = _data_file;
 	cell_text_template = QString("<font size=3><font color=darkgreen>EXEC </font>( '<font color=blue>%1</font>' )</font>");

@@ -41,7 +41,7 @@ public:
 	
 public slots:
 	void setJSeqList(QStringList _jseq_list) { jseq_list = _jseq_list; }
-	void setJSeqFile(const QString &_file_name) { jseq_file = _file_name; }
+	//void setJSeqFile(const QString &_file_name) { jseq_file = _file_name; }
 	void setDataFile(const QString &_file_name) { data_file = _file_name; }
 
 	void setSeqStatus(unsigned char _seq_finished);
@@ -84,7 +84,7 @@ private:
 	Scheduler::Engine scheduler_engine;
 
 	QStringList jseq_list;
-	QString jseq_file;
+	//QString jseq_file;
 	QString data_file;
 
 	QString datafile_path;

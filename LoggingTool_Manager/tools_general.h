@@ -29,8 +29,8 @@ struct ToolInfo
 };
 
 
-#define NMR_SAMPLE_FREQ			(4*250000)		// частота дискретизации АЦП прибора ЯМР
-#define NMR_SAMPLE_FREQ_HALF	(NMR_SAMPLE_FREQ/2)	// половина частоты дискретизации АЦП прибота ЯМР
+//#define NMR_SAMPLE_FREQ			(4*250000)		// частота дискретизации АЦП прибора ЯМР
+//#define NMR_SAMPLE_FREQ_HALF	(NMR_SAMPLE_FREQ/2)	// половина частоты дискретизации АЦП прибота ЯМР
 
 
 #define DU_DATA_LEN				45				// длина данных телеметрии (в байтах), получаемых из устройства DU

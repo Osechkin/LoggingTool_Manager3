@@ -485,6 +485,7 @@ bool SchedulerWizard::generateDistanceScanPrg(QStringList &e)
 	connect(dist_range_obj, SIGNAL(changed()), this, SLOT(update()));
 
 	data_file = generateDataFileName();
+	QString jseq_file = sequence_wizard->getCurJSeqObject()->jseq_file;
 	Scheduler::Exec *exec_obj = new Scheduler::Exec(jseq_list, jseq_file, data_file);
 	connect(exec_obj, SIGNAL(changed()), this, SLOT(update()));
 	
@@ -526,6 +527,7 @@ bool SchedulerWizard::generateExecPrg(QStringList &e)
 	Scheduler::SchedulerObjList cmd_obj_list;
 
 	data_file = generateDataFileName();
+	QString jseq_file = sequence_wizard->getCurJSeqObject()->jseq_file;
 	Scheduler::Exec *exec_obj = new Scheduler::Exec(jseq_list, jseq_file, data_file);
 	connect(exec_obj, SIGNAL(changed()), this, SLOT(update()));
 	
@@ -590,6 +592,7 @@ void SchedulerWizard::addItem()
 	if (txt == "EXEC")
 	{
 		data_file = generateDataFileName();
+		QString jseq_file = sequence_wizard->getCurJSeqObject()->jseq_file;
 		Scheduler::Exec *exec_obj = new Scheduler::Exec(jseq_list, jseq_file, data_file);
 		connect(exec_obj, SIGNAL(changed()), this, SLOT(update()));
 		cmd_obj_list.append(exec_obj);

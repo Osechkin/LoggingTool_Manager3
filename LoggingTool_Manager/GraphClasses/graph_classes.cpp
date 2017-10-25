@@ -970,12 +970,13 @@ void DataPlot::savePlotSettings()
 }
 
 
-PlottedDataManager::PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plot, QSettings *_settings, QWidget *parent)
+PlottedDataManager::PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plot, QSettings *_settings,  QVector<ToolChannel*> _tool_channel, QWidget *parent)
 {	
 	if (objectName().isEmpty()) setObjectName("IncomDataManager");
 	resize(466, 671);
 
 	app_settings = _settings;
+	tool_channels = _tool_channel;
 
 	ds_counter = 1;
 	is_moving_aver = true;
@@ -985,42 +986,20 @@ PlottedDataManager::PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plo
 
 	QGridLayout *gridLayout_2 = new QGridLayout(this);
 	gridLayout_2->setObjectName(QStringLiteral("gridLayout_2"));
-	gridLayout_2->setContentsMargins(5, 5, 5, 5);
-	//QGroupBox *gbxDatasets = new QGroupBox(this);
+	gridLayout_2->setContentsMargins(5, 5, 5, 5);	
 	QFrame *gbxDatasets = new QFrame(this);
 	gbxDatasets->setObjectName(QStringLiteral("gbxDatasets"));	
 	gbxDatasets->setFrameShape(QFrame::StyledPanel);
 	gbxDatasets->setFrameShadow(QFrame::Plain);
 	QFont font;
 	font.setPointSize(10);
-	gbxDatasets->setFont(font);
-	//gbxDatasets->setFlat(false);
+	gbxDatasets->setFont(font);	
 	QGridLayout *gridLayout_4 = new QGridLayout(gbxDatasets);
 	gridLayout_4->setObjectName(QStringLiteral("gridLayout_4"));
 	gridLayout_4->setContentsMargins(5, 5, 5, 5);
-	//QHBoxLayout *horizontalLayout = new QHBoxLayout();
-	//horizontalLayout->setSpacing(6);
-	//horizontalLayout->setObjectName(QStringLiteral("horizontalLayout"));
 
 	QFont font1;
 	font1.setPointSize(9);
-
-	/*tbtProcess = new QToolButton(gbxDatasets);
-	tbtProcess->setObjectName(QStringLiteral("tbtProcess"));	
-	tbtProcess->setText(tr("Process..."));
-	tbtProcess->setFont(font1);
-	tbtProcess->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-	tbtProcess->setIconSize(QSize(20,20));
-	tbtProcess->setIcon(QIcon(":/images/settings2.png"));
-	tbtProcess->setAutoRaise(true);
-
-	horizontalLayout->addWidget(tbtProcess);*/
-
-	/*QSpacerItem *horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-
-	horizontalLayout->addItem(horizontalSpacer);
-
-	gridLayout_4->addLayout(horizontalLayout, 0, 0, 1, 1);*/
 
 	treeWidget = new QTreeWidget(gbxDatasets);
 	treeWidget->setObjectName("treeWidget");
@@ -1086,8 +1065,7 @@ PlottedDataManager::PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plo
 	gbxAveraging = new QGroupBox(gbxDatasets);
 	gbxAveraging->setObjectName(QStringLiteral("gbxAveraging"));	
 	gbxAveraging->setFont(font2);
-	gbxAveraging->setCheckable(false);
-	//gbxAveraging->setChecked(is_moving_aver);
+	gbxAveraging->setCheckable(false);	
 	gbxAveraging->setTitle(tr("Moving Average"));
 	QGridLayout *gridLayoutAver = new QGridLayout(gbxAveraging);
 	gridLayoutAver->setObjectName(QStringLiteral("gridLayoutAver"));
@@ -1112,16 +1090,30 @@ PlottedDataManager::PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plo
 
 	gridLayoutAver->addItem(horizontalSpacerAver, 0, 2, 1, 1);
 
-	/*pbtApplyMovingAver = new QPushButton(gbxAveraging);
-	pbtApplyMovingAver->setObjectName(QStringLiteral("pbtApply"));
-	pbtApplyMovingAver->setText(tr("Apply"));
-	pbtApplyMovingAver->setIcon(QIcon(":images/apply.png"));
-
-	gridLayoutAver->addWidget(pbtApplyMovingAver, 0, 3, 1, 1);*/
-
 	gridLayout_4->addWidget(gbxAveraging, 2, 0, 1, 1);
 	// ***********************************************************
 
+	lblChannels = new QLabel(gbxDatasets);
+	lblChannels->setObjectName(QStringLiteral("labelChannels"));
+	lblChannels->setText("<font color=darkblue>" + tr("Tool Channels:") + "</font>");
+	lblChannels->setFont(font1);
+	lblChannels->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+	cboxChannels = new QComboBox(gbxDatasets);
+	cboxChannels->setObjectName(QStringLiteral("cboxToolChannels"));
+	
+	QSizePolicy sizePolicy0(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+	sizePolicy0.setHorizontalStretch(0);
+	sizePolicy0.setVerticalStretch(0);
+	sizePolicy0.setHeightForWidth(cboxChannels->sizePolicy().hasHeightForWidth());
+	cboxChannels->setSizePolicy(sizePolicy0);
+
+	QHBoxLayout *horizontalLayout_14 = new QHBoxLayout();
+	horizontalLayout_14->setSpacing(5);
+	horizontalLayout_14->setObjectName(QStringLiteral("horizontalLayout_14"));
+	horizontalLayout_14->addWidget(lblChannels);
+	horizontalLayout_14->addWidget(cboxChannels);
+	gridLayout_4->addLayout(horizontalLayout_14, 3, 0, 1, 1);
 
 	gbxTimeWin = new QGroupBox(gbxDatasets);
 	gbxTimeWin->setObjectName(QStringLiteral("gbxTimeWin"));
@@ -1225,25 +1217,7 @@ PlottedDataManager::PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plo
 	QSpacerItem *horizontalSpacer_3 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
 	horizontalLayout_5->addItem(horizontalSpacer_3);
-
-	/*pbtSettingsTime = new QPushButton(gbxTimeWin);
-	pbtSettingsTime->setObjectName(QStringLiteral("pbtSettingsTime"));
-	pbtSettingsTime->setText(tr("Settings..."));
-	pbtSettingsTime->setFont(font1);
-	pbtSettingsTime->setIcon(QIcon(":images/settings.png"));
-	pbtSettingsTime->setFlat(false);
-
-	horizontalLayout_5->addWidget(pbtSettingsTime);*/
-
-	/*pbtApplyWinTime = new QPushButton(gbxTimeWin);
-	pbtApplyWinTime->setObjectName(QStringLiteral("pbtApplyWinTime"));
-	pbtApplyWinTime->setText(tr("Apply"));
-	pbtApplyWinTime->setFont(font1);
-	pbtApplyWinTime->setIcon(QIcon(":images/apply.png"));
-	pbtApplyWinTime->setFlat(false);
-
-	horizontalLayout_5->addWidget(pbtApplyWinTime);*/
-
+	
 	gridLayout_5->addLayout(horizontalLayout_5, 2, 0, 1, 1);
 
 	lblTimeWinFormula = new QLabel(gbxTimeWin);
@@ -1267,7 +1241,7 @@ PlottedDataManager::PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plo
 
 	gridLayout_6->addLayout(gridLayout_5, 0, 1, 1, 1);
 
-	gridLayout_4->addWidget(gbxTimeWin, 3, 0, 1, 1);
+	gridLayout_4->addWidget(gbxTimeWin, 4, 0, 1, 1);
 
 	gbxFreqWin = new QGroupBox(gbxDatasets);
 	gbxFreqWin->setObjectName(QStringLiteral("gbxFreqWin"));
@@ -1385,20 +1359,11 @@ PlottedDataManager::PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plo
 
 	horizontalLayout_12->addItem(horizontalSpacer_4);
 
-	/*pbtSettingsFreq = new QPushButton(gbxFreqWin);
-	pbtSettingsFreq->setObjectName(QStringLiteral("pbtSettingsFreq"));
-	pbtSettingsFreq->setText(tr("Settings..."));
-	pbtSettingsFreq->setFont(font1);
-	pbtSettingsFreq->setIcon(QIcon(":images/settings.png"));
-	pbtSettingsFreq->setFlat(false);
-
-	horizontalLayout_12->addWidget(pbtSettingsFreq);*/
-
 	gridLayout_7->addLayout(horizontalLayout_12, 2, 0, 1, 1);
 
 	gridLayout_8->addLayout(gridLayout_7, 0, 1, 1, 1);
 	
-	gridLayout_4->addWidget(gbxFreqWin, 4, 0, 1, 1);
+	gridLayout_4->addWidget(gbxFreqWin, 5, 0, 1, 1);
 
 	pbtApplyWin = new QPushButton(gbxTimeWin);
 	pbtApplyWin->setObjectName(QStringLiteral("pbtApplyWin"));
@@ -1419,10 +1384,7 @@ PlottedDataManager::PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plo
 	horizontalLayout_13->setObjectName(QStringLiteral("horizontalLayout_12"));
 	horizontalLayout_13->addWidget(pbtApplyWin);
 	horizontalLayout_13->addWidget(pbtSaveSettings);
-	gridLayout_4->addLayout(horizontalLayout_13, 5, 0, 1, 1);
-
-	//gridLayout_4->addWidget(pbtApplyWin, 5, 0, 1, 1);
-	
+	gridLayout_4->addLayout(horizontalLayout_13, 6, 0, 1, 1);
 
 	gridLayout_2->addWidget(gbxDatasets, 0, 0, 1, 1);
 	
@@ -1457,6 +1419,15 @@ PlottedDataManager::~PlottedDataManager()
 	clearCTreeWidget();
 }
 
+double PlottedDataManager::NMR_SAMPLE_FREQ()
+{
+	double sample_freq = (4*250000);
+	ToolChannel *cur_tool_channel = getCurrentToolChannel();
+	if (cur_tool_channel) sample_freq = cur_tool_channel->sample_freq; 
+
+	return sample_freq;
+}
+
 void PlottedDataManager::setConnections()
 {
 	connect(tbtRemove, SIGNAL(clicked()), this, SLOT(removeDataSet()));
@@ -1474,6 +1445,7 @@ void PlottedDataManager::setConnections()
 	connect(pbtSaveSettings, SIGNAL(clicked()), this, SLOT(saveSettings()));
 	connect(sbxDataSets, SIGNAL(valueChanged(int)), this, SLOT(changeDataSetCount(int)));
 	connect(gbxAveraging, SIGNAL(clicked(bool)), this, SLOT(setMovingAverChecked(bool)));
+	connect(cboxChannels, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeToolChannel(QString)));
 	//connect(pbtApplyMovingAver, SIGNAL(clicked()), this, SLOT(applyDataSetCounter()));
 }
 
@@ -1505,6 +1477,8 @@ void PlottedDataManager::addDataSet(QString _name, DataPlot *_plot, QVector<doub
 
 void PlottedDataManager::hideWinWidgets()
 {
+	lblChannels->setVisible(false);
+	cboxChannels->setVisible(false);
 	gbxTimeWin->setVisible(false);
 	gbxFreqWin->setVisible(false);	
 	pbtApplyWin->setVisible(false);
@@ -1922,9 +1896,11 @@ void PlottedDataManager::addSubRecord(PlottedDataSet *_ds, QString _parent_name)
 }
 
 void PlottedDataManager::createWinFuncs()
-{
-	double mks_to_Pnt = 1.0/NMR_SAMPLE_FREQ*1000000;
-	double kHz_to_Pnt = (double)(NMR_SAMPLE_FREQ/2)/512/1000;
+{	
+	win_funcs.clear();
+
+	double mks_to_Pnt = 1.0/NMR_SAMPLE_FREQ()*1000000;
+	double kHz_to_Pnt = (double)(NMR_SAMPLE_FREQ()/2)/512/1000;
 
 	double time_dx1 = 0;
 	double time_sigma1 = 65.0;
@@ -2074,6 +2050,14 @@ void PlottedDataManager::changeFreqWin(QString str)
 	}
 }
 
+void PlottedDataManager::changeToolChannel(QString str)
+{			
+	createWinFuncs();
+	fillWinFuncs();
+	if (gbxTimeWin->isChecked()) setTimeWinChecked(true);
+	if (gbxFreqWin->isChecked()) setFreqWinChecked(true);
+}
+
 void PlottedDataManager::setTimeWinChecked(bool flag)
 {
 	int index = -1;
@@ -2157,7 +2141,7 @@ void PlottedDataManager::setTimeWinChecked(bool flag)
 }
 
 void PlottedDataManager::setFreqWinChecked(bool flag)
-{
+{	
 	int index = -1;
 	for (int i = win_funcs.count()/2; i < win_funcs.count(); i++)
 	{
@@ -2214,7 +2198,7 @@ void PlottedDataManager::setFreqWinChecked(bool flag)
 		for (int i = 0; i < points_count; i++)
 		{			
 			//x[i] = (i-points_count/2)*(NMR_SAMPLE_FREQ/2.0)/points_count/1000;
-			x[i] = i*(NMR_SAMPLE_FREQ/2.0)/points_count/1000;
+			x[i] = i*(NMR_SAMPLE_FREQ()/2.0)/points_count/1000;
 			if (freq_win.name == tr("Gaussian")) y[i] = exp(-(x[i]-x0-freq_win.dx)*(x[i]-x0-freq_win.dx)/2/freq_win.sigma/freq_win.sigma);
 			else if (freq_win.name == tr("Bigaussian")) y[i] = exp(-pow(x[i]-x0-freq_win.dx,4)/4/pow(freq_win.sigma,4));
 			else y[i] = 0;
@@ -2246,8 +2230,8 @@ void PlottedDataManager::setMovingAverChecked(bool flag)
 }
 
 void PlottedDataManager::changeTimeX0(double val)
-{
-	double mks_to_Pnt = 1.0/NMR_SAMPLE_FREQ*1000000;
+{	
+	double mks_to_Pnt = 1.0/NMR_SAMPLE_FREQ()*1000000;
 	
 	int index = -1;
 	for (int i = 0; i < win_funcs.count()/2; i++)
@@ -2267,8 +2251,8 @@ void PlottedDataManager::changeTimeX0(double val)
 }
 
 void PlottedDataManager::changeFreqX0(double val)
-{
-	double kHz_to_Pnt = (double)(NMR_SAMPLE_FREQ/2)/512/1000;
+{	
+	double kHz_to_Pnt = (double)(NMR_SAMPLE_FREQ()/2)/512/1000;
 
 	int index = -1;
 	for (int i = win_funcs.count()/2; i < win_funcs.count(); i++)
@@ -2289,7 +2273,7 @@ void PlottedDataManager::changeFreqX0(double val)
 
 void PlottedDataManager::changeTimeSigma(double val)
 {
-	double mks_to_Pnt = 1.0/NMR_SAMPLE_FREQ*1000000;
+	double mks_to_Pnt = 1.0/NMR_SAMPLE_FREQ()*1000000;
 
 	int index = -1;
 	for (int i = 0; i < win_funcs.count()/2; i++)
@@ -2309,7 +2293,7 @@ void PlottedDataManager::changeTimeSigma(double val)
 
 void PlottedDataManager::changeFreqSigma(double val)
 {
-	double kHz_to_Pnt = (double)(NMR_SAMPLE_FREQ/2)/512/1000;
+	double kHz_to_Pnt = (double)(NMR_SAMPLE_FREQ()/2)/512/1000;
 
 	int index = -1;
 	for (int i = win_funcs.count()/2; i < win_funcs.count(); i++)
@@ -2398,6 +2382,38 @@ void PlottedDataManager::saveSettings()
 	app_settings->setValue("WinFuncSettings/FreqFunc2_Units", tr("kHz"));
 
 	app_settings->sync();
+}
+
+void PlottedDataManager::refreshToolChannels(QVector<ToolChannel*> _tool_channels, int cur_channel)
+{
+	tool_channels.clear();
+
+	QStringList channels_list;
+	for (int i = 0; i < _tool_channels.count(); i++)
+	{
+		ToolChannel *tool_channel = _tool_channels[i];		
+		double sample_freq = tool_channel->sample_freq;
+		if (sample_freq > 1) tool_channels.append(tool_channel);		
+		channels_list << tool_channel->name;
+	}
+
+	cboxChannels->clear();
+	cboxChannels->addItems(channels_list);
+	if (cur_channel >= 0) cboxChannels->setCurrentIndex(cur_channel);
+}
+
+ToolChannel* PlottedDataManager::getCurrentToolChannel()
+{
+	if (tool_channels.isEmpty()) return NULL;
+
+	QString cur_channel_name = cboxChannels->currentText();
+	for (int i = 0; i < tool_channels.count(); i++)
+	{
+		ToolChannel *tool_channel = tool_channels[i];
+		if (tool_channel->name == cur_channel_name) return tool_channel;
+	}
+
+	return NULL;
 }
 
 MonitoringPlot::MonitoringPlot(QString &objectName, QSettings *settings, QWidget *parent /* = 0 */)
@@ -2774,11 +2790,12 @@ void MonitoringPlot::setCurveSettings()
 }
 
 
-OscilloscopeWidget::OscilloscopeWidget(QWidget *tab, QSettings *settings, QWidget *parent)
+OscilloscopeWidget::OscilloscopeWidget(QWidget *tab, QSettings *settings, QVector<ToolChannel*> tl_channels, QWidget *parent)
 {
 	setParent(parent);
 	//this->setObjectName("tabOscilloscope");
 	app_settings = settings;
+	tool_channels = tl_channels;
 
 	QSplitter *osc_splitter = new QSplitter(tab);
 	osc_splitter->setHandleWidth(2);
@@ -2788,9 +2805,10 @@ OscilloscopeWidget::OscilloscopeWidget(QWidget *tab, QSettings *settings, QWidge
 	oscMathPlot = new DataPlot(QString("SignalMathPlot"), app_settings, osc_splitter);
 	osc_splitter->addWidget(oscDataPlot);
 	osc_splitter->addWidget(oscMathPlot);	
-	oscdata_manager = new PlottedDataManager(oscDataPlot, oscMathPlot, app_settings, tab);	
+	oscdata_manager = new PlottedDataManager(oscDataPlot, oscMathPlot, app_settings, tool_channels, tab);	
 	oscdata_manager->hideMovingAverWidget();
 	oscdata_manager->setMaximumWidth(450);
+	oscdata_manager->refreshToolChannels(tool_channels);
 	QSplitter *osc2_splitter = new QSplitter(tab);
 	osc2_splitter->setHandleWidth(2);
 	osc2_splitter->setChildrenCollapsible(false);
@@ -2800,7 +2818,14 @@ OscilloscopeWidget::OscilloscopeWidget(QWidget *tab, QSettings *settings, QWidge
 	QGridLayout *grlout_osc = new QGridLayout(tab);
 	grlout_osc->setContentsMargins(1,1,1,1);
 	grlout_osc->addWidget(osc2_splitter, 0, 0, 1, 1);
-
+	
+	double NMR_SAMPLE_FREQ = (4*250000);
+	ToolChannel *cur_tool_channel = oscdata_manager->getCurrentToolChannel();
+	if (cur_tool_channel)
+	{
+		NMR_SAMPLE_FREQ = cur_tool_channel->sample_freq;
+	}
+	
 	double osc_time_min = 0;
 	double osc_time_max = 2.0/NMR_SAMPLE_FREQ*1024*1000000;		// 1024 - число комплексных точек (которых = 2048/2), 1000000 - переводной множитель в мкс
 	oscDataPlot->getPlot()->setAxisScale(QwtPlot::xBottom, osc_time_min, osc_time_max);
@@ -2865,7 +2890,7 @@ RelaxationWidget::RelaxationWidget(QWidget *tab, QSettings *settings, QWidget *p
 	relaxMathPlot = new DataPlot(QString("RelaxMathPlot"), app_settings, relax_splitter);
 	relax_splitter->addWidget(relaxDataPlot);
 	relax_splitter->addWidget(relaxMathPlot);	
-	relax_data_manager = new PlottedDataManager(relaxDataPlot, relaxMathPlot, app_settings, tab);	
+	relax_data_manager = new PlottedDataManager(relaxDataPlot, relaxMathPlot, app_settings, QVector<ToolChannel*>(), tab);	
 	relax_data_manager->hideWinWidgets();
 	relax_data_manager->setMaximumWidth(450);
 	QSplitter *relax2_splitter = new QSplitter(tab);

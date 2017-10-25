@@ -284,6 +284,7 @@ struct ToolChannel
 				double _norm_coef1 = 1,
 				double _norm_coef2 = 1,
 				double _meas_freq = 0,
+				double _sample_freq = 0,
 				uint32_t _addr_rx = 0,
 				uint32_t _addr_tx = 0,
 				uint32_t _frq1 = 0, 
@@ -309,7 +310,7 @@ struct ToolChannel
 		normalize_coef1 = _norm_coef1;
 		normalize_coef2 = _norm_coef2;
 		meas_frq = _meas_freq;
-
+		sample_freq = _sample_freq;
 	}	
 
 	uint8_t channel_id;				// id канала
@@ -327,7 +328,8 @@ struct ToolChannel
 	double depth_displ;				// смещение точки записи канала		
 	double normalize_coef1;			// нормировочный коэфициент #1 (обычно перевод сигнала в пористость)	
 	double normalize_coef2;			// нормировочный коэфициент #1 (обычно перевод сигнала в пористость)
-	double meas_frq;				// частота на которой провод€тс€ измерени€
+	double meas_frq;				// частота, на которой провод€тс€ измерени€
+	double sample_freq;				// частота дискретизации (дл€ яћ–)
 };
 
 

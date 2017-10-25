@@ -69,7 +69,9 @@ public:
 
 	QStringList getSeqFileList() { return file_list; }
 	QStringList getSeqPathList() { return path_list; }
-	QString &getJSeqFile() { return jseq_file; }
+	//QString &getJSeqFile() { return jseq_file; }
+
+	JSeqObject *getCurJSeqObject() { return cur_jseq_object; }
 
 	//void refreshArgFormula();
 	
@@ -91,9 +93,8 @@ protected:
 	//QSettings *sequence_proc;
 	QStringList file_list;
 	QStringList path_list;
-	QString jseq_file;
-	//Sequence curSeq;	
-
+	//QString jseq_file;
+	
 	////QScriptEngine *engine;
 	QScriptEngineDebugger script_debugger;
 	////LUSI::Engine lusi_engine;

@@ -201,7 +201,7 @@ class PlottedDataManager : public QWidget
 	Q_OBJECT
 
 public:
-	PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plot, QSettings *_settings, QWidget *parent = 0);
+	PlottedDataManager(DataPlot *_data_plot, DataPlot *_math_plot, QSettings *_settings, QVector<ToolChannel*> _tool_channel, QWidget *parent = 0);
 	~PlottedDataManager();
 
 	void addDataSet(QString _name, DataPlot *_plot, QVector<double> *_x, QVector<double> *_y, QVector<uint8_t> *_bad_map, bool _hold_on, int def_index = 0);
@@ -229,6 +229,9 @@ public:
 	void addRecord(PlottedDataSet *_ds);
 	void addSubRecord(PlottedDataSet *_ds, QString _parent_name);
 
+	void refreshToolChannels(QVector<ToolChannel*> _tool_channels, int cur_channel = 0);
+	ToolChannel *getCurrentToolChannel();
+
 	//void setApplyBtnChecked(bool state) { pbtApplyWinTime->setChecked(state); }
 
 private:		
@@ -236,6 +239,8 @@ private:
 	void clearCTreeWidget();
 	void createWinFuncs();
 	void fillWinFuncs();
+
+	double NMR_SAMPLE_FREQ();
 		
 	QSettings *app_settings;
 
@@ -247,6 +252,8 @@ private:
 	QToolButton *tbtExport;
 	QToolButton *tbtRemove;	
 
+	QLabel *lblChannels;
+	QComboBox *cboxChannels;
 	QGroupBox *gbxTimeWin;
 	QComboBox *cboxTypeTime;
 	QLabel *lblTimeWinFormula; 
@@ -286,6 +293,8 @@ private:
 	WinFunc time_win;
 	WinFunc freq_win;
 
+	QVector<ToolChannel*> tool_channels;
+
 	int last_shown_datasets;
 
 	//bool busy;			// индикатор отправки параметров оконных функций в каротажный прибор. busy = true, если данные отправлены, но ответа еще нет 
@@ -296,6 +305,7 @@ private slots:
 	void unmarkAll();
 	void changeTimeWin(QString str);
 	void changeFreqWin(QString str);
+	void changeToolChannel(QString str);
 	void setTimeWinChecked(bool flag);
 	void setFreqWinChecked(bool flag);
 	void setMovingAverChecked(bool flag);
@@ -396,7 +406,7 @@ class OscilloscopeWidget: public QWidget
 	Q_OBJECT
 
 public:
-	OscilloscopeWidget(QWidget *tab, QSettings *settings, QWidget *parent = 0);
+	OscilloscopeWidget(QWidget *tab, QSettings *settings, QVector<ToolChannel*> tl_channels, QWidget *parent = 0);
 	~OscilloscopeWidget();
 
 	void addDataSet(QString _name, DataPlot *_plot, QVector<double> *_x, QVector<double> *_y, QVector<uint8_t> *_bad_map, QwtCurveSettings *_settings, bool _hold_on);	
@@ -418,6 +428,7 @@ private:
 	PlottedDataManager *oscdata_manager;
 
 	QSettings *app_settings;
+	QVector<ToolChannel*> tool_channels;
 
 private slots:
 	void applyWinFuncParams(QVector<int> &params);	

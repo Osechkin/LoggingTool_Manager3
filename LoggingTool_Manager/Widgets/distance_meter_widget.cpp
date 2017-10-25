@@ -194,6 +194,9 @@ void LeuzeDistanceMeterWidget::moveBack(bool flag)
 	else
 	{
 		ui->pbtForward->setChecked(false);
+		ui->pbtEnd->setChecked(false);
+		ui->pbtBack->setChecked(false);
+		ui->pbtBegin->setChecked(false);
 		ui->pbtSet->setChecked(false);
 
 		if (distance > lower_bound && distance < upper_bound)
@@ -203,7 +206,11 @@ void LeuzeDistanceMeterWidget::moveBack(bool flag)
 		else 
 		{
 			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
-			ui->pbtBack->setChecked(false);			
+			ui->pbtBack->setChecked(false);
+			ui->pbtForward->setChecked(false);
+			ui->pbtBegin->setChecked(false);
+			ui->pbtEnd->setChecked(false);
+			ui->pbtSet->setChecked(false);
 		}
 	}
 }
@@ -227,6 +234,9 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 	else
 	{
 		ui->pbtBack->setChecked(false);		
+		ui->pbtBegin->setChecked(false);	
+		ui->pbtForward->setChecked(false);
+		ui->pbtEnd->setChecked(false);
 		ui->pbtSet->setChecked(false);
 
 		if (distance > lower_bound && distance < upper_bound)
@@ -238,6 +248,8 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
 			ui->pbtBack->setChecked(false);
 			ui->pbtForward->setChecked(false);
+			ui->pbtBegin->setChecked(false);
+			ui->pbtEnd->setChecked(false);
 			ui->pbtSet->setChecked(false);
 		}
 	}
@@ -279,6 +291,8 @@ void LeuzeDistanceMeterWidget::setPosition(double pos)
 		stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
 		ui->pbtBack->setChecked(false);
 		ui->pbtForward->setChecked(false);
+		ui->pbtBegin->setChecked(false);
+		ui->pbtEnd->setChecked(false);
 		ui->pbtSet->setChecked(false);
 
 		emit cmd_resulted(true, 0);
@@ -319,6 +333,8 @@ void LeuzeDistanceMeterWidget::setPosition(bool flag)
 			stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
 			ui->pbtBack->setChecked(false);
 			ui->pbtForward->setChecked(false);
+			ui->pbtBegin->setChecked(false);
+			ui->pbtEnd->setChecked(false);
 			ui->pbtSet->setChecked(false);
 		}
 	}

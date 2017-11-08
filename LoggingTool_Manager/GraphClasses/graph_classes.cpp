@@ -1423,7 +1423,7 @@ double PlottedDataManager::NMR_SAMPLE_FREQ()
 {
 	double sample_freq = (4*250000);
 	ToolChannel *cur_tool_channel = getCurrentToolChannel();
-	if (cur_tool_channel) sample_freq = cur_tool_channel->sample_freq; 
+	if (cur_tool_channel) sample_freq = cur_tool_channel->sample_freq*1000;		// originally sample freq in [kHz] 
 
 	return sample_freq;
 }
@@ -2823,7 +2823,7 @@ OscilloscopeWidget::OscilloscopeWidget(QWidget *tab, QSettings *settings, QVecto
 	ToolChannel *cur_tool_channel = oscdata_manager->getCurrentToolChannel();
 	if (cur_tool_channel)
 	{
-		NMR_SAMPLE_FREQ = cur_tool_channel->sample_freq;
+		NMR_SAMPLE_FREQ = cur_tool_channel->sample_freq*1000;	// originally sample freq in [kHz]
 	}
 	
 	double osc_time_min = 0;

@@ -297,8 +297,8 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 			bool show_on = isVisibleChannel(channels[i]);
 			if (show_on /*&& data_containers.count() < 5*/)
 			{
-				QString d_title = tr("%1 : Bins").arg(channels[i]->name);
-				LoggingData *dcont = new LoggingData(LoggingData::DataType::NMRBins_Probe, channels[i], d_title, tr("Integral value, a.u."));
+				QString d_title = tr("%1 : Bins").arg(channels[i]->name);				
+				LoggingData *dcont = new LoggingData(LoggingData::DataType::NMRBins_Probe, channels[i], d_title, tr("Porosity, %"));
 				data_containers << dcont;
 				items << d_title;
 			}			 
@@ -311,7 +311,7 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 			bool show_on = isVisibleChannel(channels[i]);
 			if (show_on /*&& data_containers.count() < 5*/)
 			{
-				QString d_title = channels[i]->name;
+				QString d_title = channels[i]->name;				
 				LoggingData *dcont = new LoggingData(LoggingData::DataType::Gamma, channels[i], d_title, tr("Counts per second, 1/sec"));
 				data_containers << dcont;
 				items << d_title;
@@ -325,7 +325,7 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 			bool show_on = isVisibleChannel(channels[i]);
 			if (show_on /*&& data_containers.count() < 5*/) 
 			{
-				QString d_title1 = channels[i]->name + tr(" : Phase Difference");				
+				QString d_title1 = channels[i]->name + tr(" : Phase Difference");	
 				LoggingData *dcont1 = new LoggingData(LoggingData::DataType::WaveDielectric_PhaseDiff, channels[i], d_title1, tr("Phase difference, degree"));
 				data_containers << dcont1;
 				items << d_title1;
@@ -346,8 +346,8 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 			bool show_on = isVisibleChannel(channels[i]);
 			if (show_on /*&& data_containers.count() < 5*/) 
 			{
-				QString d_title = channels[i]->name;
-				LoggingData *dcont = new LoggingData(LoggingData::DataType::AFR_Probe, channels[i], d_title, tr("Integral value, a.u."));
+				QString d_title = channels[i]->name;				
+				LoggingData *dcont = new LoggingData(LoggingData::DataType::AFR_Probe, channels[i], d_title, tr("Value, a.u."));
 				data_containers << dcont;
 				items << d_title;
 			}			
@@ -361,10 +361,24 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 			if (show_on /*&& data_containers.count() < 5*/)
 			{
 				QString d_title = tr("%1 : Integral Value").arg(channels[i]->name);
-				LoggingData *dcont = new LoggingData(LoggingData::DataType::NMRIntegral_Probe, channels[i], d_title, tr("Integral value, a.u."));
+				LoggingData *dcont = new LoggingData(LoggingData::DataType::NMRIntegral_Probe, channels[i], d_title, tr("Value, a.u."));
 				data_containers << dcont;
 				items << d_title;
 			}			
+		}
+	}
+	for (int i = 0; i < channels.count(); i++)
+	{
+		if (channels[i]->data_type == "NMR_CHANNEL")
+		{
+			bool show_on = isVisibleChannel(channels[i]);
+			if (show_on /*&& data_containers.count() < 5*/)
+			{
+				QString d_title = tr("%1 : Solid Echo").arg(channels[i]->name);				
+				LoggingData *dcont = new LoggingData(LoggingData::DataType::SolidEcho_Probe, channels[i], d_title, tr("Value, a.u."));
+				data_containers << dcont;
+				items << d_title;
+			}			 
 		}
 	}
 	LoggingData *dcont = new LoggingData(LoggingData::DataType::NoType, NULL, tr("No Data"), tr("Value"));
@@ -1041,17 +1055,20 @@ void LoggingWidget::addDataSets(DataSets _dss)
 		uint8_t comm_id = ds->getDataCode();
 		switch (comm_id)
 		{
-		case DT_SGN_RELAX:	dt = LoggingData::NMRIntegral_Probe; break; 
-		case DT_SGN_RELAX2:	dt = LoggingData::NMRIntegral_Probe; break;
-		case DT_SGN_RELAX3:	dt = LoggingData::NMRIntegral_Probe; break;
-		case DT_SGN_SPEC1:	dt = LoggingData::NMRBins_Probe; break; 
-		case DT_SGN_SPEC2:	dt = LoggingData::NMRBins_Probe; break;
-		case DT_SGN_SPEC3:	dt = LoggingData::NMRBins_Probe; break;
-		case DT_GAMMA:		dt = LoggingData::Gamma; break;
-		case DT_DIEL:		dt = LoggingData::WaveDielectric; break;
-		case DT_AFR1_RX:	dt = LoggingData::AFR_Probe; break;
-		case DT_AFR2_RX:	dt = LoggingData::AFR_Probe; break;
-		case DT_AFR3_RX:	dt = LoggingData::AFR_Probe; break;
+		case DT_SGN_RELAX:		dt = LoggingData::NMRIntegral_Probe; break; 
+		case DT_SGN_RELAX2:		dt = LoggingData::NMRIntegral_Probe; break;
+		case DT_SGN_RELAX3:		dt = LoggingData::NMRIntegral_Probe; break;
+		case DT_SOLID_ECHO1:	dt = LoggingData::SolidEcho_Probe; break;
+		case DT_SOLID_ECHO2:	dt = LoggingData::SolidEcho_Probe; break;
+		case DT_SOLID_ECHO3:	dt = LoggingData::SolidEcho_Probe; break;
+		case DT_SGN_SPEC1:		dt = LoggingData::NMRBins_Probe; break; 
+		case DT_SGN_SPEC2:		dt = LoggingData::NMRBins_Probe; break;
+		case DT_SGN_SPEC3:		dt = LoggingData::NMRBins_Probe; break;
+		case DT_GAMMA:			dt = LoggingData::Gamma; break;
+		case DT_DIEL:			dt = LoggingData::WaveDielectric; break;
+		case DT_AFR1_RX:		dt = LoggingData::AFR_Probe; break;
+		case DT_AFR2_RX:		dt = LoggingData::AFR_Probe; break;
+		case DT_AFR3_RX:		dt = LoggingData::AFR_Probe; break;
 		default: break;
 		}
 		if (dt == LoggingData::NoType) continue;
@@ -1578,6 +1595,40 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 
 			break;
 		}
+
+	case LoggingData::SolidEcho_Probe:	
+		{
+			cur_index++;
+
+			bool new_log = false;
+			if (cur_index >= qwt_curve_list.count()) 
+			{				
+				QString curve_name = ds->getDataName() + "#" + QString::number(cur_index+1);
+				addNewLog(curve_name);
+				new_log = true;
+			}
+
+			for (int i = 0; i < ds->getYData()->size(); i++) S += ds->getYData()->at(i);
+			S = S * channel->normalize_coef1 * channel->normalize_coef2;
+
+			QVector<double> *x = xdata_list->at(cur_index);
+			QVector<double> *y = ydata_list->at(cur_index);
+			QwtPlotCurve *curve = qwt_curve_list.at(cur_index);
+			x->push_back(depth.second);
+			y->push_back(S);
+
+			if (!new_log) curve->detach();
+			curve->setSamples(y->data(), x->data(), y->size());
+			curve->attach(qwtPlot);
+
+			qwtPlot->replot();
+
+			void *qwtplot_obj = (void*)qwtPlot;
+			emit plot_rescaled(qwtplot_obj);
+
+			break;
+		}
+
 	case LoggingData::Gamma:
 		{
 			cur_index++;

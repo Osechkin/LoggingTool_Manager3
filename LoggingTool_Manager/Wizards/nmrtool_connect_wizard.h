@@ -153,11 +153,11 @@ signals:
 	void start_sdsp_adjustment(bool);						// старт/стоп настройки диэлектического прибора
 	void cmd_resulted(uint8_t cmd, ConnectionState state);	// информирование приложения о состоянии выполнения команды cmd
 	//void cmd_resulted(uint8_t, int);						// информирование приложения о состоянии выполнения команды cmd
-	void cmd_resulted(bool, uint32_t);						// информирование планировщика эксперимента SchedulerWizard о результате выполнения команды DeviceData c данным uid
+	//void cmd_resulted(bool, uint32_t);						// информирование планировщика эксперимента SchedulerWizard о результате выполнения команды DeviceData c данным uid
 	void control_nmrtool(bool);								// выставить старт/окончание программы измерений на ПЛИС каротажного прибора 
 	void send_data_toSDSP(QByteArray&);						// данные для прямой оправки в диэлектрический прибор
 	void tool_settings_applied(bool);						// признак успешной отправки настроек каротажного прибора	
-	
+	void fpga_seq_started(bool);							// информиование планировшика эксперимента об успехе/неуспехе старта последовательности из программы эксперимента
 };
 
 #endif // NMRTOOL_CONNECT_WIZARD

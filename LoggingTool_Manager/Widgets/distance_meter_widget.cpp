@@ -183,8 +183,24 @@ void LeuzeDistanceMeterWidget::moveBack(bool flag)
 	pos_is_set = false;		// игнорировать заданное значение, т.е. просто двигать до остановки пользователем или до концевика
 
 	QString str_cmd = "";
-	if (pbt == ui->pbtBack) str_cmd = "\EN*DR*SD50*MV*";
-	else if (pbt == ui->pbtBegin) str_cmd = "\EN*DR*SD1000*MV*";
+	if (pbt == ui->pbtBack) 
+	{
+		str_cmd = "\EN*DR*SD50*MV*";
+
+		ui->pbtForward->setChecked(false);
+		ui->pbtEnd->setChecked(false);		
+		ui->pbtBegin->setChecked(false);
+		ui->pbtSet->setChecked(false);
+	}
+	else if (pbt == ui->pbtBegin) 
+	{
+		str_cmd = "\EN*DR*SD1000*MV*";
+
+		ui->pbtForward->setChecked(false);
+		ui->pbtEnd->setChecked(false);
+		ui->pbtBack->setChecked(false);		
+		ui->pbtSet->setChecked(false);
+	}
 	else return;
 
 	if (!flag)
@@ -193,12 +209,6 @@ void LeuzeDistanceMeterWidget::moveBack(bool flag)
 	}
 	else
 	{
-		ui->pbtForward->setChecked(false);
-		ui->pbtEnd->setChecked(false);
-		ui->pbtBack->setChecked(false);
-		ui->pbtBegin->setChecked(false);
-		ui->pbtSet->setChecked(false);
-
 		if (distance > lower_bound && distance < upper_bound)
 		{
 			stepmotor_communicator->toSend(str_cmd);	// Move step motor left
@@ -223,8 +233,24 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 	pos_is_set = false;
 
 	QString str_cmd = "";
-	if (pbt == ui->pbtForward) str_cmd = "\EN*DL*SD50*MV*";
-	else if (pbt == ui->pbtEnd) str_cmd = "\EN*DL*SD1000*MV*";
+	if (pbt == ui->pbtForward) 
+	{
+		str_cmd = "\EN*DL*SD50*MV*";
+
+		ui->pbtBack->setChecked(false);		
+		ui->pbtBegin->setChecked(false);		
+		ui->pbtEnd->setChecked(false);
+		ui->pbtSet->setChecked(false);
+	}
+	else if (pbt == ui->pbtEnd) 
+	{
+		str_cmd = "\EN*DL*SD1000*MV*";
+
+		ui->pbtBack->setChecked(false);		
+		ui->pbtBegin->setChecked(false);	
+		ui->pbtForward->setChecked(false);		
+		ui->pbtSet->setChecked(false);
+	}
 	else return;
 
 	if (!flag)
@@ -233,12 +259,6 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 	}
 	else
 	{
-		ui->pbtBack->setChecked(false);		
-		ui->pbtBegin->setChecked(false);	
-		ui->pbtForward->setChecked(false);
-		ui->pbtEnd->setChecked(false);
-		ui->pbtSet->setChecked(false);
-
 		if (distance > lower_bound && distance < upper_bound)
 		{			
 			stepmotor_communicator->toSend(str_cmd);	// Move step motor left
@@ -308,7 +328,9 @@ void LeuzeDistanceMeterWidget::setPosition(bool flag)
 	else
 	{		
 		ui->pbtBack->setChecked(false);
-		ui->pbtForward->setChecked(false);
+		ui->pbtForward->setChecked(false);		
+		ui->pbtBegin->setChecked(false);			
+		ui->pbtEnd->setChecked(false);		
 		
 		set_distance = ui->dsboxSetPosition->value()/k_set_distance;
 		if (set_distance > distance )

@@ -246,11 +246,12 @@ namespace Scheduler
 		Q_OBJECT
 
 	public:
-		CommandController(int _cmd_uid)
+		CommandController(int _cmd_uid, Scheduler::Command _type)
 		{
 			cmd_uid = _cmd_uid;
 			repetitions = 0;
-			job_finished = false;			
+			job_finished = false;		
+			type = _type;
 		}
 		~CommandController() { }
 
@@ -259,6 +260,8 @@ namespace Scheduler
 
 		void setCmdUid( int _uid) { cmd_uid = _uid; }
 		int getRepetitions() const { return repetitions; }
+
+		Scheduler::Command getType() const { return type; }
 		
 	public slots:
 		void processResult(bool flag, uint32_t _uid);
@@ -267,6 +270,7 @@ namespace Scheduler
 		bool job_finished;	// = true, если работа завершилась		
 		uint32_t cmd_uid;
 		int repetitions;	
+		Scheduler::Command type;
 
 	signals:
 		void finished();

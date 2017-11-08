@@ -56,8 +56,8 @@ struct DataSave
 	QString prefix;
 	QString postfix;
 	QString extension;
-	bool to_save;
-	bool to_save_all;
+	bool to_save;				// записывать/не записывать измренные даные в файл
+	bool to_save_all;			// записывать в файл все данные вне зависимости от того, совпадает их длина с ожидаемой или нет 
 };
 
 

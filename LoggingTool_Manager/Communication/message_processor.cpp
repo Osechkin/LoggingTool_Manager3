@@ -459,7 +459,7 @@ void MsgProcessor::receiveMsgFromCOMComander(COM_Message *_msg, uint32_t _uid)
 	{
 		//uint8_t session_id = _msg->getMsgHeader()->getSessionId();
 		//lockMsg();
-		MsgInfo *msg_info = new MsgInfo(_msg);		
+		MsgInfo *msg_info = new MsgInfo(_msg);
 		MsgInfo::ParsingResult parse_result = extractData(msg_info);
 		msg_info->setParsingResult(parse_result);
 		//unlockMsg();
@@ -470,8 +470,8 @@ void MsgProcessor::receiveMsgFromCOMComander(COM_Message *_msg, uint32_t _uid)
 			uint8_t cmd = device_data->comm_id;
 			switch (cmd)
 			{
-			case NMRTOOL_DATA:			
-				{						
+			case NMRTOOL_DATA:
+				{
 					emit new_data(device_data);
 					break;
 				}
@@ -533,10 +533,7 @@ void MsgProcessor::receiveMsgFromCOMComander(COM_Message *_msg, uint32_t _uid)
 					
 					emit power_status(pow_status);
 					emit fpga_seq_status(seq_finished);
-					if (seq_finished)
-					{
-						int tt = 0;
-					}
+					
 					break;
 				}
 			default: 
@@ -640,1045 +637,6 @@ QString MsgProcessor::SmartArrToHexString(SmartArr &sarr)
 }
 
 
-/*
-MsgInfo::ParsingResult MsgProcessor::extractData(MsgInfo *msg_info)
-{	
-	SmartArr data;
-	SmartArr bad_map;
-	MsgInfo::extractAllAsBytes(&data, &bad_map, msg_info->getCOMMessage()); 	
-
-	int start_pos = 0;
-	MTYPE msg_type = msg_info->getCOMMessage()->getMsgType();
-	if (msg_type == MTYPE_MULTYPACK) 
-	{		
-		start_pos = PACK_INFO_LEN;
-		if (data.len == 0) return MsgInfo::Unknown_Error;										// некорректно отработала функция extractAllAsBytes(...)
-		if (bad_map.len == 0) return MsgInfo::Unknown_Error;									// некорректно отработала функция extractAllAsBytes(...)
-	}
-
-	if (data.data == 0) return MsgInfo::Unknown_Error;											// некорректно отработала функция extractAllAsBytes(...)
-	
-	if (data.len < start_pos+1 || bad_map.len < start_pos+1) return MsgInfo::Data_NotFound;		// при изъятии данных из принятого сообщения самих данных не обнаружено
-
-	while (start_pos < data.len)
-	{
-		if (bad_map.data[start_pos] == (uint8_t)DATA_STATE_FAIL) 
-		{
-			data.destroy();
-			bad_map.destroy();
-			return MsgInfo::Bad_Command;				// невозможно прочитать команду
-		}
-
-		uint8_t cmd = data.data[start_pos];
-		switch (cmd)
-		{
-		case NMRTOOL_IS_READY:
-			{
-				msg_info->setDeviceDataMemo("NMR Tool is Ready", NMRTOOL_IS_READY, MTYPE_SERVICE);
-				start_pos += SRV_DATA_LEN;
-				break;
-			}
-		case NMRTOOL_ISNOT_READY:
-			{
-				msg_info->setDeviceDataMemo("NMR Tool isn't Ready", NMRTOOL_ISNOT_READY, MTYPE_SERVICE);
-				start_pos += SRV_DATA_LEN;
-				break;
-			}	
-		case HEADER_OK:
-			{
-				msg_info->setDeviceDataMemo("Header is OK", HEADER_OK, MTYPE_SHORT);
-				start_pos += SHORT_DATA_LEN;
-				break;
-			}
-		case DT_SGN_SE_ORG:	
-		case DT_NS_SE_ORG:
-		case DT_SGN_FID_ORG:
-		case DT_NS_FID_ORG:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-				
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t nmr_data_len = cmd_data_len/sizeof(uint8_t);					
-				QVector<double> *org_data = new QVector<double>(nmr_data_len);
-				QVector<uint8_t> *bad_org_data = new QVector<uint8_t>(nmr_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;			
-
-				uint32_t a32 = 0;
-				uint32_t b32 = 0;
-				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				float A = *(float*)&a32;
-				float B = *(float*)&b32;
-				start_pos += 2*sizeof(float);
-
-				int16_t _b = 0;
-				while (byte_counter > 0)
-				{					
-					_b = (int16_t)(A*data.data[pos] - B);
-
-					bad_org_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(uint8_t);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_org_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(uint8_t);
-					pos += sizeof(uint8_t);	
-					start_pos += sizeof(uint8_t);
-				}
-
-				Field_Comm *field = new Field_Comm;
-				field->name = "ADC Data";
-				field->code = cmd;
-				field->value = org_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::UINT16;
-				field->bad_data = bad_org_data;
-				field->tag = (int)group_index;
-
-				msg_info->setDeviceDataMemo("ADC Data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case DT_SGN_SE:
-		case DT_NS_SE:		
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-				
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t nmr_data_len = cmd_data_len/sizeof(uint8_t);
-				QVector<double> *se_data = new QVector<double>(nmr_data_len);
-				QVector<uint8_t> *bad_se_data = new QVector<uint8_t>(nmr_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;	
-
-				uint32_t a32 = 0;
-				uint32_t b32 = 0;
-				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				float A = *(float*)&a32;
-				float B = *(float*)&b32;
-				start_pos += 2*sizeof(float);
-
-				float _b = 0;
-				while (byte_counter > 0)
-				{					
-					_b = A*data.data[pos] - B;
-					se_data->data()[cnt] = (double)_b;
-
-					bad_se_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(uint8_t);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_se_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(uint8_t);	
-					pos += sizeof(uint8_t);
-					start_pos += sizeof(uint8_t);
-				}
-				
-				Field_Comm *field = new Field_Comm;
-				field->name = "Preprocessed ADC Data";
-				field->code = cmd;
-				field->value = se_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_se_data;
-				field->tag = group_index;
-
-				msg_info->setDeviceDataMemo("Preprocessed ADC Data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-				break;
-			}
-		case DT_RFP:
-		case DT_RFP2:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t nmr_data_len = cmd_data_len/sizeof(uint8_t);
-				QVector<double> *se_data = new QVector<double>(nmr_data_len);
-				QVector<uint8_t> *bad_se_data = new QVector<uint8_t>(nmr_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;	
-
-				uint32_t a32 = 0;
-				uint32_t b32 = 0;
-				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				float A = *(float*)&a32;
-				float B = *(float*)&b32;
-				start_pos += 2*sizeof(float);
-
-				float _b = 0;
-				while (byte_counter > 0)
-				{					
-					_b = A*data.data[pos] - B;
-					se_data->data()[cnt] = (double)_b;
-
-					bad_se_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(uint8_t);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_se_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(uint8_t);	
-					pos += sizeof(uint8_t);
-					start_pos += sizeof(uint8_t);
-				}
-
-				Field_Comm *field = new Field_Comm;
-				field->name = "RF-Pulse Data";
-				field->code = cmd;
-				field->value = se_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_se_data;
-				field->tag = group_index;
-
-				msg_info->setDeviceDataMemo("RF-Pulse Data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-				break;
-			}
-		case DT_NS_QUAD_FID_RE:
-		case DT_NS_QUAD_FID_IM:
-		case DT_NS_QUAD_SE_RE:
-		case DT_NS_QUAD_SE_IM:
-		case DT_SGN_QUAD_FID_RE:
-		case DT_SGN_QUAD_FID_IM:
-		case DT_SGN_QUAD_SE_RE:
-		case DT_SGN_QUAD_SE_IM:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t qd_data_len = cmd_data_len/sizeof(uint8_t);
-				QVector<double> *qd_data = new QVector<double>(qd_data_len);
-				QVector<uint8_t> *bad_qd_data = new QVector<uint8_t>(qd_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-
-				uint32_t a32 = 0;
-				uint32_t b32 = 0;
-				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				float A = *(float*)&a32;
-				float B = *(float*)&b32;
-				start_pos += 2*sizeof(float);
-
-				float _b = 0;
-				while (byte_counter > 0)
-				{					
-					_b = A*data.data[pos] - B;
-					qd_data->data()[cnt] = (double)_b;
-
-					bad_qd_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(uint8_t);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_qd_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(uint8_t);	
-					pos += sizeof(uint8_t);
-					start_pos += sizeof(uint8_t);
-				}
-				
-				Field_Comm *field = new Field_Comm;
-				field->name = "ADC Quadrature";
-				field->code = cmd;
-				field->value = qd_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_qd_data;
-				field->tag = group_index;
-
-				msg_info->setDeviceDataMemo("ADC Quadrature", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case DT_NS_FFT_FID_RE:
-		case DT_NS_FFT_SE_RE:
-		case DT_SGN_FFT_FID_RE:
-		case DT_SGN_FFT_SE_RE:
-		case DT_NS_FFT_FID_IM:
-		case DT_NS_FFT_SE_IM:
-		case DT_SGN_FFT_FID_IM:
-		case DT_SGN_FFT_SE_IM:		
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t fft_data_len = cmd_data_len/sizeof(uint8_t);
-				QVector<double> *fft_data = new QVector<double>(fft_data_len);
-				QVector<uint8_t> *bad_fft_data = new QVector<uint8_t>(fft_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-
-				uint32_t a32 = 0;
-				uint32_t b32 = 0;
-				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				float A = *(float*)&a32;
-				float B = *(float*)&b32;
-				start_pos += 2*sizeof(float);
-
-				float _b = 0;
-				while (byte_counter > 0)
-				{					
-					_b = A*data.data[pos] - B;
-					fft_data->data()[cnt] = (double)_b;
-
-					bad_fft_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(uint8_t);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_fft_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(uint8_t);	
-					pos += sizeof(uint8_t);
-					start_pos += sizeof(uint8_t);
-				}
-				
-				Field_Comm *field = new Field_Comm;
-				field->name = "FFT Spectrum";
-				field->code = cmd;
-				field->value = fft_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_fft_data;
-				field->tag = (int)group_index;
-
-				msg_info->setDeviceDataMemo("FFT Spectrum", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case DT_SGN_FFT_FID_AM:
-		case DT_NS_FFT_FID_AM:
-		case DT_SGN_FFT_SE_AM:
-		case DT_NS_FFT_SE_AM:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t fft_data_len = cmd_data_len/sizeof(uint8_t);
-				QVector<double> *fft_data = new QVector<double>(fft_data_len);
-				QVector<uint8_t> *bad_fft_data = new QVector<uint8_t>(fft_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-
-				uint32_t a32 = 0;
-				uint32_t b32 = 0;
-				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				float A = *(float*)&a32;
-				float B = *(float*)&b32;
-				start_pos += 2*sizeof(float);
-
-				float _b = 0;
-				while (byte_counter > 0)
-				{					
-					_b = A*data.data[pos] - B;
-					fft_data->data()[cnt] = (double)_b;
-
-					bad_fft_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(uint8_t);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_fft_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(uint8_t);	
-					pos += sizeof(uint8_t);
-					start_pos += sizeof(uint8_t);
-				}
-				
-				Field_Comm *field = new Field_Comm;
-				field->name = "FFT Amplitude Spectrum";
-				field->code = cmd;
-				field->value = fft_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_fft_data;
-				field->tag = (int)group_index;
-
-				msg_info->setDeviceDataMemo("FFT Amplitude Spectrum", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case DT_SGN_POWER_SE:
-		case DT_SGN_POWER_FID:
-		case DT_NS_POWER_SE:
-		case DT_NS_POWER_FID:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t ps_data_len = cmd_data_len/sizeof(uint8_t);
-				QVector<double> *ps_data = new QVector<double>(ps_data_len);
-				QVector<uint8_t> *bad_ps_data = new QVector<uint8_t>(ps_data_len);
-								
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-
-				uint32_t a32 = 0;
-				uint32_t b32 = 0;
-				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				float A = *(float*)&a32;
-				float B = *(float*)&b32;
-				start_pos += 2*sizeof(float);
-
-				float _b = 0;
-				while (byte_counter > 0)
-				{					
-					_b = A*data.data[pos] - B;
-					ps_data->data()[cnt] = (double)_b;
-
-					bad_ps_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(uint8_t);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_ps_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(uint8_t);	
-					pos += sizeof(uint8_t);
-					start_pos += sizeof(uint8_t);
-				}
-				
-				Field_Comm *field = new Field_Comm;
-				field->name = "Power Spectrum";
-				field->code = cmd;
-				field->value = ps_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_ps_data;
-				field->tag = group_index;
-
-				msg_info->setDeviceDataMemo("Power Spectrum", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case DT_SGN_RELAX:
-		case DT_SGN_RELAX2:
-		case DT_SGN_RELAX3:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t relax_data_len = cmd_data_len/sizeof(uint8_t);
-				QVector<double> *relax_data = new QVector<double>(relax_data_len);
-				QVector<uint8_t> *bad_relax_data = new QVector<uint8_t>(relax_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-
-				uint32_t a32 = 0;
-				uint32_t b32 = 0;
-				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				
-				float A = *(float*)&a32;
-				float B = *(float*)&b32;
-				start_pos += 2*sizeof(float);
-
-				float _b = 0;
-				while (byte_counter > 0)
-				{					
-					if (data.data[pos] == 0xff) 
-					{
-						uint32_t nan_32 = 0xffffffff;
-						float *nan = (float*)&nan_32;
-						relax_data->data()[cnt] = *nan;
-					}
-					else
-					{
-						_b = A*data.data[pos] - B;
-						relax_data->data()[cnt] = (double)_b;
-					}						
-
-					bad_relax_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(uint8_t);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_relax_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(uint8_t);	
-					pos += sizeof(uint8_t);
-					start_pos += sizeof(uint8_t);
-				}
-
-				Field_Comm *field = new Field_Comm;
-				field->name = "CPMG Relax data";
-				field->code = cmd;
-				field->value = relax_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_relax_data;
-				field->tag = group_index;
-
-				msg_info->setDeviceDataMemo("CPMG Relax data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case DT_AFR1_RX:
-		case DT_AFR2_RX:
-		case DT_AFR3_RX:
-		case DT_AFR1_TX:
-		case DT_AFR2_TX:
-		case DT_AFR3_TX:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t afr1_data_len = cmd_data_len/sizeof(uint8_t);
-				QVector<double> *afr1_data = new QVector<double>(afr1_data_len);
-				QVector<uint8_t> *bad_afr1_data = new QVector<uint8_t>(afr1_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-
-				uint32_t a32 = 0;
-				uint32_t b32 = 0;
-				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
-
-				float A = *(float*)&a32;
-				float B = *(float*)&b32;
-				start_pos += 2*sizeof(float);
-
-				float _b = 0;
-				while (byte_counter > 0)
-				{					
-					if (data.data[pos] == 0xff) 
-					{
-						uint32_t nan_32 = 0xffffffff;
-						float *nan = (float*)&nan_32;
-						afr1_data->data()[cnt] = *nan;
-					}
-					else
-					{
-						_b = A*data.data[pos] - B;
-						afr1_data->data()[cnt] = (double)_b;
-					}						
-
-					bad_afr1_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(uint8_t);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_afr1_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(uint8_t);	
-					pos += sizeof(uint8_t);
-					start_pos += sizeof(uint8_t);
-				}
-
-				Field_Comm *field = new Field_Comm;
-				field->name = "Frequency Response data";
-				field->code = cmd;
-				field->value = afr1_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_afr1_data;
-				field->tag = group_index;
-
-				msg_info->setDeviceDataMemo("Frequency Response data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case DT_GAMMA:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-				uint16_t gamma_data_len = cmd_data_len/sizeof(float);
-				QVector<double> *gamma_data = new QVector<double>(gamma_data_len);				
-				QVector<uint8_t> *bad_gamma_data = new QVector<uint8_t>(gamma_data_len);
-				
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-
-				float _b = 0;
-				while (byte_counter > 0)
-				{					
-					uint32_t a32 = 0;					
-					memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); 
-					
-					_b = *(float*)&a32;
-					gamma_data->data()[cnt] = _b;
-					
-					bad_gamma_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(float);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_gamma_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-
-					byte_counter -= sizeof(float);	
-					pos += sizeof(float);
-					start_pos += sizeof(float);
-				}
-
-				Field_Comm *field = new Field_Comm;
-				field->name = "Gamma data";
-				field->code = cmd;
-				field->value = gamma_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_gamma_data;
-				field->tag = group_index;
-
-				msg_info->setDeviceDataMemo("Gamma data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case DT_DIEL:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;
-
-				uint16_t diel_data_len = 8;
-				QVector<double> *diel_data = new QVector<double>(diel_data_len);
-				QVector<uint8_t> *bad_diel_data = new QVector<uint8_t>(diel_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-
-				QVector<uint8_t> temp(DIELECTR_MSG_LEN);				
-				memcpy(&temp[0], &data.data[pos], DIELECTR_MSG_LEN*sizeof(uint8_t)); 
-				uint16_t head = ((temp[1] << 8) | temp[0]);				
-				
-				uint16_t csumm = 0;
-				for (int i = 2; i < DIELECTR_MSG_LEN - 2; i++)
-				{
-					csumm += temp[i];
-				}
-				uint16_t crc16 = ((temp[DIELECTR_MSG_LEN - 1] << 8) | temp[DIELECTR_MSG_LEN - 2]);
-
-				if (head ==  0xFAFA && csumm == crc16)
-				{
-					pos += 2;
-					int cnt = 0;
-					bool is_data_bad = false;
-					for (int i = 2; i < DIELECTR_MSG_LEN-2; i += 2)
-					{
-						uint16_t val = ((temp[i+1] << 8) | temp[i]);
-						diel_data->data()[cnt] = (double)val;
-
-						bad_diel_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-						int pp = sizeof(uint16_t);						
-						while (--pp >= 0) 
-						{
-							if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) 
-							{
-								bad_diel_data->data()[cnt] = (uint8_t)BAD_DATA;
-								is_data_bad = true;
-							}
-						}
-						cnt++;
-						pos += 2;
-					}
-
-					if (!is_data_bad) emit send_to_cdiag(temp); 
-				}
-				else
-				{
-					for (int i = 0; i < diel_data_len; i++)
-					{
-						bad_diel_data->data()[i] = (uint8_t)BAD_DATA;
-					}
-				}
-
-				start_pos += DIELECTR_MSG_LEN;
-
-				Field_Comm *field = new Field_Comm;
-				field->name = "SDSP data";
-				field->code = cmd;
-				field->value = diel_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_diel_data;
-				field->tag = group_index;
-
-				msg_info->setDeviceDataMemo("SDSP data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case DT_DIEL_ADJUST:
-			{
-				qDebug() << "extract DT_DIEL_ADJUST";
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-
-				uint16_t diel_data_len = cmd_data_len/sizeof(float);
-				QVector<double> *diel_data = new QVector<double>(diel_data_len);				
-				QVector<uint8_t> *bad_diel_data = new QVector<uint8_t>(diel_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-
-				float *temp = (float*)(data.data.get() + pos);
-				for (int i = 0; i < diel_data_len; i++)
-				{
-					uint16_t val = temp[i];
-					diel_data->data()[i] = (double)val;
-
-					bad_diel_data->data()[i] = (uint8_t)DATA_STATE_OK;
-					int pp = sizeof(float);
-					while (--pp >= 0) 
-					{
-						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_diel_data->data()[cnt] = (uint8_t)BAD_DATA;
-					}
-					cnt++;
-					pos += sizeof(float);
-					start_pos += sizeof(float);
-				}
-
-				Field_Comm *field = new Field_Comm;
-				field->name = "SDSP adjustment data";
-				field->code = cmd;
-				field->value = diel_data;
-				field->str_value = "";
-				field->value_type = Field_Comm::FLOAT;
-				field->bad_data = bad_diel_data;
-				field->tag = group_index;
-
-				msg_info->setDeviceDataMemo("SDSP adjustment data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-				msg_info->getDeviceData()->fields->append(field);
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-				break;
-			}
-		case DT_DU:		
-		case DT_PU:
-		case DT_TU:
-			{
-				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 2 байта (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
-				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL || bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
-				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
-
-				uint16_t group_index = ((uint16_t)(data.data[start_pos+2]) << 8) | (uint16_t)(data.data[start_pos+1]);
-				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
-				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
-				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
-
-				uint16_t byte_counter = cmd_data_len;								
-				
-				uint16_t dt_data_len = 2;
-				QVector<double> *dt_data = new QVector<double>(dt_data_len);				
-				QVector<uint8_t> *bad_dt_data = new QVector<uint8_t>(dt_data_len);
-
-				uint16_t pos = start_pos;
-				uint32_t cnt = 0;
-				
-				uint8_t temp[DU_DATA_LEN];				
-				memcpy(&temp[0], &data.data[pos], DU_DATA_LEN*sizeof(uint8_t)); 
-
-				int bias = 0;
-
-				// Measured temperatures
-				int Clk = calcClk((int)temp[bias++]);
-				double Rc = 10000;				
-				int Nc = (temp[bias] << 8) | (temp[bias+1]);
-				double t = Clk*Nc/8.0e6;
-				double C = t/Rc/log(2);
-				bias += 2;
-
-				Clk = calcClk((int)temp[bias++]);
-				Nc = (temp[bias] << 8) | (temp[bias+1]);
-				t = Clk*Nc/8.0e6;
-				double R1 = PlusInf;
-				if (C != 0) R1 = t/C/log(2) - 10000;
-				bias += 2;
-
-				dt_data->data()[cnt] = R1;
-				bad_dt_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-				int pp = 9;
-				while (--pp >= 0) 
-				{
-					if (pp > 5) pp = 5;
-					if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_dt_data->data()[cnt] = (uint8_t)BAD_DATA;
-				}
-				cnt++;
-
-				Clk = calcClk((int)temp[bias++]);
-				Nc = (temp[bias] << 8) | (temp[bias+1]);
-				t = Clk*Nc/8.0e6;
-				double R2 = PlusInf;
-				if (C != 0) R2 = t/C/log(2) - 10000;
-				bias += 2;
-
-				dt_data->data()[cnt] = R2;
-				bad_dt_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
-				pp = 9;
-				while (--pp >= 0) 
-				{
-					if (pp == 5) pp -= 3;
-					if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_dt_data->data()[cnt] = (uint8_t)BAD_DATA;
-				}
-				cnt++;
-
-				start_pos += cmd_data_len;
-				
-				Field_Comm *fieldT = new Field_Comm;				
-				switch (cmd)
-				{
-				case DT_DU: 
-					fieldT->code = DT_DU_T; 
-					fieldT->name = "DU Temperature data"; 
-					msg_info->setDeviceDataMemo("DU Monitoring data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-					break;
-				case DT_PU: 
-					fieldT->code = DT_PU_T; 
-					fieldT->name = "PU Temperature data"; 
-					msg_info->setDeviceDataMemo("PU Monitoring data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-					break;				
-				case DT_TU: 
-					fieldT->code = DT_TU_T; 
-					fieldT->name = "TU Temperature data"; 
-					msg_info->setDeviceDataMemo("TU Monitoring data", NMRTOOL_DATA, MTYPE_MULTYPACK);
-					break;
-				}	
-				fieldT->value = dt_data;
-				fieldT->str_value = "";
-				fieldT->value_type = Field_Comm::FLOAT;
-				fieldT->bad_data = bad_dt_data;
-				fieldT->tag = group_index;
-				msg_info->getDeviceData()->fields->append(fieldT);							
-
-				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
-				else 
-				{
-					return MsgInfo::Message_OK;
-				}
-
-				break;
-			}
-		case NMRTOOL_CONNECT:
-			{
-				msg_info->setDeviceDataMemo("Connect to NMR Tool", NMRTOOL_CONNECT, MTYPE_SHORT);
-				start_pos += SRV_DATA_LEN;
-				break;
-			}
-		case DATA_OK:
-			{
-				msg_info->setDeviceDataMemo("Data is OK", DATA_OK, MTYPE_SHORT);
-				start_pos += SRV_DATA_LEN;
-				break;
-			}
-		case DIEL_DATA_READY:
-			{
-				msg_info->setDeviceDataMemo("SDSP data is ready", DIEL_DATA_READY, MTYPE_SHORT);
-				start_pos += SHORT_DATA_LEN;
-				break;
-			}
-		default: 
-			{
-				data.destroy();
-				bad_map.destroy();
-				return MsgInfo::Bad_Command;
-			}
-		}	
-	}	
-
-	data.destroy();
-	bad_map.destroy();
-
-	return MsgInfo::Message_OK;
-}
-*/
-
 MsgInfo::ParsingResult MsgProcessor::extractData(MsgInfo *msg_info)
 {	
 	SmartArr data;
@@ -2319,6 +1277,87 @@ MsgInfo::ParsingResult MsgProcessor::extractData(MsgInfo *msg_info)
 					return MsgInfo::Message_OK;
 				}
 
+				break;
+			}
+		case DT_SOLID_ECHO1:
+		case DT_SOLID_ECHO2:
+		case DT_SOLID_ECHO3:
+			{
+				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 1 байт (индекс канала данных) + 1 байт (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
+				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL) // ошибка в коде канала данных () !
+					if (bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
+				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
+
+				uint8_t channel_data_id = (uint8_t)(data.data[start_pos+1] + 1);	// номера каналов данных при передаче в каротажный прибор отсчитываются от нуля
+				uint16_t group_index = (uint16_t)(data.data[start_pos+2]);
+				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
+				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
+				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
+
+
+				uint16_t byte_counter = cmd_data_len;								
+				uint16_t solidecho_data_len = cmd_data_len/sizeof(uint8_t);
+				QVector<double> *solidecho_data = new QVector<double>(solidecho_data_len);
+				QVector<uint8_t> *bad_solidecho_data = new QVector<uint8_t>(solidecho_data_len);
+
+				uint16_t pos = start_pos;
+				uint32_t cnt = 0;
+
+				uint32_t a32 = 0;
+				uint32_t b32 = 0;
+				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
+				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
+
+				float A = *(float*)&a32;
+				float B = *(float*)&b32;
+				start_pos += 2*sizeof(float);
+
+				float _b = 0;
+				while (byte_counter > 0)
+				{					
+					if (data.data[pos] == 0xff) 
+					{
+						uint32_t nan_32 = 0xffffffff;
+						float *nan = (float*)&nan_32;
+						solidecho_data->data()[cnt] = *nan;
+					}
+					else
+					{
+						_b = A*data.data[pos] - B;
+						solidecho_data->data()[cnt] = (double)_b;
+					}						
+
+					bad_solidecho_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
+					int pp = sizeof(uint8_t);
+					while (--pp >= 0) 
+					{
+						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_solidecho_data->data()[cnt] = (uint8_t)BAD_DATA;
+					}
+					cnt++;
+
+					byte_counter -= sizeof(uint8_t);	
+					pos += sizeof(uint8_t);
+					start_pos += sizeof(uint8_t);
+				}
+
+				Field_Comm *field = new Field_Comm;
+				field->name = "Solid Echo data";
+				field->code = cmd;
+				field->value = solidecho_data;
+				field->str_value = "";
+				field->value_type = Field_Comm::FLOAT;
+				field->bad_data = bad_solidecho_data;
+				field->tag = group_index;
+				field->channel = channel_data_id;
+
+				msg_info->setDeviceDataMemo("Solid Echo data", NMRTOOL_DATA, MTYPE_MULTYPACK);
+				msg_info->getDeviceData()->fields->append(field);
+
+				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
+				else 
+				{
+					return MsgInfo::Message_OK;
+				}
 				break;
 			}
 		case DT_AFR1_RX:

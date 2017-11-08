@@ -30,6 +30,7 @@ public:
 	~SchedulerWizard();
 
 	Scheduler::Engine* getSchedulerEngine() { return &scheduler_engine; } 
+	JSeqObject *getExecutingJSeqObject() { return executingJSeq; }
 		
 	bool generateDistanceScanPrg(QStringList &e);
 	bool generateExecPrg(QStringList &e);
@@ -43,18 +44,22 @@ public slots:
 	void setJSeqList(QStringList _jseq_list) { jseq_list = _jseq_list; }
 	//void setJSeqFile(const QString &_file_name) { jseq_file = _file_name; }
 	void setDataFile(const QString &_file_name) { data_file = _file_name; }
+	QString getDataFile();
 
-	void setSeqStatus(unsigned char _seq_finished);
+	void setSeqStatus(unsigned char _seq_finished);		// информирует о завершении последовательности
+	void setSeqStarted(bool flag);						// свидетельствует об успехе / неуспехе старта последовательности
 
 protected:
 	bool eventFilter(QObject *obj, QEvent *event);
 	
 private:
-	void setDataFileSettings();
+	//void setDataFileSettings();
 	QString generateDataFileName();
 
 	void insertItem(int row, QString cmd);
 	void removeItem(int row);
+
+	void removeSchedulerObj(Scheduler::SchedulerObject *obj);
 	
 	void showItemParameters(Scheduler::SchedulerObject *obj);
 
@@ -82,20 +87,23 @@ private:
 	QList<QTreeWidgetItem*> tree_items;	
 		
 	Scheduler::Engine scheduler_engine;
+	JSeqObject *executingJSeq;
 
 	QStringList jseq_list;
-	//QString jseq_file;
+	//QString jseq_file;	
 	QString data_file;
 
-	QString datafile_path;
+	/*QString datafile_path;
 	QString datafile_prefix;
 	QString datafile_postfix;
-	QString datafile_extension;
+	QString datafile_extension;*/
 
 	bool is_started;
 	Scheduler::CommandController *current_cmd;
 	Scheduler::SchedulerObjList obj_cmd_list;
 	unsigned int crc16_last_jseq;
+
+	bool seq_already_finished;		// флаг, свидетельствующий о том, что сигнал завершения последовательности уже принят и следующие такие сигналы игнорировать до успешного старта следующей последовательности 
 
 signals:
 	void finished();

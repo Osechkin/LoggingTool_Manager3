@@ -34,7 +34,8 @@ public:
 	QScriptEngine *js_engine;	
 	LUSI::Engine *lusi_engine;
 	LUSI::Sequence *lusi_Seq;
-	QString jseq_file;		
+	QString jseq_file;	
+	QString data_file;
 
 private:
 	QList<SeqCmdInfo> cmd_list;
@@ -69,9 +70,11 @@ public:
 
 	QStringList getSeqFileList() { return file_list; }
 	QStringList getSeqPathList() { return path_list; }
-	//QString &getJSeqFile() { return jseq_file; }
+	DataSave getDataFileSettings() { return save_data; }
+	void readDataFileSettings();
 
 	JSeqObject *getCurJSeqObject() { return cur_jseq_object; }
+	JSeqObject *getJSeqObject(QString jseq_file);
 
 	//void refreshArgFormula();
 	

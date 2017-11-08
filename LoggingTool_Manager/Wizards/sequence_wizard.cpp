@@ -111,6 +111,7 @@ bool JSeqObject::partOf(QList<JSeqObject*> &jseq_list, int &index)
 	return false;
 }
 
+
 ////
 /*
 SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(parent), ui(new Ui::SequenceWizard)
@@ -282,7 +283,7 @@ SequenceWizard::SequenceWizard(QSettings *settings, QWidget *parent) : QWidget(p
 	}	
 
 	app_settings = settings;
-	save_data.to_save = false;	
+	readDataFileSettings();
 
 	setConnections();
 }
@@ -1637,6 +1638,7 @@ void SequenceWizard::showLUSISeqParameters()
 					else if (ui_type.toLower() == "checkbox") 
 					{
 						item_settings3.check_state = param->getValue();	
+						item_settings3.value = "no_text";
 						item_settings3.data_type = Bool_Data;
 					}
 					else 
@@ -1699,7 +1701,7 @@ void SequenceWizard::showLUSISeqParameters()
 
 					QString ui_type = param->getUIType();
 					CSettings item_settings2(ui_type.toLower(), param->getValue());
-					if (ui_type.toLower() == "checkbox") item_settings2.value = QVariant("");
+					if (ui_type.toLower() == "checkbox") item_settings2.value = QVariant("no_text");
 					QString str_minmax = QString("[ %1 ... %2 ]").arg(param->getMin()).arg(param->getMax());	
 					item_settings2.data_type = Bool_Data;
 					item_settings2.hint = str_minmax;
@@ -2472,40 +2474,7 @@ void SequenceWizard::refreshSequenceList()
 */
 
 void SequenceWizard::refreshSequenceList()
-{
-	/*QString cur_fileName = ui->cboxSequences->currentText();
-
-	if (findSequenceScripts(file_list, path_list))	// обновить список файлов *.seq 
-	{
-		QString file_name = cur_fileName;
-		if (file_name.isEmpty()) file_name = path_list.first() + "/" + file_list.first();	// если последовательность с именем файла cur_fileName не найдена, то выбрать первую из списка в качестве текущей
-		sequence_proc = initSequenceScript(file_name);		
-		parseSequenceScript(sequence_proc, curSeq);
-
-		bool errs = false;
-		if (!curSeq.seq_errors.isEmpty()) errs = true;
-		for (int i = 0; i < curSeq.param_list.count(); i++) if (!curSeq.param_list[i]->flag) errs = true;
-
-		ui->cboxSequences->clear();
-		ui->cboxSequences->addItems(file_list);		
-		ui->ledSeqName->setText(curSeq.name);
-
-		showSequenceMemo(curSeq);
-		showSeqParameters();			
-	}
-	else
-	{
-		curSeq.clear();
-		if (sequence_proc != NULL) delete sequence_proc;
-		sequence_proc = NULL;
-
-		ui->ledSeqName->clear();
-		ui->lblDescription->clear();
-
-		clearCTreeWidget();
-		ui->treeWidget->clear();
-	}*/
-
+{	
 	disconnect(ui->cboxSequences, SIGNAL(currentIndexChanged(const QString &)), this, SLOT(changeCurrentSequence(const QString &)));
 	ui->cboxSequences->clear();
 	connect(ui->cboxSequences, SIGNAL(currentIndexChanged(const QString &)), this, SLOT(changeCurrentSequence(const QString &)));
@@ -2948,6 +2917,51 @@ void SequenceWizard::setExportSettings()
 	}
 }
 
+void SequenceWizard::readDataFileSettings()
+{
+	QString path = "";
+	if (app_settings->contains("SaveDataSettings/Path")) path = app_settings->value("SaveDataSettings/Path").toString();
+	else
+	{
+		QString cur_dir = QCoreApplication::applicationDirPath();		
+		path = cur_dir;
+		app_settings->setValue("SaveDataSettings/Path", path);
+	}
+	
+	QString file_prefix = "";
+	if (app_settings->contains("SaveDataSettings/Prefix")) file_prefix = app_settings->value("SaveDataSettings/Prefix").toString();
+	else
+	{
+		file_prefix = "data";
+		app_settings->setValue("SaveDataSettings/Prefix", file_prefix);
+	}	
+	
+	QString file_postfix = "";
+	if (app_settings->contains("SaveDataSettings/Postfix")) file_postfix = app_settings->value("SaveDataSettings/Postfix").toString();
+	else
+	{
+		file_postfix = "";
+		app_settings->setValue("SaveDataSettings/Postfix", file_postfix);
+	}
+	
+	QString extension = "";
+	QStringList items;
+	items << tr("dat") << tr("txt");	
+	if (app_settings->contains("SaveDataSettings/Extension")) extension = app_settings->value("SaveDataSettings/Extension").toString();
+	else
+	{
+		extension = "dat";
+		app_settings->setValue("SaveDataSettings/Extension", extension);
+	}
+	if (!items.contains(extension)) items << extension;	
+
+	save_data.path = path;
+	save_data.postfix = file_postfix;
+	save_data.prefix = file_prefix;
+	save_data.extension = extension;	
+	save_data.to_save = true;
+}
+
 QString SequenceWizard::getStrItemNumber(QString text, int index, int base)
 {
 	QString res = "";
@@ -3042,6 +3056,23 @@ bool SequenceWizard::getDSPPrg(QString &jseq_name, QVector<uint8_t> &_prg, QVect
 
 	return true;
 }
+
+JSeqObject *SequenceWizard::getJSeqObject(QString jseq_file)
+{	
+	for (int i = 0; i < jseq_objects.count(); i++)
+	{
+		JSeqObject *jseq_obj = jseq_objects[i];
+		QFileInfo file_info(jseq_obj->jseq_file);
+		QString jseq_obj_file = file_info.fileName();
+		if (jseq_file == jseq_obj_file)
+		{
+			return jseq_obj;
+		}
+	}
+
+	return NULL;
+}
+
 
 QString SequenceWizard::simplifyFormula(QString _formula, Sequence *_seq)
 {

@@ -397,12 +397,8 @@ Scheduler::SchedulerObject* Scheduler::Engine::take(int index)
 
 void Scheduler::CommandController::processResult(bool flag, uint32_t _uid)
 {
-	if ((_uid == cmd_uid || _uid == 0) && flag)
+	if (_uid == cmd_uid || _uid == 0)
 	{
-		if (flag) job_finished = true;
-	}
-	else if (!flag)
-	{
-		//job_finished = true;
+		job_finished = flag;
 	}
 }

@@ -91,6 +91,10 @@ COMCommander::COMCommander(MainWindow *main_win, QObject *parent)
 	is_running = true;
 
 	incomming_msg_log = new QFile(QApplication::applicationDirPath() + "/incomming_msg_test.txt");
+
+	msg_timer = new QTimer();	
+	connect(msg_timer, SIGNAL(timeout()), this, SLOT(lifeTimeElapsed()));
+
 }
 
 COMCommander::~COMCommander()
@@ -119,8 +123,8 @@ COMCommander::~COMCommander()
 
 void COMCommander::run()
 {
-	msg_timer = new QTimer();	
-	connect(msg_timer, SIGNAL(timeout()), this, SLOT(lifeTimeElapsed()));
+	//msg_timer = new QTimer();	
+	//connect(msg_timer, SIGNAL(timeout()), this, SLOT(lifeTimeElapsed()));
 
 	if (!COM_port)
 	{
@@ -615,7 +619,7 @@ void COMCommander::onDataAvailable()
 				return;
 			}
 			
-			if (sz >= packs_count*packs_len) incom_msg_state = PACKS_FINISHED;				
+			if (sz >= packs_count*packs_len) incom_msg_state = PACKS_FINISHED;					
 		}
 
 		if (incom_msg_state == PACKS_FINISHED)
@@ -995,8 +999,8 @@ void COMCommander::executeServiceMsg(COM_Message *_msg)
 	bool telemetry_on = (byte0 & 0x2) > 0;
 	uint8_t incomming_id = _msg->getMsgHeader()->getSessionId();
 
-	unsigned char proger_started = (byte0 & 0x4);		// интервальный программатор ПЛИС был запущен командой proger_start()
-	unsigned char seq_finished = (byte0 & 0x8);		// закончилась или нет последовательность в программаторе ПЛИС командой COM_STOP
+	bool proger_started = (byte0 & 0x4);		// интервальный программатор ПЛИС был запущен командой proger_start()
+	bool seq_finished = (byte0 & 0x8);		// закончилась или нет последовательность в программаторе ПЛИС командой COM_STOP
 	
 	//if (seq_finished || !proger_started) nmrtool_state = false;
 	//if (!proger_started) nmrtool_state = false;
@@ -1007,7 +1011,7 @@ void COMCommander::executeServiceMsg(COM_Message *_msg)
 	{
 	case NMRTOOL_IS_READY:
 		{
-			if (device_data_queue.empty() && (nmrtool_state | telemetry_on | sdsptool_state)) // if NMR Tool is ready to read messages or if telemetry is ready
+			if (device_data_queue.empty() && (nmrtool_state | telemetry_on | sdsptool_state) && !seq_finished) // if NMR Tool is ready to read messages or if telemetry is ready
 			{
 				lock_COM_Msg();
 				MsgHeaderInfo hdr_info;

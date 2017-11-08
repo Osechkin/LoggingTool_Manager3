@@ -179,13 +179,14 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 						if (res) 
 						{
 							report = QString("<font color=darkGreen>") + ctime_str + tr(" NMR Tool is started !") +  "</font>";
-							addText(report);							
-							connWidget->stopBlinking();		
+							addText(report);
+							connWidget->stopBlinking();
 							connection_state = ConnectionState::State_OK;
 							emit place_to_statusbar(tr(" NMR Tool is started !"));
 							emit control_nmrtool(true);
-							emit start_experiment(true);
-							emit cmd_resulted(true, _uid);
+							////emit start_experiment(true);
+							//emit cmd_resulted(true, _uid);
+							emit fpga_seq_started(true);
 						}
 						else 
 						{
@@ -193,7 +194,8 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 							addText(report);	
 							connection_state = ConnectionState::State_No;
 							emit place_to_statusbar(tr(" Cannot start NMR Tool !"));
-							emit cmd_resulted(false, _uid);
+							//emit cmd_resulted(false, _uid);
+							emit fpga_seq_started(false);
 						}					
 					}
 					dev_data = msg_container.takeAt(i);
@@ -278,7 +280,7 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 							emit place_to_statusbar(tr(" NMR Tool has been stopped !"));
 							emit control_nmrtool(false);
 							emit start_experiment(false);		
-							emit cmd_resulted(true, 0);
+							//emit cmd_resulted(true, 0);
 						}
 						else 
 						{
@@ -312,8 +314,8 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 							conn_state = State_OK;
 							emit control_nmrtool(true);
 							emit place_to_statusbar(tr(" The program for FPGA has been started !"));
-							emit start_experiment(true);
-							//emit cmd_resulted(true, _uid);
+							////emit start_experiment(true);							
+							emit fpga_seq_started(true);
 						}
 						else 
 						{
@@ -321,7 +323,7 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 							addText(report);	
 							conn_state = State_No;
 							emit place_to_statusbar(tr(" Cannot send the Program for FPGA to NMR Tool !"));
-							//emit cmd_resulted(true, _uid);
+							emit fpga_seq_started(false);
 						}					
 					}
 					dev_data = msg_container.takeAt(i);
@@ -417,6 +419,11 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 
 					QApplication::restoreOverrideCursor();					
 					emit cmd_resulted(DT_DIEL_ADJUST, connection_state);
+					break;
+				}
+			case NMRTOOL_DATA:
+				{
+					//emit fpga_seq_started(true);
 					break;
 				}
 			default: break;

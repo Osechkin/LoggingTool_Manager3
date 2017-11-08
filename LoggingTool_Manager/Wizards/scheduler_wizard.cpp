@@ -23,9 +23,10 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, D
 	nmrtool_linker = nmrtool_wiz;
 	this->clocker = clocker;
 	app_settings = settings;
-	setDataFileSettings();
+	//setDataFileSettings();
 
 	current_cmd = NULL;
+	seq_already_finished = true;
 
 	ui->tbtAdd->setIcon(QIcon(":/images/add_button.png"));
 	ui->tbtRemove->setIcon(QIcon(":/images/disconnect.png"));
@@ -76,6 +77,7 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, D
 	connect(sm, SIGNAL(currentRowChanged(QModelIndex,QModelIndex)), this, SLOT(currentItemSelected(QModelIndex,QModelIndex)));
 
 	scheduler_engine.clear();
+	executingJSeq = NULL;
 
 	connect(ui->tbtAdd, SIGNAL(clicked()), this, SLOT(addItemNOP()));	
 	connect(a_exec, SIGNAL(triggered()), this, SLOT(addItem()));
@@ -262,6 +264,7 @@ void SchedulerWizard::process()
 		{
 			delete current_cmd;
 			current_cmd = NULL;
+			executingJSeq = NULL;
 		}
 		return;
 	}
@@ -272,6 +275,7 @@ void SchedulerWizard::process()
 		if (!cmd_obj) 
 		{
 			is_started = false;
+			executingJSeq = NULL;
 			stop();
 			emit finished();
 			return;
@@ -307,34 +311,7 @@ void SchedulerWizard::process()
 				}
 				break;				
 			}
-		case Scheduler::End_Cmd:
-		/*	{
-				Scheduler::End *end_obj = qobject_cast<Scheduler::End*>(cmd_obj);
-				if (end_obj)
-				{
-					Scheduler::SchedulerObject *ref_cmd_obj = end_obj->ref_obj;
-					Scheduler::Command ref_type = ref_cmd_obj->type;
-					if (ref_type == Scheduler::DistanceRange_Cmd)
-					{
-						Scheduler::DistanceRange *ref_dist_range_obj = qobject_cast<Scheduler::DistanceRange*>(ref_cmd_obj);
-						if (ref_dist_range_obj)
-						{
-							if (!ref_dist_range_obj->finished) obj_cmd_list.append(ref_cmd_obj);
-						}
-						else
-						{
-							Scheduler::Loop *ref_loop_obj = qobject_cast<Scheduler::Loop*>(ref_cmd_obj);
-							if (ref_loop_obj) 
-							{								
-								if (!ref_loop_obj->finished) obj_cmd_list.append(ref_cmd_obj);
-							}
-						}
-					}
-
-					
-				}
-				break;
-			}*/		
+		case Scheduler::End_Cmd:		
 		case Scheduler::NoP_Cmd: break;
 		default: break;
 		}
@@ -343,7 +320,7 @@ void SchedulerWizard::process()
 	else if (!obj_cmd_list.isEmpty() && is_started && current_cmd == NULL)
 	{
 		Scheduler::SchedulerObject *cmd_obj = obj_cmd_list.front();
-		obj_cmd_list.takeFirst();
+		//obj_cmd_list.takeFirst();
 		execute(cmd_obj);
 	}  
 }
@@ -358,7 +335,11 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 			if (exec_obj)
 			{
 				QString jseq_name = exec_obj->jseq_name;
+				data_file = exec_obj->data_file; 
 
+				static int nnn = 0; nnn++;
+				executingJSeq = sequence_wizard->getJSeqObject(jseq_name);
+				
 				QVector<uint8_t> proc_prg;
 				QVector<uint8_t> proc_instr;
 				bool res = sequence_wizard->getDSPPrg(jseq_name, proc_prg, proc_instr);
@@ -370,22 +351,16 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 				unsigned int crc16_jseq = Crc16(jseq_arr.data(), full_len);
 				if (crc16_jseq != crc16_last_jseq)
 				{
-					nmrtool_linker->applyProcPrg(proc_prg, proc_instr);		
+					nmrtool_linker->applyProcPrg(proc_prg, proc_instr);
 				}
 				else 
 				{
 					nmrtool_linker->startNMRTool();
 				}
 				crc16_last_jseq = crc16_jseq;
-				
-				//bool res = sequence_wizard->getDSPPrg(proc_prg, proc_instr);
-				
-				//Sleep(500);
-				//nmrtool_linker->applyProcPrg(proc_prg, proc_instr);		
+					
 				uint32_t uid = nmrtool_linker->getMsgContainer()->last()->uid;
-				current_cmd = new Scheduler::CommandController(uid);		
-				
-				//delete jseq_arr;
+				current_cmd = new Scheduler::CommandController(uid, Scheduler::Exec_Cmd);
 			}
 			break;
 		}
@@ -401,10 +376,12 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 					{
 						if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
 						{
+							removeSchedulerObj(obj);
+
 							double pos = dist_range_obj->pos/100; // [cm] -> [m]
 							leuze_meter->setPosition(pos);
 
-							current_cmd = new Scheduler::CommandController(0);
+							current_cmd = new Scheduler::CommandController(0, Scheduler::DistanceRange_Cmd);
 							connect(leuze_meter, SIGNAL(cmd_resulted(bool, uint32_t)), current_cmd, SLOT(processResult(bool, uint32_t)));
 						}
 					}
@@ -424,10 +401,12 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 					{
 						if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
 						{
+							removeSchedulerObj(obj);
+
 							double pos = set_pos_obj->position/100;	// [cm] -> [m]
 							leuze_meter->setPosition(pos);
 
-							current_cmd = new Scheduler::CommandController(0);
+							current_cmd = new Scheduler::CommandController(0, Scheduler::SetPosition_Cmd);
 							connect(leuze_meter, SIGNAL(cmd_resulted(bool, uint32_t)), current_cmd, SLOT(processResult(bool, uint32_t)));
 						}
 					}
@@ -444,15 +423,69 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 	
 }
 
+QString SchedulerWizard::getDataFile()
+{
+	/*QString _data_file = "";
+	if (executingJSeq) 
+	{
+		_data_file = executingJSeq->data_file;
+	}
+
+	return _data_file;*/
+
+	return data_file;
+}
 
 void SchedulerWizard::setSeqStatus(unsigned char _seq_finished)
 {
+	if (!current_cmd) return;
+	if (current_cmd->getType() != Scheduler::Exec_Cmd) return;
+	if (seq_already_finished) return;
+
 	if (_seq_finished)
 	{
-		if (current_cmd) 
+		current_cmd->processResult(true, 0);
+		seq_already_finished = true;
+	}
+}
+
+void SchedulerWizard::setSeqStarted(bool flag)
+{
+	if (obj_cmd_list.isEmpty()) return;
+	Scheduler::SchedulerObject *cmd_obj = obj_cmd_list.front();
+	if (cmd_obj->type != Scheduler::Exec_Cmd) return;
+
+	Scheduler::Exec *exec_obj = qobject_cast<Scheduler::Exec*>(cmd_obj);
+	if (!exec_obj) return;
+
+	if (flag) 
+	{
+		seq_already_finished = false;
+		obj_cmd_list.takeFirst();	
+	}
+	else
+	{		
+		QString jseq_name = exec_obj->jseq_name;
+		data_file = exec_obj->data_file; 
+
+		QVector<uint8_t> proc_prg;
+		QVector<uint8_t> proc_instr;
+		bool res = sequence_wizard->getDSPPrg(jseq_name, proc_prg, proc_instr);
+
+		int full_len = proc_prg.count() + proc_instr.count();
+		QVector<uint8_t> jseq_arr(full_len);
+		memcpy(jseq_arr.data(), proc_prg.data(), proc_prg.count());
+		memcpy(jseq_arr.data()+proc_prg.count(), proc_instr.data(), proc_instr.count());
+		unsigned int crc16_jseq = Crc16(jseq_arr.data(), full_len);
+		if (crc16_jseq != crc16_last_jseq)
 		{
-			current_cmd->processResult(true, 0);
+			nmrtool_linker->applyProcPrg(proc_prg, proc_instr);
 		}
+		else 
+		{
+			nmrtool_linker->startNMRTool();
+		}
+		crc16_last_jseq = crc16_jseq;
 	}
 }
 
@@ -836,6 +869,15 @@ void SchedulerWizard::update()
 // QString  txt = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(cur_row,0))->text().remove(QRegExp("<[^>]*>"));
 
 
+void SchedulerWizard::removeSchedulerObj(Scheduler::SchedulerObject *obj)
+{
+	for (int i = 0; i < obj_cmd_list.count(); i++)
+	{
+		Scheduler::SchedulerObject *o = obj_cmd_list[i];
+		if (obj == o) obj_cmd_list.removeAt(i);
+	}
+}
+
 void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 {	
 	//ui->treeWidgetParam->clear();
@@ -968,7 +1010,7 @@ void SchedulerWizard::currentItemSelected(QModelIndex index1, QModelIndex index2
 	showItemParameters(obj);
 }
 
-void SchedulerWizard::setDataFileSettings()
+/*void SchedulerWizard::setDataFileSettings()
 {
 	if (app_settings->contains("SaveDataSettings/Path")) datafile_path = app_settings->value("SaveDataSettings/Path").toString();
 	else
@@ -1001,9 +1043,16 @@ void SchedulerWizard::setDataFileSettings()
 		app_settings->setValue("SaveDataSettings/Extension", datafile_extension);
 	}	
 }
+*/
 
 QString SchedulerWizard::generateDataFileName()
 {
+	DataSave data_save = sequence_wizard->getDataFileSettings();
+	QString datafile_path = data_save.path;
+	QString datafile_prefix = data_save.prefix;
+	QString datafile_postfix = data_save.postfix;
+	QString datafile_extension = data_save.extension;
+
 	QDateTime dateTime = QDateTime::currentDateTime();
 	QString dateTime_str = dateTime.toString("yyyy-MM-dd_hh-mm-ss-zzz");
 	QDir dir(datafile_path);

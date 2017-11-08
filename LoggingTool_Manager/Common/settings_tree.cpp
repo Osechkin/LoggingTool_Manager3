@@ -1175,10 +1175,12 @@ void CTreeWidgetItem::initObjects()
             c_objects.append(cbox);
         }
         else if (c_settings[i].type == "checkbox")
-        {
-            //CCheckBox *chbox = new CCheckBox(c_settings[i].value.toString());
+        {			
+			//CCheckBox *chbox = new CCheckBox(c_settings[i].value.toString());
 			CCheckBox *chbox = new CCheckBox("");
-			chbox->setObjectName(QString("checkbox%1").arg(obj_number++));
+			QString title = c_settings[i].value.toString();
+			if (title != "no_text") chbox->setText(title);
+            chbox->setObjectName(QString("checkbox%1").arg(obj_number++));
 			if (!c_settings[i].name.isEmpty()) chbox->setObjectName(chbox->objectName() + QString("_%1").arg(c_settings[i].name));
             chbox->setFont(c_settings[i].font);
             chbox->setTextColor(c_settings[i].text_color);

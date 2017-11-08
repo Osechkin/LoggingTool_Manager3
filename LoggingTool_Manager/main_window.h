@@ -108,7 +108,7 @@ private:
 	void loadProcessingSettings();
 	void loadCommSettings();
 
-	void applyToolSettings();
+	void applyToolSettings();	
 	
 private:
 	Ui::MainWindow *ui;
@@ -204,7 +204,7 @@ private:
 
 	DataSave save_data_attrs;
 	QFile *save_data_file;
-	bool start_data_export;				// индикатор необходимости открыть новый файл для экспорта измеренных данных
+	//bool start_data_export;				// индикатор необходимости открыть новый файл для экспорта измеренных данных
 	int experiment_id;					// номер эксперимента. Увеличивается на 1 при каждом запуске измерений по кнопке "Start Sequence"
 	
 	ProcessingRelax processing_relax;

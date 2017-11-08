@@ -117,6 +117,9 @@ static uint32_t session_uid = 0;
 #define DT_SGN_SPEC3		0xAF		// спектр времен Т2 от измеренного спада поперечной намагниченности датчиком 3 (2^97 of Galois)
 #define DT_AVER_RELAX2		0x43		// усредненные данные спадов поперечной намагниченности с датчика 2 (2^98 of Galois)
 #define DT_AVER_RELAX3		0x86		// усредненные данные спадов поперечной намагниченности с датчика 3 (2^99 of Galois)
+#define DT_SOLID_ECHO1		0x22		// солид-эхо с датчика 1 (2^101 of Galois)
+#define DT_SOLID_ECHO2		0x44		// солид-эхо с датчика 2 (2^102 of Galois)
+#define DT_SOLID_ECHO3		0x88		// солид-эхо с датчика 3 (2^103 of Galois)
 
 
 // ------------------ UART Commands for c6x program ----------------------
@@ -180,7 +183,7 @@ static uint32_t session_uid = 0;
 #define SDSP_DATA			0x6B		// отправка параметров настройки в диэлектрический прибор (2^84 of Galois)
 #define SDSP_REQUEST_C8		0x7F		// отправка запроса 0xC8 на данные в диэлектрический прибор (2^87 of Galois)
 #define SDSP_REQUEST_88		0xFE		// отправка запроса 0x88 на данные в диэлектрический прибор (2^88 of Galois)
-#define LOG_TOOL_SETTINGS	0x11		// отправка параметров настройки каротажного прибора (см. QVector<ToolChannel*> tool_channels)
+#define LOG_TOOL_SETTINGS	0x11		// отправка параметров настройки каротажного прибора (см. QVector<ToolChannel*> tool_channels) (2^100 of Galois)
 // Format of commands:
 // Command    Data Length (bytes)               Data                
 //(1 byte)   (2 bytes - uint16_t)      (up to ~56000 bytes) Note: Max. data length ~ 255 packets * (255 - recovery bytes - 4)
@@ -310,7 +313,7 @@ struct ToolChannel
 		normalize_coef1 = _norm_coef1;
 		normalize_coef2 = _norm_coef2;
 		meas_frq = _meas_freq;
-		sample_freq = _sample_freq;
+		sample_freq = _sample_freq;		
 	}	
 
 	uint8_t channel_id;				// id канала
@@ -329,7 +332,7 @@ struct ToolChannel
 	double normalize_coef1;			// нормировочный коэфициент #1 (обычно перевод сигнала в пористость)	
 	double normalize_coef2;			// нормировочный коэфициент #1 (обычно перевод сигнала в пористость)
 	double meas_frq;				// частота, на которой проводятся измерения
-	double sample_freq;				// частота дискретизации (для ЯМР)
+	double sample_freq;				// частота дискретизации (для ЯМР)	
 };
 
 

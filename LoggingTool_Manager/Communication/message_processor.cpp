@@ -1278,10 +1278,8 @@ MsgInfo::ParsingResult MsgProcessor::extractData(MsgInfo *msg_info)
 				}
 
 				break;
-			}
-		case DT_SOLID_ECHO1:
-		case DT_SOLID_ECHO2:
-		case DT_SOLID_ECHO3:
+			}		
+		case DT_SOLID_ECHO:
 			{
 				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 1 байт (индекс канала данных) + 1 байт (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
 				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL) // ошибка в коде канала данных () !

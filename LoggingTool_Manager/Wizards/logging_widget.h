@@ -40,8 +40,10 @@ typedef QList<QVector<double>* >	ToolData;
 
 struct LoggingData
 {
-	enum DataType { NMRIntegral_Probe,			// интеграл под спадом поперечной намагниченности для ЯМР
-					NMRBins_Probe,				// бины, построенные на основе спектра времен Т2 для данных датчика ЯМР					
+	enum DataType { //NMRIntegral_Probe,			// интеграл под спадом поперечной намагниченности для ЯМР
+					NMRBins_Probe1,				// бины, построенные на основе спектра времен Т2 для данных датчика ЯМР					
+					NMRBins_Probe2,
+					NMRBins_Probe3,
 					Gamma,						// данные гамма-каротажа
 					WaveDielectric,				// данные волнового диэлектрического каротажа (все данные вместе)
 					WaveDielectric_PhaseDiff,	// данные волнового диэлектрического каротажа (разность фаз)

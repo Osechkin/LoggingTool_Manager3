@@ -297,10 +297,20 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 			bool show_on = isVisibleChannel(channels[i]);
 			if (show_on /*&& data_containers.count() < 5*/)
 			{
-				QString d_title = tr("%1 : Bins").arg(channels[i]->name);				
-				LoggingData *dcont = new LoggingData(LoggingData::DataType::NMRBins_Probe, channels[i], d_title, tr("Porosity, %"));
-				data_containers << dcont;
-				items << d_title;
+				QString d_title1 = tr("%1 CPMG1: Bins").arg(channels[i]->name);				
+				LoggingData *dcont1 = new LoggingData(LoggingData::DataType::NMRBins_Probe1, channels[i], d_title1, tr("Porosity, %"));
+				data_containers << dcont1;
+				items << d_title1;
+
+				QString d_title2 = tr("%1 CPMG2: Bins").arg(channels[i]->name);				
+				LoggingData *dcont2 = new LoggingData(LoggingData::DataType::NMRBins_Probe2, channels[i], d_title2, tr("Porosity, %"));
+				data_containers << dcont2;
+				items << d_title2;
+
+				QString d_title3 = tr("%1 CPMG3: Bins").arg(channels[i]->name);				
+				LoggingData *dcont3 = new LoggingData(LoggingData::DataType::NMRBins_Probe3, channels[i], d_title3, tr("Porosity, %"));
+				data_containers << dcont3;
+				items << d_title3;
 			}			 
 		}
 	}
@@ -353,12 +363,12 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 			}			
 		}
 	}
-	for (int i = 0; i < channels.count(); i++)
+	/*for (int i = 0; i < channels.count(); i++)
 	{
 		if (channels[i]->data_type == "NMR_CHANNEL")
 		{
 			bool show_on = isVisibleChannel(channels[i]);
-			if (show_on /*&& data_containers.count() < 5*/)
+			if (show_on)
 			{
 				QString d_title = tr("%1 : Integral Value").arg(channels[i]->name);
 				LoggingData *dcont = new LoggingData(LoggingData::DataType::NMRIntegral_Probe, channels[i], d_title, tr("Value, a.u."));
@@ -366,7 +376,7 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 				items << d_title;
 			}			
 		}
-	}
+	}*/
 	for (int i = 0; i < channels.count(); i++)
 	{
 		if (channels[i]->data_type == "NMR_CHANNEL")
@@ -562,10 +572,20 @@ void LoggingWidget::resetLoggingPlots(QVector<ToolChannel*> channels)
 			bool show_on = isVisibleChannel(channels[i]);
 			if (show_on /*&& data_containers.count() < 5*/)
 			{
-				QString d_title = tr("%1 : Bins").arg(channels[i]->name);
-				LoggingData *dcont = new LoggingData(LoggingData::DataType::NMRBins_Probe, channels[i], d_title, tr("Integral value, a.u."));
-				data_containers << dcont;
-				items << d_title;
+				QString d_title1 = tr("%1 CPMG1: Bins").arg(channels[i]->name);
+				LoggingData *dcont1 = new LoggingData(LoggingData::DataType::NMRBins_Probe1, channels[i], d_title1, tr("Integral value, a.u."));
+				data_containers << dcont1;
+				items << d_title1;
+
+				QString d_title2 = tr("%1 CPMG2: Bins").arg(channels[i]->name);
+				LoggingData *dcont2 = new LoggingData(LoggingData::DataType::NMRBins_Probe2, channels[i], d_title2, tr("Integral value, a.u."));
+				data_containers << dcont2;
+				items << d_title2;
+
+				QString d_title3 = tr("%1 CPMG3: Bins").arg(channels[i]->name);
+				LoggingData *dcont3 = new LoggingData(LoggingData::DataType::NMRBins_Probe3, channels[i], d_title3, tr("Integral value, a.u."));
+				data_containers << dcont3;
+				items << d_title3;
 			}			 
 		}
 	}
@@ -618,6 +638,20 @@ void LoggingWidget::resetLoggingPlots(QVector<ToolChannel*> channels)
 			}			
 		}
 	}
+	/*for (int i = 0; i < channels.count(); i++)
+	{
+		if (channels[i]->data_type == "NMR_CHANNEL")
+		{
+			bool show_on = isVisibleChannel(channels[i]);
+			if (show_on)
+			{
+				QString d_title = tr("%1 : Integral Value").arg(channels[i]->name);
+				LoggingData *dcont = new LoggingData(LoggingData::DataType::NMRIntegral_Probe, channels[i], d_title, tr("Integral value, a.u."));
+				data_containers << dcont;
+				items << d_title;
+			}			
+		}
+	}*/
 	for (int i = 0; i < channels.count(); i++)
 	{
 		if (channels[i]->data_type == "NMR_CHANNEL")
@@ -625,11 +659,11 @@ void LoggingWidget::resetLoggingPlots(QVector<ToolChannel*> channels)
 			bool show_on = isVisibleChannel(channels[i]);
 			if (show_on /*&& data_containers.count() < 5*/)
 			{
-				QString d_title = tr("%1 : Integral Value").arg(channels[i]->name);
-				LoggingData *dcont = new LoggingData(LoggingData::DataType::NMRIntegral_Probe, channels[i], d_title, tr("Integral value, a.u."));
+				QString d_title = tr("%1 : Solid Echo").arg(channels[i]->name);				
+				LoggingData *dcont = new LoggingData(LoggingData::DataType::SolidEcho_Probe, channels[i], d_title, tr("Value, a.u."));
 				data_containers << dcont;
 				items << d_title;
-			}			
+			}			 
 		}
 	}
 	LoggingData *dcont = new LoggingData(LoggingData::DataType::NoType, NULL, tr("No Data"), tr("Value"));
@@ -1055,15 +1089,13 @@ void LoggingWidget::addDataSets(DataSets _dss)
 		uint8_t comm_id = ds->getDataCode();
 		switch (comm_id)
 		{
-		case DT_SGN_RELAX:		dt = LoggingData::NMRIntegral_Probe; break; 
-		case DT_SGN_RELAX2:		dt = LoggingData::NMRIntegral_Probe; break;
-		case DT_SGN_RELAX3:		dt = LoggingData::NMRIntegral_Probe; break;
-		case DT_SOLID_ECHO1:	dt = LoggingData::SolidEcho_Probe; break;
-		case DT_SOLID_ECHO2:	dt = LoggingData::SolidEcho_Probe; break;
-		case DT_SOLID_ECHO3:	dt = LoggingData::SolidEcho_Probe; break;
-		case DT_SGN_SPEC1:		dt = LoggingData::NMRBins_Probe; break; 
-		case DT_SGN_SPEC2:		dt = LoggingData::NMRBins_Probe; break;
-		case DT_SGN_SPEC3:		dt = LoggingData::NMRBins_Probe; break;
+		//case DT_SGN_RELAX:		dt = LoggingData::NMRIntegral_Probe; break; 
+		//case DT_SGN_RELAX2:		dt = LoggingData::NMRIntegral_Probe; break;
+		//case DT_SGN_RELAX3:		dt = LoggingData::NMRIntegral_Probe; break;
+		case DT_SOLID_ECHO:		dt = LoggingData::SolidEcho_Probe; break;		
+		case DT_SGN_SPEC1:		dt = LoggingData::NMRBins_Probe1; break; 
+		case DT_SGN_SPEC2:		dt = LoggingData::NMRBins_Probe2; break;
+		case DT_SGN_SPEC3:		dt = LoggingData::NMRBins_Probe3; break;
 		case DT_GAMMA:			dt = LoggingData::Gamma; break;
 		case DT_DIEL:			dt = LoggingData::WaveDielectric; break;
 		case DT_AFR1_RX:		dt = LoggingData::AFR_Probe; break;
@@ -1112,6 +1144,54 @@ void LoggingWidget::addDataSets(DataSets _dss)
 				}				
 			}
 		}
+		/*if (dt == LoggingData::NMRBins_Probe1)
+		{
+			for (int k = 0; k < plot_map.count(); k++)	
+			{
+				if (plot_map[k].first == dt && (plot_map[k].second == ds->getChannelId() || plot_map[k].second == NAN_DATA) && ds->getDataCode() == DT_SGN_SPEC1) 
+				{
+					int qwtplot_index = plot_map[k].third;
+					//QwtPlot *qwtPlot = NULL;
+					for (int j = 0; j < logging_plot_list.count(); j++) 
+					{
+						LoggingPlot *logging_plot = logging_plot_list.at(j);
+						if (logging_plot->getQwtPlotIndex() == qwtplot_index)
+						{
+							logging_plot->addDataSet(ds, tool_channel, dt);
+							replotLegends();
+						}
+					}
+				}
+				else if (plot_map[k].first == dt && (plot_map[k].second == ds->getChannelId() || plot_map[k].second == NAN_DATA) && ds->getDataCode() == DT_SGN_SPEC2) 
+				{
+					int qwtplot_index = plot_map[k].third;
+					//QwtPlot *qwtPlot = NULL;
+					for (int j = 0; j < logging_plot_list.count(); j++) 
+					{
+						LoggingPlot *logging_plot = logging_plot_list.at(j);
+						if (logging_plot->getQwtPlotIndex() == qwtplot_index)
+						{
+							logging_plot->addDataSet(ds, tool_channel, dt);
+							replotLegends();
+						}
+					}
+				}
+				else if (plot_map[k].first == dt && (plot_map[k].second == ds->getChannelId() || plot_map[k].second == NAN_DATA) && ds->getDataCode() == DT_SGN_SPEC3) 
+				{
+					int qwtplot_index = plot_map[k].third;
+					//QwtPlot *qwtPlot = NULL;
+					for (int j = 0; j < logging_plot_list.count(); j++) 
+					{
+						LoggingPlot *logging_plot = logging_plot_list.at(j);
+						if (logging_plot->getQwtPlotIndex() == qwtplot_index)
+						{
+							logging_plot->addDataSet(ds, tool_channel, dt);
+							replotLegends();
+						}
+					}
+				}	
+			}
+		}*/
 		// все прочие случаи
 		else  
 		{
@@ -1130,7 +1210,7 @@ void LoggingWidget::addDataSets(DataSets _dss)
 							replotLegends();
 						}
 					}
-				}							
+				}
 			}
 		}		
 	}	
@@ -1341,6 +1421,7 @@ bool LoggingWidget::isVisibleChannel(ToolChannel *channel, uint8_t comm_id)
 
 		switch (comm_id)
 		{
+		case DT_SOLID_ECHO:
 		case DT_SGN_SPEC1:
 		case DT_SGN_SPEC2:
 		case DT_SGN_SPEC3:	return true; 
@@ -1458,7 +1539,9 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 	double S = 0;
 	switch (dt)
 	{
-	case LoggingData::NMRBins_Probe:	
+	case LoggingData::NMRBins_Probe1:
+	case LoggingData::NMRBins_Probe2:
+	case LoggingData::NMRBins_Probe3:
 		{						
 			int cur_log = cur_index+1;
 						
@@ -1563,7 +1646,7 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 			break;
 		}
 	
-	case LoggingData::NMRIntegral_Probe:	
+	/*case LoggingData::NMRIntegral_Probe:	
 		{
 			cur_index++;
 			
@@ -1594,7 +1677,7 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 			emit plot_rescaled(qwtplot_obj);
 
 			break;
-		}
+		}*/
 
 	case LoggingData::SolidEcho_Probe:	
 		{

@@ -1943,9 +1943,7 @@ void MainWindow::initDataTypes()
 	data_type_list_File.append(DataType(DT_AVER_RELAX, GET_STRING(DT_AVER_RELAX), false, "Averaged Relaxation data (Moving averaging) #1"));
 	data_type_list_File.append(DataType(DT_AVER_RELAX2, GET_STRING(DT_AVER_RELAX2), false, "Averaged Relaxation data (Moving averaging) #2"));
 	data_type_list_File.append(DataType(DT_AVER_RELAX3, GET_STRING(DT_AVER_RELAX3), false, "Averaged Relaxation data (Moving averaging) #3"));
-	data_type_list_File.append(DataType(DT_SOLID_ECHO1, GET_STRING(DT_SOLID_ECHO1), false, "Solid Echo data #1"));
-	data_type_list_File.append(DataType(DT_SOLID_ECHO2, GET_STRING(DT_SOLID_ECHO2), false, "Solid Echo data #2"));
-	data_type_list_File.append(DataType(DT_SOLID_ECHO3, GET_STRING(DT_SOLID_ECHO3), false, "Solid Echo data #3"));
+	data_type_list_File.append(DataType(DT_SOLID_ECHO, GET_STRING(DT_SOLID_ECHO), false, "Solid Echo data #1"));	
 
 	data_type_list_File.append(DataType(DT_GAMMA, GET_STRING(DT_GAMMA), false, "Data of gamma-logging"));
 
@@ -2782,9 +2780,7 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		case DT_SGN_RELAX:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
 		case DT_SGN_RELAX2:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
 		case DT_SGN_RELAX3:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
-		case DT_SOLID_ECHO1:		ds_name_base = "nmr_solid_echo_sgn%1#%2"; break;
-		case DT_SOLID_ECHO2:		ds_name_base = "nmr_solid_echo_sgn%1#%2"; break;
-		case DT_SOLID_ECHO3:		ds_name_base = "nmr_solid_echo_sgn%1#%2"; break;
+		case DT_SOLID_ECHO:			ds_name_base = "nmr_solid_echo_sgn%1#%2"; break;		
 		case DT_SGN_POWER_SE:		ds_name_base = "nmr_se_power_sgn%1#%2"; break;
 		case DT_SGN_POWER_FID:		ds_name_base = "nmr_fft_power_sgn%1#%2"; break;
 		case DT_NS_POWER_SE:		ds_name_base = "nmr_se_power_ns%1#%2"; break;
@@ -3041,10 +3037,8 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				//forT2spec_dss.append(ds);	
 	
 				break;
-			} 
-		case DT_SOLID_ECHO1:
-		case DT_SOLID_ECHO2:
-		case DT_SOLID_ECHO3:
+			} 		
+		case DT_SOLID_ECHO:
 			{
 				int group_index = fields->at(i)->tag;
 				
@@ -4048,10 +4042,8 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 			case DT_SGN_FFT_SE_IM:		
 			case DT_SGN_RELAX:	
 			case DT_SGN_RELAX2:
-			case DT_SGN_RELAX3:
-			case DT_SOLID_ECHO1:
-			case DT_SOLID_ECHO2:
-			case DT_SOLID_ECHO3:
+			case DT_SGN_RELAX3:			
+			case DT_SOLID_ECHO:
 			case DT_SGN_POWER_SE:		
 			case DT_SGN_POWER_FID:		
 			case DT_NS_POWER_SE:		
@@ -4171,10 +4163,8 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		case DT_SGN_FFT_SE_IM:		
 		case DT_SGN_RELAX:	
 		case DT_SGN_RELAX2:
-		case DT_SGN_RELAX3:
-		case DT_SOLID_ECHO1:
-		case DT_SOLID_ECHO2:
-		case DT_SOLID_ECHO3:
+		case DT_SGN_RELAX3:		
+		case DT_SOLID_ECHO:
 		case DT_SGN_POWER_SE:		
 		case DT_SGN_POWER_FID:		
 		case DT_NS_POWER_SE:		
@@ -4346,10 +4336,8 @@ void MainWindow::plotData(DataSets &_dss)
 		{
 		case DT_SGN_RELAX:
 		case DT_SGN_RELAX2:
-		case DT_SGN_RELAX3:
-		case DT_SOLID_ECHO1:
-		case DT_SOLID_ECHO2:
-		case DT_SOLID_ECHO3:
+		case DT_SGN_RELAX3:		
+		case DT_SOLID_ECHO:
 			{
 				relax_widget->addDataSet(ds->getDataName(), relax_widget->getRelaxDataPlot(), x_data, y_data, bad_map, false, relax_color_number++);
 				PlottedDataSet *pds = relax_widget->getDataSetLast();
@@ -4775,7 +4763,7 @@ void MainWindow::calcT2Spectra(DataSets &forT2_spec_dss)
 			out_bad_vec->data()[j] = DATA_OK;
 		}
 		
-		/*QString _ds_name_base = "nmr_relax_spectrum1#%1";				
+		QString _ds_name_base = "nmr_relax_spectrum1#%1";				
 		uint8_t out_comm_id = DT_SGN_SPEC1;
 		if (ds->getDataCode() == DT_SGN_RELAX2) 
 		{
@@ -4786,10 +4774,10 @@ void MainWindow::calcT2Spectra(DataSets &forT2_spec_dss)
 		{
 			out_comm_id = DT_SGN_SPEC3;
 			_ds_name_base = "nmr_relax_spectrum3#%1";
-		}*/
-		QString _ds_name_base = "nmr_relax_spectrum%1#%2";
+		}
+		//QString _ds_name_base = "nmr_relax_spectrum%1#%2";		
+		//uint8_t out_comm_id = DT_SGN_SPEC1; 
 		int channel_data_id = ds->getChannelId();
-		uint8_t out_comm_id = DT_SGN_SPEC1; 
 		DataSet *out_ds = new DataSet(_ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, out_comm_id, T2, out_y_vec, out_bad_vec);
 		out_ds->setInitialDataSize(spec_size);	
 		out_ds->setGroupIndex(0);

@@ -20,6 +20,8 @@ public:
 	explicit DepthImpulsUstyeWidget(Clocker *_clocker, COM_PORT *com_port, QWidget *parent = 0);
 	~DepthImpulsUstyeWidget();
 
+	void saveSettings() { }
+
 	QString getTitle() { return tr("Impuls-Ustye"); }
 	DepthMeterType getType() { return DepthMeterType::ImpulsUstye; }
 

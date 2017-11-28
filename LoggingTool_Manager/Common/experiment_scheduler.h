@@ -100,7 +100,8 @@ namespace Scheduler
 		~DistanceRange();
 
 		void setBounds(QPair<double,double> bounds);
-		void setFromToStep(QPair<double,double> from_to, double _step);
+		void setFromToStep(QPair<double,double> from_to, double _step, bool _do_calibr);
+		void setCalibrationLength(double _len);
 		double getNextPos();
 		void init() { pos = nan; finished = false; }
 		
@@ -108,6 +109,7 @@ namespace Scheduler
 		void changeFrom(double val);
 		void changeTo(double val);
 		void changeStep(double val);
+		void changeDoCalibr(const QString& text);
 
 	public:
 		double from;
@@ -115,8 +117,11 @@ namespace Scheduler
 		double step;	
 		double upper_bound;		// in [cm]
 		double lower_bound;		// in [cm]
+		double calibr_len;		// in [cm]
+		bool do_calibr;
 		double pos;
 		bool finished;
+		bool is_calibration_range;	// находится ли керн в данный момент в области калибровочного образца
 	};
 
 	class SetPosition : public SchedulerObject

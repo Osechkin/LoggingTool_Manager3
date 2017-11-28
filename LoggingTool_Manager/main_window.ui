@@ -89,8 +89,6 @@
     <addaction name="separator"/>
     <addaction name="a_Communication"/>
     <addaction name="a_TCP_Connection"/>
-    <addaction name="a_CDiag_Connection"/>
-    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -123,11 +121,9 @@
      <string>Service</string>
     </property>
     <addaction name="a_Processing"/>
-    <addaction name="separator"/>
-    <addaction name="a_TempMonitor"/>
-    <addaction name="separator"/>
     <addaction name="a_toOil"/>
     <addaction name="a_toFile"/>
+    <addaction name="a_DataFile_Settings"/>
     <addaction name="separator"/>
     <addaction name="a_SaveAllSettings"/>
    </widget>
@@ -285,6 +281,11 @@
   <action name="a_StepMotor">
    <property name="text">
     <string>Step Motor COM-Port Settings...</string>
+   </property>
+  </action>
+  <action name="a_DataFile_Settings">
+   <property name="text">
+    <string>Data File Settings...</string>
    </property>
   </action>
  </widget>

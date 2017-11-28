@@ -11,11 +11,13 @@ static int port_num = 0;
 static uint32_t uid = 0;
 
 
-DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_stepmotor, QStringList depth_meter_list, Clocker *clocker, QWidget *parent) : QWidget(parent), ui(new Ui::DepthTemplateWizard)
+DepthTemplateWizard::DepthTemplateWizard(QSettings *_settings, COM_PORT *com_port, COM_PORT *com_port_stepmotor, QStringList depth_meter_list, Clocker *clocker, QWidget *parent) : QWidget(parent), ui(new Ui::DepthTemplateWizard)
 {
 	ui->setupUi(this);
 	this->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Expanding);
 			
+	app_settings = _settings;
+
 	connectionWidget = new ImpulsConnectionWidget(this);
 	connectionWidget->setReport(ConnectionState::State_No);
 	
@@ -47,7 +49,9 @@ DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_
 	}
 	if (depth_meter_list.contains("LeuzePositionMeter"))
 	{
-		LeuzeDistanceMeterWidget *distance_meter = new LeuzeDistanceMeterWidget(clocker, COM_Port, COM_Port_stepmotor);
+		LeuzeDistanceMeterWidget *distance_meter = new LeuzeDistanceMeterWidget(app_settings, clocker, COM_Port, COM_Port_stepmotor);
+		connect(distance_meter, SIGNAL(new_core_diameter(double)), this, SIGNAL(new_core_diameter(double)));
+		//distance_meter->setVisible(false);
 		depth_meters_str << distance_meter->getTitle();
 		depth_meters << distance_meter;
 	}
@@ -60,7 +64,7 @@ DepthTemplateWizard::DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_
 
 	ui->gridLayoutFrame->addWidget(depth_meters.first());
 	ui->cboxDepthMeter->addItems(depth_meters_str);
-	current_depth_meter = depth_meters.first();
+	current_depth_meter = depth_meters.first();	
 	
 	/*
 	DepthEmulatorWidget *depth_emulator = new DepthEmulatorWidget(clocker);
@@ -223,7 +227,7 @@ void DepthTemplateWizard::changeDepthMeter(QString str)
 	case AbstractDepthMeter::DepthEmulator:			depth_meters.append(new DepthEmulatorWidget(clocker)); break;
 	case AbstractDepthMeter::ImpulsUstye:			depth_meters.append(new DepthImpulsUstyeWidget(clocker, COM_Port)); break;
 	case AbstractDepthMeter::InternalDepthMeter:	depth_meters.append(new DepthInternalWidget(clocker, COM_Port)); break;
-	case AbstractDepthMeter::LeuzeDistanceMeter:	depth_meters.append(new LeuzeDistanceMeterWidget(clocker, COM_Port, COM_Port_stepmotor)); break;
+	case AbstractDepthMeter::LeuzeDistanceMeter:	depth_meters.append(new LeuzeDistanceMeterWidget(app_settings, clocker, COM_Port, COM_Port_stepmotor)); break;
 	default: break;
 	}
 
@@ -386,7 +390,8 @@ void DepthTemplateWizard::showData(uint8_t type, double val)
 	default: break;
 	}
 	*/
-	connectionWidget->setReport(ConnectionState::State_OK);
+	
+	connectionWidget->setReport(ConnectionState::State_OK);	// Проверить ! Похоже, что именно это рисует "Conn..." на внешнем виде виджета дальномера
 }
 
 

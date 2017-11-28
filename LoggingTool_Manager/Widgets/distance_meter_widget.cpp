@@ -5,14 +5,16 @@
 
 static uint32_t uid = 0;
 
-LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *com_port, COM_PORT *stepmotor_com_port, QWidget *parent /* = 0 */)  : ui(new Ui::LeuzeDistanceMeter)
+LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(QSettings *_settings, Clocker *_clocker, COM_PORT *com_port, COM_PORT *stepmotor_com_port, QWidget *parent /* = 0 */)  : ui(new Ui::LeuzeDistanceMeter)
 {
 	ui->setupUi(this);
 	this->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Expanding);
 
+	app_settings = _settings;
+
 	ui->ledDistance->setText("");
 	ui->cboxDistance->setStyleSheet("QComboBox { color: darkblue }");
-	ui->cboxSetDistance->setStyleSheet("QComboBox { color: darkblue }");
+	//ui->cboxSetDistance->setStyleSheet("QComboBox { color: darkblue }");
 	
 	ui->lblPosition->setStyleSheet("QLabel { color: darkblue }");
 	ui->ledDistance->setStyleSheet("QLineEdit { color: darkblue }");
@@ -23,12 +25,14 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	ui->lblTo->setStyleSheet("QLabel { color: darkblue }");
 	ui->lblStep->setStyleSheet("QLabel { color: darkblue }");
 	ui->lblZero->setStyleSheet("QLabel { color: darkblue }");
-	ui->cboxFrom->setStyleSheet("QComboBox { color: darkblue }");
-	ui->cboxTo->setStyleSheet("QComboBox { color: darkblue }");
-	ui->cboxStep->setStyleSheet("QComboBox { color: darkblue }");
-	ui->cboxFrom->setStyleSheet("QComboBox { color: darkblue }");
-	ui->cboxZero->setStyleSheet("QComboBox { color: darkblue }");
-
+	ui->lblCalibrLen->setStyleSheet("QLabel { color: darkblue }");
+	ui->lblCoreDiameter->setStyleSheet("QLabel { color: darkblue }");
+	//ui->cboxFrom->setStyleSheet("QComboBox { color: darkblue }");
+	//ui->cboxTo->setStyleSheet("QComboBox { color: darkblue }");
+	//ui->cboxStep->setStyleSheet("QComboBox { color: darkblue }");
+	//ui->cboxFrom->setStyleSheet("QComboBox { color: darkblue }");
+	//ui->cboxZero->setStyleSheet("QComboBox { color: darkblue }");
+	
 	ui->ledDistance->setStyleSheet("QLineEdit { color: darkGreen }");
 	ui->dsboxSetPosition->setStyleSheet("QDoubleSpinBox { color: darkBlue }");	
 
@@ -36,6 +40,8 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	ui->dsboxTo->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
 	ui->dsboxStep->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
 	ui->dsboxZero->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
+	ui->dsboxCalibrLength->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
+	ui->dsboxCoreDiameter->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
 
 	ui->pbtBack->setIcon(QIcon(":/images/play_back.png"));
 	ui->pbtBegin->setIcon(QIcon(":/images/play_begin.png"));
@@ -58,49 +64,91 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	direction_coef = -1;	
 	pos_is_set = false;
 
-	from_pos = 0.50;		// [m]
-	to_pos = 1.50;			// [m]
+	from_pos = 0.00;		// [m]
+	to_pos = 1.00;			// [m]
 	step_pos = 0.01;		// [m]
 	zero_pos = 0;			// [m]
+	calibr_len = 0;			// [m]
+	core_diameter = 0.1;	// [m]
 	k_from = 100;			// for [cm]
 	k_to = 100;				// for [cm]
 	k_step = 100;			// for [cm]
 	k_zero = 100;			// for [cm]
+	k_calibr_len = 100;		// for [cm]
+	k_core_d = 100;			// for [cm]
+
+	upper_bound = 1.65;	// m
+	lower_bound = 0.55;	// m	
+
+	bool _ok;
+	double _from_pos = from_pos;
+	double _to_pos = to_pos;
+	double _step_pos = step_pos;
+	double _zero_pos = zero_pos;
+	double _calibr_len = calibr_len;
+	double _upper_bound = upper_bound;
+	double _lower_bound = lower_bound;
+	double _core_diameter = core_diameter;
+	if (app_settings->contains("CoreTransportSystem/From")) _from_pos = app_settings->value("CoreTransportSystem/From").toDouble(&_ok);
+	if (_ok) from_pos = _from_pos;
+	if (app_settings->contains("CoreTransportSystem/To")) _to_pos = app_settings->value("CoreTransportSystem/To").toDouble(&_ok);
+	if (_ok) to_pos = _to_pos;
+	if (app_settings->contains("CoreTransportSystem/Step")) _step_pos = app_settings->value("CoreTransportSystem/Step").toDouble(&_ok);
+	if (_ok) step_pos = _step_pos;
+	if (app_settings->contains("CoreTransportSystem/Zero")) _zero_pos = app_settings->value("CoreTransportSystem/Zero").toDouble(&_ok);
+	if (_ok) zero_pos = _zero_pos;
+	if (app_settings->contains("CoreTransportSystem/LowerBound")) _lower_bound = app_settings->value("CoreTransportSystem/LowerBound").toDouble(&_ok);
+	if (_ok) lower_bound = _lower_bound;
+	if (app_settings->contains("CoreTransportSystem/UpperBound")) _upper_bound = app_settings->value("CoreTransportSystem/UpperBound").toDouble(&_ok);
+	if (_ok) upper_bound = _upper_bound;
+	if (app_settings->contains("CoreTransportSystem/CalibrationLength")) _calibr_len = app_settings->value("CoreTransportSystem/CalibrationLength").toDouble(&_ok);
+	if (_ok) calibr_len = _calibr_len;
+	if (app_settings->contains("CoreTransportSystem/CoreDiameter")) _core_diameter = app_settings->value("CoreTransportSystem/CoreDiameter").toDouble(&_ok);
+	if (_ok) core_diameter = _core_diameter;
 	
 	distance_units_list << "mm" << "cm" << "m";	
 		
 	ui->cboxDistance->addItems(distance_units_list);
 	ui->cboxDistance->setCurrentIndex(1);
 	ui->cboxDistance->setEnabled(true);
-	ui->cboxSetDistance->addItems(distance_units_list);
-	ui->cboxSetDistance->setCurrentIndex(1);
-	ui->cboxSetDistance->setEnabled(true);
-	ui->cboxFrom->addItems(distance_units_list);
-	ui->cboxFrom->setCurrentIndex(1);
-	ui->cboxFrom->setEnabled(true);
-	ui->cboxTo->addItems(distance_units_list);
-	ui->cboxTo->setCurrentIndex(1);
-	ui->cboxTo->setEnabled(true);
-	ui->cboxStep->addItems(distance_units_list);
-	ui->cboxStep->setCurrentIndex(1);
-	ui->cboxStep->setEnabled(true);
-	ui->cboxZero->addItems(distance_units_list);
-	ui->cboxZero->setCurrentIndex(1);
-	ui->cboxZero->setEnabled(true);
+	//ui->cboxSetDistance->addItems(distance_units_list);
+	//ui->cboxSetDistance->setCurrentIndex(1);
+	//ui->cboxSetDistance->setEnabled(true);
+	//ui->cboxFrom->addItems(distance_units_list);
+	//ui->cboxFrom->setCurrentIndex(1);
+	//ui->cboxFrom->setEnabled(true);
+	//ui->cboxTo->addItems(distance_units_list);
+	//ui->cboxTo->setCurrentIndex(1);
+	//ui->cboxTo->setEnabled(true);
+	//ui->cboxStep->addItems(distance_units_list);
+	//ui->cboxStep->setCurrentIndex(1);
+	//ui->cboxStep->setEnabled(true);
+	//ui->cboxZero->addItems(distance_units_list);
+	//ui->cboxZero->setCurrentIndex(1);
+	//ui->cboxZero->setEnabled(true);
+	
+	/*ui->cboxCalibrLen->setVisible(false);
+	ui->cboxCoreDiameter->setVisible(false);
+	ui->cboxDistance->setVisible(false);
+	ui->cboxFrom->setVisible(false);
+	ui->cboxSetDistance->setVisible(false);
+	ui->cboxStep->setVisible(false);
+	ui->cboxTo->setVisible(false);
+	ui->cboxZero->setVisible(false);*/
 
 	ui->ledDistance->setText("");	
 		
-	ui->dsboxSetPosition->setMinimum(15);
+	ui->dsboxSetPosition->setMinimum(-200);
 	ui->dsboxSetPosition->setMaximum(200);
 	ui->dsboxSetPosition->setSingleStep(1);
 	ui->dsboxSetPosition->setValue(set_distance*k_set_distance);
 
-	ui->dsboxFrom->setMinimum(15);
+	ui->dsboxFrom->setMinimum(-200);
 	ui->dsboxFrom->setMaximum(200);
 	ui->dsboxFrom->setSingleStep(1);
 	ui->dsboxFrom->setValue(from_pos*k_from);
 
-	ui->dsboxTo->setMinimum(15);
+	ui->dsboxTo->setMinimum(-200);
 	ui->dsboxTo->setMaximum(200);
 	ui->dsboxTo->setSingleStep(1);
 	ui->dsboxTo->setValue(to_pos*k_to);
@@ -109,6 +157,21 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	ui->dsboxStep->setMaximum(200);
 	ui->dsboxStep->setSingleStep(0.1);
 	ui->dsboxStep->setValue(step_pos*k_step);
+
+	ui->dsboxZero->setMinimum(-200);
+	ui->dsboxZero->setMaximum(200);
+	ui->dsboxZero->setSingleStep(1);
+	ui->dsboxZero->setValue(zero_pos*k_zero);
+
+	ui->dsboxCalibrLength->setMinimum(0);
+	ui->dsboxCalibrLength->setMaximum(99);
+	ui->dsboxCalibrLength->setSingleStep(1);
+	ui->dsboxCalibrLength->setValue(calibr_len*k_calibr_len);
+
+	ui->dsboxCoreDiameter->setMinimum(0.1);
+	ui->dsboxCoreDiameter->setMaximum(99);
+	ui->dsboxCoreDiameter->setSingleStep(1);
+	ui->dsboxCoreDiameter->setValue(core_diameter*k_core_d);
 
 	is_connected = false;
 	ui->framePosControl->setEnabled(is_connected);
@@ -119,10 +182,7 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *
 	stepmotor_COM_Port = stepmotor_com_port;
 	leuze_communicator = NULL;
 	stepmotor_communicator = NULL;
-
-	upper_bound = 1.950;	// m
-	lower_bound = 0.150;	// m	
-	
+		
 	timer.start(250);	
 	stepmotor_timer.start(250);
 
@@ -140,21 +200,24 @@ LeuzeDistanceMeterWidget::~LeuzeDistanceMeterWidget()
 
 void LeuzeDistanceMeterWidget::setConnection()
 {
-	connect(ui->cboxDistance, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
-	connect(ui->cboxFrom, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
-	connect(ui->cboxTo, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
-	connect(ui->cboxStep, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
-	connect(ui->cboxZero, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
-	connect(ui->cboxSetDistance, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
+	//connect(ui->cboxDistance, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
+	//connect(ui->cboxFrom, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
+	//connect(ui->cboxTo, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
+	//connect(ui->cboxStep, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
+	//connect(ui->cboxZero, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
+	//connect(ui->cboxSetDistance, SIGNAL(currentIndexChanged(QString)), this, SLOT(changeUnits(QString)));
 	connect(ui->dsboxTo, SIGNAL(valueChanged(double)), this, SLOT(setNewTo(double)));
 	connect(ui->dsboxFrom, SIGNAL(valueChanged(double)), this, SLOT(setNewFrom(double)));
 	connect(ui->dsboxStep, SIGNAL(valueChanged(double)), this, SLOT(setNewStep(double)));
+	connect(ui->dsboxCoreDiameter, SIGNAL(valueChanged(double)), this, SLOT(setNewCoreDiameter(double)));
 
 	connect(ui->pbtBack, SIGNAL(toggled(bool)), this, SLOT(moveBack(bool)));
 	connect(ui->pbtForward, SIGNAL(toggled(bool)), this, SLOT(moveForward(bool)));
 	connect(ui->pbtBegin, SIGNAL(toggled(bool)), this, SLOT(moveBack(bool)));
 	connect(ui->pbtEnd, SIGNAL(toggled(bool)), this, SLOT(moveForward(bool)));
 	connect(ui->pbtSet, SIGNAL(toggled(bool)), this, SLOT(setPosition(bool)));
+	connect(ui->pbtSetZero, SIGNAL(clicked()), this, SLOT(setZeroPos()));
+	connect(ui->pbtClear, SIGNAL(clicked()), this, SLOT(clearZeroPos()));
 	
 	connect(ui->pbtConnect, SIGNAL(toggled(bool)), this, SLOT(connectAllMeters(bool)));
 
@@ -182,6 +245,12 @@ void LeuzeDistanceMeterWidget::moveBack(bool flag)
 
 	pos_is_set = false;		// игнорировать заданное значение, т.е. просто двигать до остановки пользователем или до концевика
 
+	if (!flag)
+	{
+		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
+		return;
+	}
+
 	QString str_cmd = "";
 	if (pbt == ui->pbtBack) 
 	{
@@ -203,11 +272,11 @@ void LeuzeDistanceMeterWidget::moveBack(bool flag)
 	}
 	else return;
 
-	if (!flag)
+	/*if (!flag)
 	{
 		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
 	}
-	else
+	else*/
 	{
 		if (distance > lower_bound && distance < upper_bound)
 		{
@@ -232,6 +301,12 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 
 	pos_is_set = false;
 
+	if (!flag)
+	{
+		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
+		return;
+	}
+
 	QString str_cmd = "";
 	if (pbt == ui->pbtForward) 
 	{
@@ -253,11 +328,11 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 	}
 	else return;
 
-	if (!flag)
+	/*if (!flag)
 	{
 		stepmotor_communicator->toSend("\SP*DS*");		// Stop step motor		
 	}
-	else
+	else*/
 	{
 		if (distance > lower_bound && distance < upper_bound)
 		{			
@@ -277,6 +352,7 @@ void LeuzeDistanceMeterWidget::moveForward(bool flag)
 
 void LeuzeDistanceMeterWidget::setPosition(double pos)
 {
+	pos += zero_pos;
 	if (pos == distance) emit cmd_resulted(true, 0); // if position is ready reached
 
 	if (!is_connected) 
@@ -332,7 +408,8 @@ void LeuzeDistanceMeterWidget::setPosition(bool flag)
 		ui->pbtBegin->setChecked(false);			
 		ui->pbtEnd->setChecked(false);		
 		
-		set_distance = ui->dsboxSetPosition->value()/k_set_distance;
+		//set_distance = ui->dsboxSetPosition->value()/k_set_distance;
+		set_distance = ui->dsboxSetPosition->value()/k_set_distance + zero_pos;
 		if (set_distance > distance )
 		{
 			pos_is_set = true;
@@ -362,6 +439,21 @@ void LeuzeDistanceMeterWidget::setPosition(bool flag)
 	}
 }
 
+void LeuzeDistanceMeterWidget::setZeroPos()
+{
+	zero_pos = distance;
+	ui->dsboxZero->setValue(zero_pos*100);	// to [cm]
+
+	//ui->dsboxFrom->setValue((from_pos-zero_pos)/k_from);
+	//ui->dsboxTo->setValue((to_pos-zero_pos)/k_to);
+}
+
+void LeuzeDistanceMeterWidget::clearZeroPos()
+{
+	zero_pos = 0;
+	ui->dsboxZero->setValue(zero_pos*100);	// to [cm]
+}
+
 void LeuzeDistanceMeterWidget::stopDepthMeter()
 {
 	//ui->pbtConnect->setChecked(false);
@@ -381,26 +473,27 @@ void LeuzeDistanceMeterWidget::startDepthMeter()
 
 void LeuzeDistanceMeterWidget::setNewTo(double val)
 {
-	to_pos = val / k_to;
-
-	emit set_from_to_step(from_pos, to_pos, step_pos);
+	to_pos = val / k_to;	
 }
 
 void LeuzeDistanceMeterWidget::setNewFrom(double val)
 {
-	from_pos = val / k_from;
-
-	emit set_from_to_step(from_pos, to_pos, step_pos);
+	from_pos = val / k_from;	
 }
 
 void LeuzeDistanceMeterWidget::setNewStep(double val)
 {
 	step_pos = val / k_step;
-
-	emit set_from_to_step(from_pos, to_pos, step_pos);
 }
 
-void LeuzeDistanceMeterWidget::changeUnits(QString str)
+void LeuzeDistanceMeterWidget::setNewCoreDiameter(double val)
+{
+	core_diameter = val / k_core_d;
+
+	emit new_core_diameter(core_diameter);
+}
+
+/*void LeuzeDistanceMeterWidget::changeUnits(QString str)
 {
 	QComboBox *cbox = (QComboBox*)sender();
 	if (!cbox) return;
@@ -528,34 +621,34 @@ void LeuzeDistanceMeterWidget::changeUnits(QString str)
 		ui->dsboxStep->setValue(k_step*step_pos);	
 		connect(ui->dsboxStep, SIGNAL(valueChanged(double)), this, SLOT(setNewStep(double)));
 	}
-	else if (cbox == ui->cboxZero)
-	{
-		if (str == distance_units_list[0]) 
-		{
-			k_zero = 1000;											// [mm]
-			ui->dsboxZero->setMinimum(150);
-			ui->dsboxZero->setMaximum(2000);
-			ui->dsboxZero->setSingleStep(1);
-		}
-		else if (str == distance_units_list[1]) 
-		{
-			k_zero = 100;											// [cm]
-			ui->dsboxZero->setMinimum(15);
-			ui->dsboxZero->setMaximum(200);
-			ui->dsboxZero->setSingleStep(1);
-		}
-		else if (str == distance_units_list[2]) 
-		{
-			k_zero = 1;												// [m]
-			ui->dsboxZero->setMinimum(0.150);
-			ui->dsboxZero->setMaximum(2.000);
-			ui->dsboxZero->setSingleStep(0.01);
-		}
-		else k_zero = 1;
+	//else if (cbox == ui->cboxZero)
+	//{
+	//	if (str == distance_units_list[0]) 
+	//	{
+	//		k_zero = 1000;											// [mm]
+	//		ui->dsboxZero->setMinimum(150);
+	//		ui->dsboxZero->setMaximum(2000);
+	//		ui->dsboxZero->setSingleStep(1);
+	//	}
+	//	else if (str == distance_units_list[1]) 
+	//	{
+	//		k_zero = 100;											// [cm]
+	//		ui->dsboxZero->setMinimum(15);
+	//		ui->dsboxZero->setMaximum(200);
+	//		ui->dsboxZero->setSingleStep(1);
+	//	}
+	//	else if (str == distance_units_list[2]) 
+	//	{
+	//		k_zero = 1;												// [m]
+	//		ui->dsboxZero->setMinimum(0.150);
+	//		ui->dsboxZero->setMaximum(2.000);
+	//		ui->dsboxZero->setSingleStep(0.01);
+	//	}
+	//	else k_zero = 1;
 
-		ui->dsboxZero->setValue(k_zero*zero_pos);	
-	}
-}
+	//	ui->dsboxZero->setValue(k_zero*zero_pos);	
+	//}
+}*/
 
 
 void LeuzeDistanceMeterWidget::connectAllMeters(bool flag)
@@ -778,45 +871,6 @@ void LeuzeDistanceMeterWidget::getMeasuredData(uint32_t _uid, uint8_t _type, dou
 			emit cmd_resulted(true, 0);
 		}
 	}
-	/*if (fabs(distance - set_distance) < 0.011 && pos_is_set && direction_coef == -1)
-	{		
-		stepmotor_communicator->toSend("\EN*DL*SD50*MV*");			// Set motion slow 		
-	}
-	else if (fabs(distance - set_distance) < 0.03 && pos_is_set && direction_coef == -1)
-	{		
-		stepmotor_communicator->toSend("\EN*DL*SD200*MV*");			// Set motion slow 		
-	}
-	else if (fabs(set_distance - distance) < 0.011 && pos_is_set && direction_coef == 1)
-	{		
-		stepmotor_communicator->toSend("\EN*DR*SD50*MV*");			// Set motion slow 		
-	}
-	else if (fabs(set_distance - distance) < 0.03 && pos_is_set && direction_coef == 1)
-	{		
-		stepmotor_communicator->toSend("\EN*DR*SD200*MV*");			// Set motion slow 		
-	}
-	
-	if (distance <= set_distance && pos_is_set && direction_coef == -1)
-	{
-		distance_ok = true;
-		pos_is_set = false;
-		stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
-		ui->pbtBack->setChecked(false);
-		ui->pbtForward->setChecked(false);
-		ui->pbtSet->setChecked(false);
-
-		emit cmd_resulted(true, 0);
-	}
-	else if (distance >= set_distance && pos_is_set && direction_coef == 1)
-	{
-		distance_ok = true;
-		pos_is_set = false;
-		stepmotor_communicator->toSend("\SP*DS*");	// Stop step motor
-		ui->pbtBack->setChecked(false);
-		ui->pbtForward->setChecked(false);
-		ui->pbtSet->setChecked(false);
-
-		emit cmd_resulted(true, 0);
-	}*/
 	
 	showData(_type, val);
 }
@@ -861,7 +915,8 @@ void LeuzeDistanceMeterWidget::showData(uint8_t type, double val)
 			}
 			ui->ledDistance->setPalette(palette);
 
-			double value = distance * k_distance;  			
+			//double value = distance * k_distance;  	
+			double value = distance * k_distance - zero_pos*k_zero;  	
 			QString str_value = QString::number(value,'g',4);				
 			ui->ledDistance->setText(str_value);
 			
@@ -881,4 +936,17 @@ void LeuzeDistanceMeterWidget::showData(uint8_t type, double val)
 void LeuzeDistanceMeterWidget::onTime()
 {	
 	if (is_connected) emit to_measure(++uid, DEPTH_DATA);		
+}
+
+void LeuzeDistanceMeterWidget::saveSettings()
+{
+	app_settings->setValue("CoreTransportSystem/From", from_pos);	
+	app_settings->setValue("CoreTransportSystem/To", to_pos);
+	app_settings->setValue("CoreTransportSystem/Step", step_pos);
+	app_settings->setValue("CoreTransportSystem/Zero", zero_pos);
+	app_settings->setValue("CoreTransportSystem/LowerBound", lower_bound);
+	app_settings->setValue("CoreTransportSystem/UpperBound", upper_bound);
+	app_settings->setValue("CoreTransportSystem/CalibrationLength", calibr_len);
+	app_settings->setValue("CoreTransportSystem/CoreDiameter", core_diameter);
+	app_settings->sync();
 }

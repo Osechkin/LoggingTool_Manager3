@@ -181,13 +181,6 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="pbtExportSettings">
-       <property name="text">
-        <string>Export Data...</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="pbtViewCode">
        <property name="text">
         <string>View Code...</string>

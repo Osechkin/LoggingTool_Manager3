@@ -24,7 +24,7 @@ class DepthTemplateWizard : public QWidget, public Ui::DepthTemplateWizard
 	Q_OBJECT
 
 public:
-	explicit DepthTemplateWizard(COM_PORT *com_port, COM_PORT *com_port_stepmotor, QStringList depth_meter_list, Clocker *clocker, QWidget *parent = 0);
+	explicit DepthTemplateWizard(QSettings *_settings, COM_PORT *com_port, COM_PORT *com_port_stepmotor, QStringList depth_meter_list, Clocker *clocker, QWidget *parent = 0);
 	~DepthTemplateWizard();
 
 	double_b getDepthData() { return current_depth_meter->getDepth(); /*double_b(depth_flag, depth);*/ } 
@@ -32,6 +32,8 @@ public:
 	double_b getTensionData() { return current_depth_meter->getTension(); /*double_b(tension_flag, tension);*/ }
 
 	AbstractDepthMeter *getCurrentDepthMeter() { return current_depth_meter; }
+
+	void saveSettings() { current_depth_meter->saveSettings(); }
 
 	ImpulsConnectionWidget *getConnectionWidget() { return connectionWidget; }
 	bool isConnected() { return is_connected; }
@@ -63,6 +65,8 @@ private:
 	COM_PORT *COM_Port;
 	COM_PORT *COM_Port_stepmotor;
 
+	QSettings *app_settings;
+
 	bool is_connected;
 	bool depth_active;
 	bool rate_active;
@@ -71,11 +75,12 @@ private:
 private slots:	
 	void onTime();	
 	void changeDepthMeter(QString str);
-
+	
 signals:
 	void to_measure(uint32_t, uint8_t);		
 	void connected(bool);
 	void timeout();
+	void new_core_diameter(double);
 };
 
 #endif // DEPTH_TEMPLATE_WIZARD_H

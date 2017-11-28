@@ -25,8 +25,8 @@ public:
 
 	Ui::RFPulseControlWizard *getUI() { return ui; }
 
-	public slots:
-		void changeLocation(Qt::DockWidgetArea area);
+public slots:
+	void changeLocation(Qt::DockWidgetArea area);
 
 private:
 	void plotData();

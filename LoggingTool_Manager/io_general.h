@@ -118,6 +118,9 @@ static uint32_t session_uid = 0;
 #define DT_AVER_RELAX2		0x43		// усредненные данные спадов поперечной намагниченности с датчика 2 (2^98 of Galois)
 #define DT_AVER_RELAX3		0x86		// усредненные данные спадов поперечной намагниченности с датчика 3 (2^99 of Galois)
 #define DT_SOLID_ECHO		0x22		// солид-эхо с датчика 1 (2^101 of Galois)
+#define DT_T1T2_NMR			0x44		// данные двумерной Т1-Т2 релаксометрии	(2^102 of Galois)
+#define DT_DsT2_NMR			0x88		// данные двумерной ЯМР релаксометрии-диффузометрии (Т1-Ds ЯМР)	(2^103 of Galois)
+#define DT_FREQ_TUNE		0x0D		// данные автонастройки частоты для ЯМР КЕРН (2^104 of Galois)
 
 
 // ------------------ UART Commands for c6x program ----------------------
@@ -286,6 +289,7 @@ struct ToolChannel
 				double _norm_coef2 = 1,
 				double _meas_freq = 0,
 				double _sample_freq = 0,
+				double _field_gradient = 0,
 				uint32_t _addr_rx = 0,
 				uint32_t _addr_tx = 0,
 				uint32_t _frq1 = 0, 
@@ -312,6 +316,7 @@ struct ToolChannel
 		normalize_coef2 = _norm_coef2;
 		meas_frq = _meas_freq;
 		sample_freq = _sample_freq;		
+		field_gradient = _field_gradient;
 	}	
 
 	uint8_t channel_id;				// id канала
@@ -331,6 +336,7 @@ struct ToolChannel
 	double normalize_coef2;			// нормировочный коэфициент #1 (обычно перевод сигнала в пористость)
 	double meas_frq;				// частота, на которой проводятся измерения
 	double sample_freq;				// частота дискретизации (для ЯМР)	
+	double field_gradient;			// градиент магнитного поля
 };
 
 

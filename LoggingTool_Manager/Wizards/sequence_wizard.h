@@ -152,7 +152,7 @@ private slots:
 	void refreshSequence();
 	void refreshSequenceList();
 	void viewCode();
-	void setExportSettings();
+	//void setExportSettings();
 	void showSequenceInfo();
 	//void triggerJSerror();
 	

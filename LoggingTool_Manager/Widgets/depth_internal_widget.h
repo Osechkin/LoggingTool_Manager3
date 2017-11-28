@@ -20,6 +20,8 @@ public:
 	explicit DepthInternalWidget(Clocker *_clocker, COM_PORT *com_port, QWidget *parent = 0);
 	~DepthInternalWidget();
 
+	void saveSettings() { }
+
 	QString getTitle() { return tr("Internal DepthMeter"); }
 	DepthMeterType getType() { return DepthMeterType::InternalDepthMeter; }
 

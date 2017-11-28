@@ -66,7 +66,7 @@ Scheduler::SchedulerObject::SchedulerObject(Command _type)
 		cell_text = "";
 		break;
 	case Command::DistanceRange_Cmd:		
-		cell_text_template = "<font size=3><font color=darkgreen>POSITION_LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> )</font>"; 
+		cell_text_template = "<font size=3><font color=darkgreen>POSITION_LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> , <font color=blue>%4</font> )</font>"; 
 		cell_text = "";
 		break;
 	case Command::SetPosition_Cmd:		
@@ -122,13 +122,15 @@ Scheduler::Exec::~Exec()
 Scheduler::DistanceRange::DistanceRange()
 {
 	type = Scheduler::DistanceRange_Cmd;		
-	cell_text_template = "<font size=3><font color=darkgreen>POSITION_LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> )</font>";
+	cell_text_template = "<font size=3><font color=darkgreen>POSITION_LOOP </font>( <font color=blue>%1</font> : <font color=blue>%2</font> : <font color=blue>%3</font> , <font color=blue>%4</font> )</font>";
 	cell_text = "";
 	from = 0;
 	to = 0;
 	step = 0;
 	pos = nan;
+	do_calibr = false;
 	finished = false;
+	is_calibration_range = false;
 
 	Scheduler::SettingsItem *param_item_1 = new Scheduler::SettingsItem(tr("From:"), Scheduler::SpinBox, " cm");	
 	param_objects.append(param_item_1);	
@@ -138,6 +140,9 @@ Scheduler::DistanceRange::DistanceRange()
 
 	Scheduler::SettingsItem *param_item_3 = new Scheduler::SettingsItem(tr("Step:"), Scheduler::SpinBox, " cm");	
 	param_objects.append(param_item_3);	
+
+	Scheduler::SettingsItem *param_item_4 = new Scheduler::SettingsItem(tr("Auto-calibration:"), Scheduler::ComboBox, "");	
+	param_objects.append(param_item_4);	
 }
 
 Scheduler::DistanceRange::~DistanceRange()
@@ -152,41 +157,67 @@ void Scheduler::DistanceRange::setBounds(QPair<double,double> bounds)
 	upper_bound = 100*bounds.second;	// convert to [cm]
 }
 
-void Scheduler::DistanceRange::setFromToStep(QPair<double,double> from_to, double _step)
+void Scheduler::DistanceRange::setCalibrationLength(double _len)
+{
+	calibr_len = 100*_len;				// convert to [cm]
+}
+
+void Scheduler::DistanceRange::setFromToStep(QPair<double,double> from_to, double _step, bool _do_calibr)
 {
 	from = 100*from_to.first;			// convert to [cm]
 	to = 100*from_to.second;			// convert to [cm]
 	step = 100*_step;					// convert to [cm]
-	//pos = nan;
+	do_calibr = _do_calibr;			
 
-	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
+	QString do_calibr_str = (do_calibr ? "TRUE" : "FALSE");
+	cell_text = cell_text_template.arg(from).arg(step).arg(to).arg(do_calibr_str);		// must be in [cm] !
 }
 
 void Scheduler::DistanceRange::changeFrom(double val)
 {
 	from = val; 
-	//pos = from;
-	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
+	QString do_calibr_str = (do_calibr ? "TRUE" : "FALSE");
+	cell_text = cell_text_template.arg(from).arg(step).arg(to).arg(do_calibr_str);		// must be in [cm] !
+	
 	emit changed();
 }
 
 void Scheduler::DistanceRange::changeTo(double val)
 {
 	to = val; 
-	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
+	QString do_calibr_str = (do_calibr ? "TRUE" : "FALSE");
+	cell_text = cell_text_template.arg(from).arg(step).arg(to).arg(do_calibr_str);		// must be in [cm] !
+	
 	emit changed();
 }
 
 void Scheduler::DistanceRange::changeStep(double val)
 {
 	step = val; 
-	cell_text = cell_text_template.arg(from).arg(step).arg(to);		// must be in [cm] !
+	QString do_calibr_str = (do_calibr ? "TRUE" : "FALSE");
+	cell_text = cell_text_template.arg(from).arg(step).arg(to).arg(do_calibr_str);		// must be in [cm] !
+	
+	emit changed();
+}
+
+void Scheduler::DistanceRange::changeDoCalibr(const QString& text)
+{
+	if (text == "TRUE") do_calibr = true;
+	else do_calibr = false;
+
+	QString do_calibr_str = (do_calibr ? "TRUE" : "FALSE");
+	cell_text = cell_text_template.arg(from).arg(step).arg(to).arg(do_calibr_str);		// must be in [cm] !
+
 	emit changed();
 }
 
 double Scheduler::DistanceRange::getNextPos()
 {
-	if (pos != pos) pos = from;
+	if (pos != pos) 
+	{
+		if (do_calibr) pos = from - calibr_len;
+		else pos = from;
+	}
 	else if (from < to)
 	{
 		if (pos <= to-step) pos += step;
@@ -196,6 +227,11 @@ double Scheduler::DistanceRange::getNextPos()
 	{
 		if (pos >= from+step) pos -= step;
 		else finished = true;
+	}
+
+	if (do_calibr)
+	{
+		is_calibration_range = (from-pos) > 0;		
 	}
 
 	return pos;

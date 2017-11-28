@@ -26,6 +26,7 @@
 #include "Wizards/monitoring_wizard.h"
 #include "Wizards/sdsp_wizard.h"
 #include "Wizards/logging_widget.h"
+#include "Wizards/freq_autoadjust_wizard.h"
 #include "Communication/threads.h"
 #include "Communication/message_processor.h"
 #include "Communication/tcp_data_manager.h"
@@ -120,7 +121,7 @@ private:
 	COM_PORT *COM_Port_stepmotor;			// COM-порт для платы управления шаговым двигателем
 	GF_Data *gf_data;	
 
-	//unsigned char tool_id;					// идентификационный номер каротажного прибора
+	unsigned char tool_id;					// идентификационный номер каротажного прибора
 	ToolInfo current_tool;
 	bool current_tool_was_applied;			// индикатор того, что настройки каротажного прибора были отправлены (данные из файла типа kmrk.cfg и т.п.)
 	QVector<ToolChannel*> tool_channels;	// вектор с настройками каналов каротажного прибора
@@ -184,6 +185,7 @@ private:
 	NMRToolStatusWizard *nmrtoolStatus;
 	RxTxControlWizard *rxtxControl;
 	RFPulseControlWizard *rfpulseControl;
+	FreqAutoadjustWizard *freqAutoadjust;
 
 	QDockWidget *dock_msgConnect;
 	QDockWidget *dock_msgLog;
@@ -195,6 +197,7 @@ private:
 	QDockWidget *dock_nmrtoolStatus;
 	QDockWidget *dock_RxTxControl;
 	QDockWidget *dock_RFPulseControl;
+	QDockWidget *dock_FreqAutoadjust;
 	
 	bool nmrtool_state;		// true = NMR Tool is started; false = NMR Tool is stopped.
 	bool sdsptool_state;	// true = SDSP Tool is started; false = SDSP Tool is stopped.
@@ -203,7 +206,7 @@ private:
 	SeqStatus sdsp_sequence_status;
 
 	DataSave save_data_attrs;
-	QFile *save_data_file;
+	//QFile *save_data_file;
 	//bool start_data_export;				// индикатор необходимости открыть новый файл для экспорта измеренных данных
 	int experiment_id;					// номер эксперимента. Увеличивается на 1 при каждом запуске измерений по кнопке "Start Sequence"
 	
@@ -240,6 +243,7 @@ private slots:
 		
 	void startExperiment(bool flag);
 	void setExperimentalInfo();
+	void setDataFileSettings();
 
 	void storeMsgData(MsgInfo* msg_info);
 	//void plotData(DeviceData *device_data);		
@@ -267,6 +271,8 @@ private slots:
 
 	void setExpSchedulerFinished();
 	void setExpSchedulerStarted();
+
+	void saveNewCalibrCoefficient(double val);
 
 private:
 	void loadToolsSettings();

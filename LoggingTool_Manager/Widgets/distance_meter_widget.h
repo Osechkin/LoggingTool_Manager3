@@ -17,8 +17,10 @@ class LeuzeDistanceMeterWidget : public AbstractDepthMeter, public Ui::LeuzeDist
 	Q_OBJECT
 
 public:
-	explicit LeuzeDistanceMeterWidget(Clocker *_clocker, COM_PORT *com_port, COM_PORT *stepmotor_com_port, QWidget *parent = 0);
+	explicit LeuzeDistanceMeterWidget(QSettings *_settings, Clocker *_clocker, COM_PORT *com_port, COM_PORT *stepmotor_com_port, QWidget *parent = 0);
 	~LeuzeDistanceMeterWidget();
+
+	void saveSettings();
 
 	QString getTitle() { return tr("Leuze Distance Meter"); }
 	DepthMeterType getType() { return DepthMeterType::LeuzeDistanceMeter; }
@@ -31,6 +33,9 @@ public:
 	QPair<double,double> getFromTo() { return QPair<double,double>(from_pos, to_pos); }
 	double getOrderedDepth() { return ui->dsboxSetPosition->value()/k_set_distance; }
 	double getStep() { return step_pos; }
+	double getZeroPos() { return zero_pos; }
+	double getCalibrationLength() { return calibr_len; }
+	double getCoreDiameter() { return core_diameter; }
 	
 	void stopDepthMeter();
 	void startDepthMeter();
@@ -47,6 +52,8 @@ private:
 	Clocker *clocker;
 	QTimer timer;
 	QTimer stepmotor_timer;
+
+	QSettings *app_settings;
 
 	COM_PORT *COM_Port;
 	COM_PORT *stepmotor_COM_Port;
@@ -67,10 +74,14 @@ private:
 	double to_pos;
 	double step_pos;
 	double zero_pos;
+	double calibr_len;
+	double core_diameter;
 	double k_from;
 	double k_to;
 	double k_step;
 	double k_zero;
+	double k_calibr_len;
+	double k_core_d;
 
 	double lower_bound;
 	double upper_bound;		
@@ -84,7 +95,7 @@ private:
 
 private slots:
 	void connectAllMeters(bool flag);
-	void changeUnits(QString str);
+	//void changeUnits(QString str);
 	void getMeasuredData(uint32_t _uid, uint8_t _type, double val);
 	void measureTimedOut(uint32_t _uid, uint8_t _type);
 	void showErrorMsg(QString msg);
@@ -97,6 +108,10 @@ private slots:
 	void setNewTo(double val);
 	void setNewFrom(double val);
 	void setNewStep(double val);
+	void setNewCoreDiameter(double val);
+
+	void setZeroPos();
+	void clearZeroPos();
 
 public slots:
 	void setPosition(double pos);
@@ -105,6 +120,7 @@ signals:
 	void to_measure(uint32_t, uint8_t);		
 	void connected(bool);
 	void set_from_to_step(double, double, double);
+	void new_core_diameter(double);
 	void cmd_resulted(bool, uint32_t);
 	//void new_data(double, double);		// first variable is new depth, second variable is new rate
 	

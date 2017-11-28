@@ -19,6 +19,8 @@ public:
 	explicit DepthEmulatorWidget(Clocker *_clocker, QWidget *parent = 0);
 	~DepthEmulatorWidget();
 
+	void saveSettings() { }
+
 	QString getTitle() { return tr("Depth Emulator"); }
 	DepthMeterType getType() { return DepthMeterType::DepthEmulator; }
 

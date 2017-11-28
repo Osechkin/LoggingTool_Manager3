@@ -1199,7 +1199,7 @@ MsgInfo::ParsingResult MsgProcessor::extractData(MsgInfo *msg_info)
 			}
 		case DT_SGN_RELAX:
 		case DT_SGN_RELAX2:
-		case DT_SGN_RELAX3:
+		case DT_SGN_RELAX3:		
 			{
 				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 1 байт (индекс канала данных) + 1 байт (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
 				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL) // ошибка в коде канала данных () !
@@ -1279,6 +1279,87 @@ MsgInfo::ParsingResult MsgProcessor::extractData(MsgInfo *msg_info)
 
 				break;
 			}		
+		case DT_T1T2_NMR:
+		case DT_DsT2_NMR:
+			{
+				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 1 байт (индекс канала данных) + 1 байт (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
+				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL) // ошибка в коде канала данных () !
+					if (bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
+				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
+
+				uint8_t channel_data_id = (uint8_t)(data.data[start_pos+1] + 1);	// номера каналов данных при передаче в каротажный прибор отсчитываются от нуля
+				uint16_t group_index = (uint16_t)(data.data[start_pos+2]);
+				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
+				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
+				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
+
+
+				uint16_t byte_counter = cmd_data_len;								
+				uint16_t relax_data_len = cmd_data_len/sizeof(uint8_t);
+				QVector<double> *relax_data = new QVector<double>(relax_data_len);
+				QVector<uint8_t> *bad_relax_data = new QVector<uint8_t>(relax_data_len);
+
+				uint16_t pos = start_pos;
+				uint32_t cnt = 0;
+
+				uint32_t a32 = 0;
+				uint32_t b32 = 0;
+				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
+				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
+
+				float A = *(float*)&a32;
+				float B = *(float*)&b32;
+				start_pos += 2*sizeof(float);
+
+				float _b = 0;
+				while (byte_counter > 0)
+				{					
+					if (data.data[pos] == 0xff) 
+					{
+						uint32_t nan_32 = 0xffffffff;
+						float *nan = (float*)&nan_32;
+						relax_data->data()[cnt] = *nan;
+					}
+					else
+					{
+						_b = A*data.data[pos] - B;
+						relax_data->data()[cnt] = (double)_b;
+					}						
+
+					bad_relax_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
+					int pp = sizeof(uint8_t);
+					while (--pp >= 0) 
+					{
+						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_relax_data->data()[cnt] = (uint8_t)BAD_DATA;
+					}
+					cnt++;
+
+					byte_counter -= sizeof(uint8_t);	
+					pos += sizeof(uint8_t);
+					start_pos += sizeof(uint8_t);
+				}
+
+				Field_Comm *field = new Field_Comm;
+				field->name = "T1T2 2D-NMR data";
+				field->code = cmd;
+				field->value = relax_data;
+				field->str_value = "";
+				field->value_type = Field_Comm::FLOAT;
+				field->bad_data = bad_relax_data;
+				field->tag = group_index;
+				field->channel = channel_data_id;
+
+				msg_info->setDeviceDataMemo("T1T2 2D-NMR data", NMRTOOL_DATA, MTYPE_MULTYPACK);
+				msg_info->getDeviceData()->fields->append(field);
+
+				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
+				else 
+				{
+					return MsgInfo::Message_OK;
+				}
+
+				break;
+			}
 		case DT_SOLID_ECHO:
 			{
 				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 1 байт (индекс канала данных) + 1 байт (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
@@ -1433,6 +1514,86 @@ MsgInfo::ParsingResult MsgProcessor::extractData(MsgInfo *msg_info)
 				field->channel = channel_data_id;
 
 				msg_info->setDeviceDataMemo("Frequency Response data", NMRTOOL_DATA, MTYPE_MULTYPACK);
+				msg_info->getDeviceData()->fields->append(field);
+
+				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays
+				else 
+				{
+					return MsgInfo::Message_OK;
+				}
+
+				break;
+			}
+		case DT_FREQ_TUNE:
+			{
+				if (data.len < PACK_INFO_LEN + 6) return MsgInfo::Bad_DataLength;	// недостаточно данных. Должно быть как минимум: 3 байта (заголовок пакета) + 1байт (команда) + 1 байт (индекс канала данных) + 1 байт (индекс группы данных) + 2 байта (длина данных) + 1 байт (crc)
+				if (bad_map.data[start_pos+1] == DATA_STATE_FAIL) // ошибка в коде канала данных () !
+					if (bad_map.data[start_pos+2] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в групповом индексе данных команды !
+				if (bad_map.data[start_pos+3] == DATA_STATE_FAIL || bad_map.data[start_pos+4] == BAD_DATA ) return MsgInfo::Bad_Command; // ошибка в байтах длины данных команды !
+
+				uint8_t channel_data_id = (uint8_t)(data.data[start_pos+1] + 1);	// номера каналов данных при передаче в каротажный прибор отсчитываются от нуля
+				uint16_t group_index = (uint16_t)(data.data[start_pos+2]);
+				uint16_t cmd_data_len = ((uint16_t)(data.data[start_pos+4]) << 8) | (uint16_t)(data.data[start_pos+3]);
+				if (cmd_data_len > data.len-PACK_INFO_LEN-6) cmd_data_len = data.len - PACK_INFO_LEN-6;	// если длина данных в пакете меньше, чем указано после байта команды			
+				start_pos += 5;	// = 5, т.к. 5 = 1 байт комманды + 2 байта групповой индекс + 2 байта длины данных
+
+
+				uint16_t byte_counter = cmd_data_len;								
+				uint16_t freq_autotune_data_len = cmd_data_len/sizeof(uint8_t);
+				QVector<double> *freq_autotune_data = new QVector<double>(freq_autotune_data_len);
+				QVector<uint8_t> *bad_freq_autotune_data = new QVector<uint8_t>(freq_autotune_data_len);
+
+				uint16_t pos = start_pos;
+				uint32_t cnt = 0;
+
+				uint32_t a32 = 0;
+				uint32_t b32 = 0;
+				memcpy((uint8_t*)&a32, &data.data[pos], sizeof(float)); pos += sizeof(float);
+				memcpy((uint8_t*)&b32, &data.data[pos], sizeof(float)); pos += sizeof(float);
+
+				float A = *(float*)&a32;
+				float B = *(float*)&b32;
+				start_pos += 2*sizeof(float);
+
+				float _b = 0;
+				while (byte_counter > 0)
+				{					
+					if (data.data[pos] == 0xff) 
+					{
+						uint32_t nan_32 = 0xffffffff;
+						float *nan = (float*)&nan_32;
+						freq_autotune_data->data()[cnt] = *nan;
+					}
+					else
+					{
+						_b = A*data.data[pos] - B;
+						freq_autotune_data->data()[cnt] = (double)_b;
+					}						
+
+					bad_freq_autotune_data->data()[cnt] = (uint8_t)DATA_STATE_OK;
+					int pp = sizeof(uint8_t);
+					while (--pp >= 0) 
+					{
+						if (bad_map.data[pos+pp] == DATA_STATE_FAIL ) bad_freq_autotune_data->data()[cnt] = (uint8_t)BAD_DATA;
+					}
+					cnt++;
+
+					byte_counter -= sizeof(uint8_t);	
+					pos += sizeof(uint8_t);
+					start_pos += sizeof(uint8_t);
+				}
+
+				Field_Comm *field = new Field_Comm;
+				field->name = "Frequency Autotune";
+				field->code = cmd;
+				field->value = freq_autotune_data;
+				field->str_value = "";
+				field->value_type = Field_Comm::FLOAT;
+				field->bad_data = bad_freq_autotune_data;
+				field->tag = group_index;
+				field->channel = channel_data_id;
+
+				msg_info->setDeviceDataMemo("Frequency Autotune", NMRTOOL_DATA, MTYPE_MULTYPACK);
 				msg_info->getDeviceData()->fields->append(field);
 
 				if (data.data[start_pos] == 0xFF) start_pos++;		// if next byte is a separator between data arrays

@@ -20,13 +20,15 @@
 #include "ui_scheduler_wizard.h"
 
 
+//class MainWindow;
+
 // виджет редактирования циклограммы измерений программой сигнального процессора
 class SchedulerWizard : public QWidget, public Ui::SchedulerWizard
 {
 	Q_OBJECT
 
 public:
-	SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, NMRToolLinker *nmrtool_wiz, Clocker *clocker, QWidget *parent = 0);
+	SchedulerWizard(SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, NMRToolLinker *nmrtool_wiz, Clocker *clocker, QWidget *parent = 0);
 	~SchedulerWizard();
 
 	Scheduler::Engine* getSchedulerEngine() { return &scheduler_engine; } 
@@ -52,9 +54,9 @@ public slots:
 protected:
 	bool eventFilter(QObject *obj, QEvent *event);
 	
-private:
-	//void setDataFileSettings();
+private:	
 	QString generateDataFileName();
+	//void loadSettings();
 
 	void insertItem(int row, QString cmd);
 	void removeItem(int row);
@@ -78,7 +80,6 @@ private slots:
 private:
 	Ui::SchedulerWizard *ui;
 	
-	QSettings *app_settings;
 	DepthTemplateWizard *depth_wizard;
 	SequenceWizard *sequence_wizard;
 	NMRToolLinker *nmrtool_linker;
@@ -103,11 +104,15 @@ private:
 	Scheduler::SchedulerObjList obj_cmd_list;
 	unsigned int crc16_last_jseq;
 
+	bool calibration_state;
+
 	bool seq_already_finished;		// флаг, свидетельствующий о том, что сигнал завершения последовательности уже принят и следующие такие сигналы игнорировать до успешного старта следующей последовательности 
 
 signals:
 	void finished();
 	void started();
+	void calibration_started();
+	void calibration_finished();
 };
 
 #endif // SCHEDULER_WIZARD_H

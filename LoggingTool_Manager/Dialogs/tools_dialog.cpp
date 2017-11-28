@@ -71,7 +71,7 @@ ToolsDialog::ToolsDialog(QList<ToolInfo> tools_list, int cur_index, QWidget *par
 	
 	tools = tools_list;
 
-	current_tool_id = tools[cur_index].id;
+	//current_tool_id = tools[cur_index].id;
 	current_tool_file = tools[cur_index].file_name;
 	current_tool = tools[cur_index].type;
 	current_tool_tab_widgets = tools[cur_index].tab_widgets;

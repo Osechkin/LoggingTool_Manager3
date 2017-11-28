@@ -7,8 +7,8 @@
 #include "ui_about_dialog.h"
 
 
-#define APP_VERSION		"0.7.18"
-#define APP_DATE		"November 9, 2017"
+#define APP_VERSION		"0.7.23"
+#define APP_DATE		"November 27, 2017"
 
 
 class IaFrame : public QFrame

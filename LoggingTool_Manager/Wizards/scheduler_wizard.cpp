@@ -10,11 +10,12 @@
 //#include <stdlib.h>
 
 #include "../Communication/message_class.h"
+//#include "../main_window.h"
 
 #include "scheduler_wizard.h"
 
 
-SchedulerWizard::SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, NMRToolLinker *nmrtool_wiz, Clocker *clocker, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWizard)
+SchedulerWizard::SchedulerWizard(SequenceWizard *seq_wiz, DepthTemplateWizard *depth_wiz, NMRToolLinker *nmrtool_wiz, Clocker *clocker, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWizard)
 {
 	ui->setupUi(this);
 
@@ -22,9 +23,7 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, D
 	depth_wizard = depth_wiz;	
 	nmrtool_linker = nmrtool_wiz;
 	this->clocker = clocker;
-	app_settings = settings;
-	//setDataFileSettings();
-
+	
 	current_cmd = NULL;
 	seq_already_finished = true;
 
@@ -87,6 +86,16 @@ SchedulerWizard::SchedulerWizard(QSettings *settings, SequenceWizard *seq_wiz, D
 	connect(a_sleep, SIGNAL(triggered()), this, SLOT(addItem()));
 	connect(ui->tbtRemove, SIGNAL(clicked()), this, SLOT(removeItem()));
 	connect(a_remove_all, SIGNAL(triggered()), this, SLOT(removeAllItems()));
+
+	/*main_win = NULL;
+	foreach (QWidget *win, QApplication::topLevelWidgets())
+	{
+		if (MainWindow *mainWin = qobject_cast<MainWindow *>(win)) 
+		{
+			main_win = mainWin;		
+			break;
+		}
+	}*/
 
 	crc16_last_jseq = 0xFFFF;
 }
@@ -222,7 +231,8 @@ void SchedulerWizard::start()
 	ui->tbtOpen->setEnabled(false);
 	ui->treeWidgetParam->setEnabled(false);
 
-	is_started = true;
+	calibration_state = false;
+	is_started = true;	
 	scheduler_engine.start();
 	if (current_cmd)
 	{
@@ -232,7 +242,7 @@ void SchedulerWizard::start()
 	obj_cmd_list.clear();
 	connect(clocker, SIGNAL(clock()), this, SLOT(process()));	
 	
-	crc16_last_jseq = 0xFFFF;
+	crc16_last_jseq = 0;
 
 	emit started();
 }
@@ -254,6 +264,7 @@ void SchedulerWizard::stop()
 		current_cmd = NULL; 
 	}
 	obj_cmd_list.clear();
+	calibration_state = false;
 }
 
 void SchedulerWizard::process()
@@ -276,6 +287,7 @@ void SchedulerWizard::process()
 		{
 			is_started = false;
 			executingJSeq = NULL;
+			crc16_last_jseq = 0;
 			stop();
 			emit finished();
 			return;
@@ -296,8 +308,8 @@ void SchedulerWizard::process()
 				Scheduler::DistanceRange *dist_obj = qobject_cast<Scheduler::DistanceRange*>(cmd_obj);
 				if (dist_obj)
 				{
-					dist_obj->getNextPos();					
-					if (!dist_obj->finished) obj_cmd_list.append(dist_obj); 					
+					dist_obj->getNextPos();		
+					if (!dist_obj->finished) obj_cmd_list.append(dist_obj); 						
 				}
 				break;
 			}		
@@ -378,11 +390,25 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 						{
 							removeSchedulerObj(obj);
 
-							double pos = dist_range_obj->pos/100; // [cm] -> [m]
-							leuze_meter->setPosition(pos);
-
 							current_cmd = new Scheduler::CommandController(0, Scheduler::DistanceRange_Cmd);
 							connect(leuze_meter, SIGNAL(cmd_resulted(bool, uint32_t)), current_cmd, SLOT(processResult(bool, uint32_t)));
+
+							double pos = dist_range_obj->pos/100; // [cm] -> [m]
+							leuze_meter->setPosition(pos);
+							bool is_calibration_range = dist_range_obj->is_calibration_range;
+							if (!calibration_state && is_calibration_range)
+							{
+								calibration_state = is_calibration_range;
+								emit calibration_started();
+							}
+							else if (calibration_state && !is_calibration_range)
+							{
+								calibration_state = is_calibration_range;
+								emit calibration_finished();
+							}
+
+							//current_cmd = new Scheduler::CommandController(0, Scheduler::DistanceRange_Cmd);
+							//connect(leuze_meter, SIGNAL(cmd_resulted(bool, uint32_t)), current_cmd, SLOT(processResult(bool, uint32_t)));
 						}
 					}
 				}
@@ -415,6 +441,9 @@ void SchedulerWizard::execute(Scheduler::SchedulerObject* obj)
 			break;
 		}
 	case Scheduler::Loop_Cmd:
+		{
+			break;
+		}
 	case Scheduler::End_Cmd:
 	case Scheduler::Sleep_Cmd: break;
 	default:
@@ -504,9 +533,12 @@ bool SchedulerWizard::generateDistanceScanPrg(QStringList &e)
 				QPair<double,double> bounds = leuze_meter->getBounds();
 				QPair<double,double> from_to = leuze_meter->getFromTo();
 				double _step = leuze_meter->getStep();
-
-				dist_range_obj->setFromToStep(from_to, _step);
+				double calibr_range = leuze_meter->getCalibrationLength();
+				bool _do_calibr = false;
+				
+				dist_range_obj->setFromToStep(from_to, _step, _do_calibr);
 				dist_range_obj->setBounds(bounds);
+				dist_range_obj->setCalibrationLength(calibr_range);
 			}				
 		}
 		else
@@ -620,7 +652,7 @@ void SchedulerWizard::addItem()
 	QAction *a = qobject_cast<QAction*>(sender());
 	if (!a) return;
 	QString txt = a->text();
-	
+
 	Scheduler::SchedulerObjList cmd_obj_list;	
 	if (txt == "EXEC")
 	{
@@ -640,18 +672,24 @@ void SchedulerWizard::addItem()
 			{
 				if (LeuzeDistanceMeterWidget *leuze_meter = qobject_cast<LeuzeDistanceMeterWidget*>(abs_depthmeter))
 				{
+					double zero_pos = leuze_meter->getZeroPos();
 					QPair<double,double> bounds = leuze_meter->getBounds();
-					QPair<double,double> from_to = leuze_meter->getFromTo();
+					bounds.first -= zero_pos;
+					bounds.second -= zero_pos;
+
+					QPair<double,double> from_to = leuze_meter->getFromTo();										
 					double _step = leuze_meter->getStep();
+					double _calibr_len = leuze_meter->getCalibrationLength();
 					
-					dist_range_obj->setFromToStep(from_to, _step);
+					dist_range_obj->setFromToStep(from_to, _step, false);
 					dist_range_obj->setBounds(bounds);
+					dist_range_obj->setCalibrationLength(_calibr_len);
 				}				
 			}
 		}
 
 		connect(dist_range_obj, SIGNAL(changed()), this, SLOT(update()));
-		
+
 		cmd_obj_list.append(dist_range_obj); 		
 		//cmd_obj_list.append(new Scheduler::End); 
 
@@ -684,10 +722,10 @@ void SchedulerWizard::addItem()
 	{ 
 		Scheduler::Loop *loop_obj = new Scheduler::Loop;
 		connect(loop_obj, SIGNAL(changed()), this, SLOT(update()));
-		
+
 		cmd_obj_list.append(loop_obj); 
 		//cmd_obj_list.append(new Scheduler::End); 
-		
+
 		Scheduler::End *end_obj = new Scheduler::End;
 		end_obj->ref_obj = loop_obj;
 
@@ -708,20 +746,24 @@ void SchedulerWizard::addItem()
 		int cur_row = ui->tableWidgetExp->currentRow();	
 
 		Scheduler::SchedulerObject *cmd_obj = cmd_obj_list.at(i);
-		if (cur_row < 0 || cur_row == rows-1) 
-		{		
-			ui->tableWidgetExp->setRowCount(rows+1);
+		if (cur_row < 0) 
+		{			
+			scheduler_engine.insert(0, cmd_obj);
+			insertItem(0, cmd_obj->cell_text);
+		}
+		else if (cur_row == rows-1)
+		{
 			scheduler_engine.add(cmd_obj);
-			
+			ui->tableWidgetExp->setRowCount(rows+1);
 			QLabel *lb = new QLabel(cmd_obj->cell_text);
 			ui->tableWidgetExp->setCellWidget(rows, 0, lb);
-			ui->tableWidgetExp->setCurrentCell(rows, 0);		
+			ui->tableWidgetExp->setCurrentCell(rows, 0);			
 		}
-		else 
-		{		
-			scheduler_engine.insert(cur_row, cmd_obj);			
-			insertItem(cur_row, cmd_obj->cell_text);			
-		}	
+		else
+		{			
+			scheduler_engine.insert(cur_row+1, cmd_obj);
+			insertItem(cur_row+1, cmd_obj->cell_text);
+		}		
 	}	
 }
 
@@ -745,47 +787,54 @@ void SchedulerWizard::removeItem(int row)
 	scheduler_engine.remove(row);
 }
 
+
 void SchedulerWizard::removeItem()
 {
 	int cur_row = ui->tableWidgetExp->currentRow();	
 	int table_rows = ui->tableWidgetExp->rowCount();
 	if (cur_row < 0) return;	
 
-	Scheduler::Command cmd_type = scheduler_engine.getObjectList()[cur_row]->type;
+	Scheduler::SchedulerObject *del_obj1 = scheduler_engine.getObjectList()[cur_row];
+	Scheduler::Command cmd_type = del_obj1->type;
 	if (cmd_type == Scheduler::Command::Loop_Cmd || cmd_type == Scheduler::Command::DistanceRange_Cmd)
-	{
-		ui->tableWidgetExp->removeRow(cur_row);
-		scheduler_engine.remove(cur_row);
+	{		
+		Scheduler::SchedulerObject *del_obj2 = NULL;
 		int rows = scheduler_engine.getObjectList().count();
-		for (int i = cur_row; i < rows; i++)
+		for (int i = 0; i < rows; i++)
 		{
 			Scheduler::Command cmd_type = scheduler_engine.getObjectList()[i]->type;
 			if (cmd_type == Scheduler::Command::End_Cmd)
-			{
-				ui->tableWidgetExp->removeRow(i);
-				scheduler_engine.remove(i);
+			{				
+				Scheduler::End *del_end = qobject_cast<Scheduler::End*>(scheduler_engine.getObjectList()[i]);
+				if (del_end)
+				{
+					Scheduler::SchedulerObject *ref_obj = del_end->ref_obj;
+					if (ref_obj == del_obj1) del_obj2 = del_end;					
+				}
+
+				int pos_del1 = scheduler_engine.getObjectList().indexOf(del_obj1);
+				ui->tableWidgetExp->removeRow(pos_del1);
+				scheduler_engine.remove(pos_del1);
+
+				int pos_del2 = scheduler_engine.getObjectList().indexOf(del_obj2);
+				ui->tableWidgetExp->removeRow(pos_del2);
+				scheduler_engine.remove(pos_del2);
 				break;
 			}
-		}
+		}		
 	}
 	else if (cmd_type == Scheduler::Command::End_Cmd)
 	{
-		ui->tableWidgetExp->removeRow(cur_row);
-		scheduler_engine.remove(cur_row);
-		int rows = scheduler_engine.getObjectList().count();
-		if (cur_row > 0)
-		{
-			for (int i = cur_row-1; i >= 0; --i)
-			{
-				Scheduler::Command cmd_type = scheduler_engine.getObjectList()[i]->type;
-				if (cmd_type == Scheduler::Command::Loop_Cmd || cmd_type == Scheduler::Command::DistanceRange_Cmd)
-				{
-					ui->tableWidgetExp->removeRow(i);
-					scheduler_engine.remove(i);
-					break;
-				}
-			}
-		}		
+		Scheduler::End *end_obj = qobject_cast<Scheduler::End*>(del_obj1);
+		Scheduler::SchedulerObject *del_obj2 = end_obj->ref_obj;
+		
+		int pos_del1 = scheduler_engine.getObjectList().indexOf(del_obj1);
+		ui->tableWidgetExp->removeRow(pos_del1);
+		scheduler_engine.remove(pos_del1);
+
+		int pos_del2 = scheduler_engine.getObjectList().indexOf(del_obj2);
+		ui->tableWidgetExp->removeRow(pos_del2);
+		scheduler_engine.remove(pos_del2);
 	}
 	else
 	{
@@ -821,7 +870,7 @@ void SchedulerWizard::update()
 				{
 					QLabel *lb = qobject_cast<QLabel*>(ui->tableWidgetExp->cellWidget(i,0));
 					Scheduler::DistanceRange *dist_range_obj = qobject_cast<Scheduler::DistanceRange*>(obj_sender);
-					dist_range_obj->cell_text = dist_range_obj->cell_text_template.arg(dist_range_obj->from).arg(dist_range_obj->step).arg(dist_range_obj->to);
+					dist_range_obj->cell_text = dist_range_obj->cell_text_template.arg(dist_range_obj->from).arg(dist_range_obj->step).arg(dist_range_obj->to).arg(dist_range_obj->do_calibr ? "TRUE" : "FALSE");
 					lb->setText(dist_range_obj->cell_text);
 					break;
 				}
@@ -906,8 +955,13 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 			QDoubleSpinBox *dsboxStep = new QDoubleSpinBox;					
 			dsboxStep->setValue(dist_range_obj->step);	
 			connect(dsboxStep, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeStep(double)));
-						
-			widget_params << dsboxFrom << dsboxTo << dsboxStep;
+					
+			QComboBox *cboxDoCalibr = new QComboBox;
+			cboxDoCalibr->addItems(QStringList() << "TRUE" << "FALSE");
+			cboxDoCalibr->setCurrentText(dist_range_obj->do_calibr ? "TRUE" : "FALSE");
+			connect(cboxDoCalibr, SIGNAL(currentIndexChanged(const QString&)), dist_range_obj, SLOT(changeDoCalibr(const QString&)));
+
+			widget_params << dsboxFrom << dsboxTo << dsboxStep << cboxDoCalibr;
 
 			break;
 		}
@@ -1010,41 +1064,6 @@ void SchedulerWizard::currentItemSelected(QModelIndex index1, QModelIndex index2
 	showItemParameters(obj);
 }
 
-/*void SchedulerWizard::setDataFileSettings()
-{
-	if (app_settings->contains("SaveDataSettings/Path")) datafile_path = app_settings->value("SaveDataSettings/Path").toString();
-	else
-	{
-		QString cur_dir = QCoreApplication::applicationDirPath();		
-		datafile_path = cur_dir;
-		app_settings->setValue("SaveDataSettings/Path", datafile_path);
-	}
-		
-	if (app_settings->contains("SaveDataSettings/Prefix")) datafile_prefix = app_settings->value("SaveDataSettings/Prefix").toString();
-	else
-	{
-		datafile_prefix = "data";
-		app_settings->setValue("SaveDataSettings/Prefix", datafile_prefix);
-	}	
-	
-	if (app_settings->contains("SaveDataSettings/Postfix")) datafile_postfix = app_settings->value("SaveDataSettings/Postfix").toString();
-	else
-	{
-		datafile_postfix = "";
-		app_settings->setValue("SaveDataSettings/Postfix", datafile_postfix);
-	}
-		
-	QStringList items;
-	items << tr("dat") << tr("txt");	
-	if (app_settings->contains("SaveDataSettings/Extension")) datafile_extension = app_settings->value("SaveDataSettings/Extension").toString();
-	else
-	{
-		datafile_extension = "dat";
-		app_settings->setValue("SaveDataSettings/Extension", datafile_extension);
-	}	
-}
-*/
-
 QString SchedulerWizard::generateDataFileName()
 {
 	DataSave data_save = sequence_wizard->getDataFileSettings();
@@ -1067,3 +1086,4 @@ QString SchedulerWizard::generateDataFileName()
 	QFileInfo file_info(dir, file_name);	
 	return file_info.absoluteFilePath();
 }
+

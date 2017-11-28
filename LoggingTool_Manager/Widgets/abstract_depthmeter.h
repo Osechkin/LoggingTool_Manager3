@@ -15,6 +15,8 @@ public:
 
 	enum DepthMeterType { DepthEmulator, ImpulsUstye, InternalDepthMeter, LeuzeDistanceMeter, NoType };
 
+	virtual void saveSettings() { }
+
 	virtual QString getTitle() { return QString(""); }
 	virtual DepthMeterType getType() { return NoType; }
 	virtual double_b getDepth() { return double_b(false, 0.0); }

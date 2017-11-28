@@ -499,6 +499,10 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 	ui.cntDepthFrom->setValue(int(up_depth));
 	ui.cntDepthTo->setValue(int(down_depth));
 		
+	calibration_state = false;
+	core_diameter = 0.10;	// [m]
+	standard_porosity = 0.30; // default standard porosity. It is read from *.ini file
+
 	setConnections();
 }
 
@@ -1206,6 +1210,10 @@ void LoggingWidget::addDataSets(DataSets _dss)
 						LoggingPlot *logging_plot = logging_plot_list.at(j);
 						if (logging_plot->getQwtPlotIndex() == qwtplot_index)
 						{
+							if (dt == LoggingData::NMRBins_Probe1) 
+							{
+								logging_plot->setKERNParameters(calibration_state, core_diameter, standard_porosity);
+							}
 							logging_plot->addDataSet(ds, tool_channel, dt);
 							replotLegends();
 						}
@@ -1269,87 +1277,7 @@ void LoggingWidget::setDataType(int index)
 		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, data_containers.last()->axis_label);
 		plot_map.replace(logging_plot_index, PlotMap<LoggingData::DataType, int, int>(LoggingData::NoType, NAN_DATA, logging_plot_index));
 		logging_plot->setDataType(LoggingData::NoType, data_containers.last());
-	}
-	/*
-	if (txt == tr("NMR Integral (Probe#1)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Integral value, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::NMRIntegral_Probe, logging_plot_index));
-		logging_plot->setDataType(LoggingData::NMRIntegral_Probe, data_containers.at(0));
-	}
-	if (txt == tr("NMR Integral (Probe#2)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Integral value, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::NMRIntegral_Probe, logging_plot_index));
-		logging_plot->setDataType(LoggingData::NMRIntegral_Probe, data_containers.at(1));
-	}
-	if (txt == tr("NMR Integral (Probe#3)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Integral value, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::NMRIntegral_Probe3, logging_plot_index));
-		logging_plot->setDataType(LoggingData::NMRIntegral_Probe3, data_containers.at(2));
-	}
-	if (txt == tr("NMR Bins (Probe#1)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Integral value, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::NMRBins_Probe1, logging_plot_index));
-		logging_plot->setDataType(LoggingData::NMRBins_Probe1, data_containers.at(3));
-	}
-	if (txt == tr("NMR Bins (Probe#2)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Integral value, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::NMRBins_Probe2, logging_plot_index));
-		logging_plot->setDataType(LoggingData::NMRBins_Probe2, data_containers.at(4));
-	}
-	if (txt == tr("NMR Bins (Probe#3)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Integral value, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::NMRBins_Probe3, logging_plot_index));
-		logging_plot->setDataType(LoggingData::NMRBins_Probe3, data_containers.at(5));
-	}
-	else if (txt == tr("Gamma Logging")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Counts per second, 1/sec"));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::Gamma, logging_plot_index));
-		logging_plot->setDataType(LoggingData::Gamma, data_containers.at(6));
-	}
-	else if (txt == tr("Wave Dielectric Logging (Phase difference)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Phase difference, degree"));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::WaveDielectric_PhaseDiff, logging_plot_index));
-		logging_plot->setDataType(LoggingData::WaveDielectric_PhaseDiff, data_containers.at(7));
-	}
-	else if (txt == tr("Wave Dielectric Logging (Amplitude ratio)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Amplitude ratio, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::WaveDielectric_AmplRatio, logging_plot_index));
-		logging_plot->setDataType(LoggingData::WaveDielectric_AmplRatio, data_containers.at(8));
-	}
-	else if (txt == tr("Maximum of AFR (Probe#1)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Maximum of AFR, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::AFR_Probe1, logging_plot_index));
-		logging_plot->setDataType(LoggingData::AFR_Probe1, data_containers.at(9));
-	}
-	else if (txt == tr("Maximum of AFR (Probe#2)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Maximum of AFR, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::AFR_Probe2, logging_plot_index));
-		logging_plot->setDataType(LoggingData::AFR_Probe2, data_containers.at(10));
-	}
-	else if (txt == tr("Maximum of AFR (Probe#3)")) 
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, tr("Maximum of AFR, a.u."));
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::AFR_Probe3, logging_plot_index));
-		logging_plot->setDataType(LoggingData::AFR_Probe3, data_containers.at(11));
 	}	
-	else if (txt == tr("No Data"))
-	{
-		setAxisPlotTitle(qwtPlot, QwtPlot::xBottom, " ");
-		plot_map.replace(logging_plot_index, QPair<LoggingData::DataType, int>(LoggingData::NoType, logging_plot_index));
-		logging_plot->setDataType(LoggingData::NoType, data_containers.at(12));
-	}
-	*/
 }
 
 void LoggingWidget::rescaleAllDepths(void *qwtplot_obj)
@@ -1435,6 +1363,15 @@ bool LoggingWidget::isVisibleChannel(ToolChannel *channel, uint8_t comm_id)
 	return false;
 }
 
+void LoggingWidget::startCalibration()
+{
+	calibration_state = true;
+}
+
+void LoggingWidget::finishCalibration()
+{
+	calibration_state = false;
+}
 
 
 LoggingPlot::LoggingPlot(LoggingData *log_container, QwtPlot *qwt_plot, QFrame *frame, int index, QWidget *parent) 
@@ -1489,6 +1426,9 @@ LoggingPlot::LoggingPlot(LoggingData *log_container, QwtPlot *qwt_plot, QFrame *
 	ydata_list = log_container->logging_data;
 	data_type = log_container->log_type;
 
+	calibr_normalize_coef = 1;
+	already_normalized = false;
+
 	closeLoggingCurveList();
 }
 
@@ -1500,11 +1440,6 @@ LoggingPlot::~LoggingPlot()
 		qwt_curve->detach();
 		delete qwt_curve;
 	}
-
-	//qDeleteAll(xdata_list.begin(), xdata_list.end());
-	//qDeleteAll(ydata_list.begin(), ydata_list.end());
-	//xdata_list.clear();
-	//ydata_list.clear();
 }
 
 void LoggingPlot::setDataType(LoggingData::DataType dt, LoggingData *dcont)
@@ -1513,6 +1448,13 @@ void LoggingPlot::setDataType(LoggingData::DataType dt, LoggingData *dcont)
 	ydata_list = dcont->logging_data;
 	data_title = dcont->data_title;
 	data_type = dt;
+}
+
+void LoggingPlot::setKERNParameters(bool _calibr_state, double _core_diameter, double _standard_porosity)
+{
+	calibration_state = _calibr_state;
+	core_diameter = _core_diameter;
+	standard_porosity = _standard_porosity;
 }
 
 void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::DataType dt)
@@ -1535,16 +1477,14 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 			//current_tool_channels = mainWin->getCurrentToolChannels();
 		}
 	}
-
+	
 	double S = 0;
 	switch (dt)
 	{
-	case LoggingData::NMRBins_Probe1:
-	case LoggingData::NMRBins_Probe2:
-	case LoggingData::NMRBins_Probe3:
+	case LoggingData::NMRBins_Probe1:	
 		{						
 			int cur_log = cur_index+1;
-						
+			
 			double T2_min = processing_relax.T2_min;			
 			double T2_cutoff_clay = processing_relax.T2_cutoff_clay;
 			double T2_cutoff = processing_relax.T2_cutoff;
@@ -1553,10 +1493,13 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 			double mcbw = 0;
 			double mbvi = 0;
 			double mffi = 0;
+			double sum = 0;
 			for (int i = 0; i < ds->getXData()->size(); i++)
 			{
 				double x = ds->getXData()->at(i);
 				double y = ds->getYData()->at(i);
+
+				sum += y;
 
 				if (T2_min <= x && x < T2_cutoff_clay) mcbw += y;
 				else if (T2_cutoff_clay <= x && x < T2_cutoff) mbvi += y;
@@ -1564,12 +1507,46 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 			}
 			double mphi = mbvi + mffi;
 			double mphs = mffi + mcbw + mbvi;
+						
+			if (!already_normalized) calibr_normalize_coef = channel->normalize_coef1;
+			if (calibration_state) calibration_store.append(sum);
+			else
+			{
+				if (!calibration_store.isEmpty())
+				{
+					qSort(calibration_store);
+					double _max = calibration_store.last();
+					double S = 0;
+					int N = 0;
+					for (int j = 0; j < calibration_store.count(); j++)
+					{
+						if (calibration_store.data()[j] >= 0.90*_max) 
+						{
+							S = S + calibration_store.data()[j];
+							N += 1;
+						}
+					}
+					if (N > 0 && core_diameter > 0) 
+					{
+						S = S/N;
+						double Pcalibr = standard_porosity;
+						double Dcalibr = 0.10;
+						calibr_normalize_coef = (Pcalibr/S)*(Dcalibr*Dcalibr/core_diameter/core_diameter);
+						already_normalized = true;
+					}	
+					calibration_store.clear();
+				}
+				else 
+				{
+					//if (!already_normalized) calibr_normalize_coef = channel->normalize_coef1;
+				}
+			}
 
 			if (processing_relax.porosity_on)
 			{
-				mphs = mphs * channel->normalize_coef1 * channel->normalize_coef2;
-				mffi = mffi * channel->normalize_coef1 * channel->normalize_coef2;
-				mphi = mphi * channel->normalize_coef1 * channel->normalize_coef2;
+				mphs = mphs * calibr_normalize_coef * channel->normalize_coef2;
+				mffi = mffi * calibr_normalize_coef * channel->normalize_coef2;
+				mphi = mphi * calibr_normalize_coef * channel->normalize_coef2;
 			}
 
 			// -------------- MPHS -------------------
@@ -1637,7 +1614,7 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 			curve_mffi->setSamples(y_mffi->data(), x_mffi->data(), y_mffi->size());
 			curve_mffi->attach(qwtPlot);
 			// --------------------------------------
-
+			
 			qwtPlot->replot();
 
 			void *qwtplot_obj = (void*)qwtPlot;
@@ -1645,7 +1622,111 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 
 			break;
 		}
-	
+	case LoggingData::NMRBins_Probe2:
+	case LoggingData::NMRBins_Probe3:
+		{						
+			int cur_log = cur_index+1;
+
+			double T2_min = processing_relax.T2_min;			
+			double T2_cutoff_clay = processing_relax.T2_cutoff_clay;
+			double T2_cutoff = processing_relax.T2_cutoff;
+			double T2_max = processing_relax.T2_max;
+
+			double mcbw = 0;
+			double mbvi = 0;
+			double mffi = 0;
+			for (int i = 0; i < ds->getXData()->size(); i++)
+			{
+				double x = ds->getXData()->at(i);
+				double y = ds->getYData()->at(i);
+
+				if (T2_min <= x && x < T2_cutoff_clay) mcbw += y;
+				else if (T2_cutoff_clay <= x && x < T2_cutoff) mbvi += y;
+				else if (T2_cutoff <= x && x <= T2_max) mffi += y;
+			}
+			double mphi = mbvi + mffi;
+			double mphs = mffi + mcbw + mbvi;
+
+			if (processing_relax.porosity_on)
+			{
+				mphs = mphs * channel->normalize_coef1 * channel->normalize_coef2;
+				mffi = mffi * channel->normalize_coef1 * channel->normalize_coef2;
+				mphi = mphi * channel->normalize_coef1 * channel->normalize_coef2;
+			}
+
+			// -------------- MPHS -------------------
+			cur_index++;
+
+			bool new_log = false;
+			if (cur_index >= qwt_curve_list.count()) 
+			{				
+				QString curve_name = ds->getDataName() + "_MPHS#" + QString::number(cur_log+1);
+				addNewLog(curve_name, LoggingData::MPHS);
+				new_log = true;
+			}
+
+			QVector<double> *x_mphs = xdata_list->at(cur_index);
+			QVector<double> *y_mphs = ydata_list->at(cur_index);
+			QwtPlotCurve *curve_mphs = qwt_curve_list.at(cur_index);
+			x_mphs->push_back(depth.second);
+			y_mphs->push_back(mphs);
+
+			if (!new_log) curve_mphs->detach();
+			curve_mphs->setSamples(y_mphs->data(), x_mphs->data(), y_mphs->size());
+			curve_mphs->attach(qwtPlot);
+			// ---------------------------------------
+
+			// -------------- MPHI -------------------
+			cur_index++;
+
+			new_log = false;
+			if (cur_index >= qwt_curve_list.count()) 
+			{				
+				QString curve_name = ds->getDataName() + "_MPHI#" + QString::number(cur_log+1);
+				addNewLog(curve_name, LoggingData::MPHI);
+				new_log = true;
+			}
+
+			QVector<double> *x_mphi = xdata_list->at(cur_index);
+			QVector<double> *y_mphi = ydata_list->at(cur_index);
+			QwtPlotCurve *curve_mphi = qwt_curve_list.at(cur_index);
+			x_mphi->push_back(depth.second);
+			y_mphi->push_back(mphi);
+			
+			if (!new_log) curve_mphi->detach();
+			curve_mphi->setSamples(y_mphi->data(), x_mphi->data(), y_mphi->size());
+			curve_mphi->attach(qwtPlot);
+			// --------------------------------------
+
+			// -------------- MFFI -------------------
+			cur_index++;
+
+			new_log = false;
+			if (cur_index >= qwt_curve_list.count()) 
+			{				
+				QString curve_name = ds->getDataName() + "_MFFI#" + QString::number(cur_log+1);
+				addNewLog(curve_name, LoggingData::MFFI);
+				new_log = true;
+			}
+
+			QVector<double> *x_mffi = xdata_list->at(cur_index);
+			QVector<double> *y_mffi = ydata_list->at(cur_index);
+			QwtPlotCurve *curve_mffi = qwt_curve_list.at(cur_index);
+			x_mffi->push_back(depth.second);
+			y_mffi->push_back(mffi);
+
+			if (!new_log) curve_mffi->detach();
+			curve_mffi->setSamples(y_mffi->data(), x_mffi->data(), y_mffi->size());
+			curve_mffi->attach(qwtPlot);
+			// --------------------------------------
+
+			qwtPlot->replot();
+
+			void *qwtplot_obj = (void*)qwtPlot;
+			emit plot_rescaled(qwtplot_obj);
+
+			break;
+		}	
 	/*case LoggingData::NMRIntegral_Probe:	
 		{
 			cur_index++;
@@ -1981,11 +2062,6 @@ void LoggingPlot::clearAll()
 	qDeleteAll(qwt_curve_list.begin(), qwt_curve_list.end());
 	qwt_curve_list.clear();
 
-	/*qDeleteAll(xdata_list->begin(), xdata_list->end());
-	qDeleteAll(ydata_list->begin(), ydata_list->end());
-	xdata_list->clear();
-	ydata_list->clear();*/
-		
 	QObjectList louts = legend_vlout->children();
 	for (int i = 0; i < louts.count(); i++)
 	{
@@ -2003,6 +2079,10 @@ void LoggingPlot::clearAll()
 
 	legend_frame->repaint();
 
+	calibration_store.clear();
+	calibr_normalize_coef = 1.0;
+	already_normalized = false;
+	
 	cur_index = -1;
 }
 

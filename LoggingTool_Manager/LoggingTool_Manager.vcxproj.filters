@@ -527,6 +527,15 @@
     <ClCompile Include="GeneratedFiles\Release\moc_data_filename_dialog.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_freq_autoadjust_wizard.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_freq_autoadjust_wizard.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="Wizards\freq_autoadjust_wizard.cpp">
+      <Filter>Source Files\Wizards</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="main_window.h">
@@ -793,6 +802,12 @@
     <CustomBuild Include="Dialogs\data_filename_dialog.h">
       <Filter>Header Files\Dialogs</Filter>
     </CustomBuild>
+    <CustomBuild Include="Wizards\freq_autoadjust_wizard.h">
+      <Filter>Header Files\Wizards</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Wizards\freq_autoadjust_wizard.ui">
+      <Filter>Form Files\Wizards</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_main_window.h">
@@ -946,6 +961,9 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_data_filename_dialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_freq_autoadjust_wizard.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>

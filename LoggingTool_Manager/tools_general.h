@@ -6,9 +6,9 @@
 #include "qextserialport.h"
 
 
-#define NMRKern					(5)				// ID прибора яћ–  ерн
-#define KMRK					(4)				// ID прибора  ћ– 
-#define NMKT					(3)				// ID прибора яћ “
+//#define NMRKern					(5)				// ID прибора яћ–  ерн
+//#define KMRK					(4)				// ID прибора  ћ– 
+//#define NMKT					(3)				// ID прибора яћ “
 
 struct ToolInfo
 {	
@@ -25,7 +25,7 @@ struct ToolInfo
 	QStringList tab_widgets;					// список доступных вкладок в главном виджете приложени€ (полный список: "Logging", "DataPreview", "Oscilloscope", "Monitoring", "SDSP")
 	QStringList seq_wizards;					// список виждетов дл€ ввода последовательности и управлени€ экспериментом (полный список: "SequenceWizard", "ExperimentScheduler")
 	QStringList depth_monitors;					// список глубиномеров и дальномеров (полный список: "DepthEmulator", "Impulse-Ustye", "InternalDepthMeter", "LeuzePositionMeter")
-	QString info_bar;							// самоназвание прибора в InfoBar ("KMRK", "NMKT", "KERN")
+	QString info_bar;							// самоназвание прибора в InfoBar ("KMRK", "NMKT", "KERN")		
 };
 
 

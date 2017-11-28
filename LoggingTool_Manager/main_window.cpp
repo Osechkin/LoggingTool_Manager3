@@ -22,6 +22,7 @@
 #include "Dialogs/cdiag_server_dialog.h"
 #include "Dialogs/about_dialog.h"
 #include "Dialogs/processing_settings_dialog.h"
+#include "Dialogs/export_settings_dialog.h"
 #include "Dialogs/export_toOil_dialog.h"
 #include "Dialogs/depth_server_dialog.h"
 #include "Dialogs/tools_dialog.h"
@@ -153,6 +154,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	addDockWidget(Qt::BottomDockWidgetArea, dock_msgLog);
 	dock_msgLog->setVisible(true);
 	
+	dock_FreqAutoadjust = new QDockWidget(tr("Frequency Autotune"), this);
+	dock_FreqAutoadjust->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
+	QFont fontFreqAutoadjust = dock_FreqAutoadjust->font();
+	fontFreqAutoadjust.setPointSize(9);
+	fontFreqAutoadjust.setBold(true);
+	dock_FreqAutoadjust->setFont(fontFreqAutoadjust);
+	freqAutoadjust = new FreqAutoadjustWizard(dock_FreqAutoadjust);
+	dock_FreqAutoadjust->setWidget(freqAutoadjust);
+	addDockWidget(Qt::BottomDockWidgetArea, dock_FreqAutoadjust);
+	dock_FreqAutoadjust->setVisible(true);
+
 	dock_RxTxControl = new QDockWidget(tr("Rx/Tx Control"), this);
 	dock_RxTxControl->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
 	QFont fontRxTxControl = dock_RxTxControl->font();
@@ -202,14 +214,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 	QStringList depth_meter_list; 
 	depth_meter_list << current_tool.depth_monitors;
-
+	
 	dock_depthTemplate = new QDockWidget(tr("Depth Monitoring"), this);
 	dock_depthTemplate->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
 	QFont fontDepthTemplate = dock_depthTemplate->font();
 	fontDepthTemplate.setPointSize(9);
 	fontDepthTemplate.setBold(true);
 	dock_depthTemplate->setFont(fontDepthTemplate);
-	depthTemplate = new DepthTemplateWizard(COM_Port_depth, COM_Port_stepmotor, depth_meter_list, clocker, dock_depthTemplate);
+	depthTemplate = new DepthTemplateWizard(app_settings, COM_Port_depth, COM_Port_stepmotor, depth_meter_list, clocker, dock_depthTemplate);
 	fontDepthTemplate.setBold(false);
 	depthTemplate->getUI()->cboxDepthMeter->setFont(fontDepthTemplate);
 	depthTemplate->getUI()->lblDepthMeter->setFont(fontDepthTemplate);
@@ -237,7 +249,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	sequenceProc->getUI()->lblDescription->setFont(font_proc);
 	sequenceProc->getUI()->pbtViewCode->setFont(font_proc);
 	sequenceProc->getUI()->pbtRefresh->setFont(font_proc);
-	sequenceProc->getUI()->pbtExportSettings->setFont(font_proc);
+	//sequenceProc->getUI()->pbtExportSettings->setFont(font_proc);
 	dock_sequenceProc->setWidget(sequenceProc);    
 	addDockWidget(Qt::LeftDockWidgetArea, dock_sequenceProc);	
 	//dock_sequenceProc->setVisible(true);
@@ -273,7 +285,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	fontManager.setPointSize(9);
 	dock_expScheduler->setFont(fontManager);
 	dock_expScheduler->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
-	expScheduler = new SchedulerWizard(app_settings, sequenceProc, depthTemplate, nmrtoolLinker, clocker, dock_expScheduler);	
+	expScheduler = new SchedulerWizard(sequenceProc, depthTemplate, nmrtoolLinker, clocker, dock_expScheduler);	
 	expScheduler->setJSeqList(sequenceProc->getSeqFileList());
 	//expScheduler->setJSeqFile(sequenceProc->getJSeqFile());
 	dock_expScheduler->setWidget(expScheduler);    
@@ -329,7 +341,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	grlout_sdsp->setContentsMargins(1,1,1,1);
 	grlout_sdsp->addWidget(sdsp_widget, 0, 0, 1, 1);
 
-	logging_widget = new LoggingWidget(tool_channels, ui->tabLogging); //(app_settings, ui->tabSDSP);
+	logging_widget = new LoggingWidget(tool_channels, ui->tabLogging); 
+	double core_d = 0.10; 
+	double core_porosity = 0.30;
+	bool _ok;
+	if (app_settings->contains("CoreTransportSystem/CoreDiameter")) core_d = app_settings->value("CoreTransportSystem/CoreDiameter").toDouble(&_ok);
+	if (_ok) logging_widget->setCoreDiameter(core_d);
+	else logging_widget->setCoreDiameter(0.10);
+	if (app_settings->contains("CoreTransportSystem/CoreDiameter")) core_porosity = app_settings->value("CoreTransportSystem/StandardPorosity").toDouble(&_ok);
+	if (_ok) logging_widget->setStandardPorosity(core_porosity);
+	else logging_widget->setStandardPorosity(0.30);
 	QGridLayout *grlout_logging = new QGridLayout(ui->tabLogging);
 	grlout_logging->setContentsMargins(1,1,1,1);
 	grlout_logging->addWidget(logging_widget, 0, 0, 1, 1);
@@ -534,11 +555,15 @@ void MainWindow::setActions()
 	a_start_sdsp->setVisible(false);
 	a_stop_sdsp->setVisible(false);
 
+	ui->a_toFile->setVisible(false);
+	ui->a_toOil->setVisible(false);
+
 
 	ui->toolBarSettings->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
 	ui->a_SaveAllSettings->setIcon(QIcon(":/images/save_settings.png"));		
 	ui->a_Processing->setIcon(QIcon(":/images/settings2.png"));
+	ui->a_DataFile_Settings->setIcon(QIcon(":/images/export_data.png"));
 }
 
 void MainWindow::setConnections()
@@ -552,11 +577,12 @@ void MainWindow::setConnections()
 	//connect(ui->a_CDiag_Connection, SIGNAL(triggered()), this, SLOT(setCDiagConnectionSettings()));
 	connect(ui->a_Processing, SIGNAL(triggered()), this, SLOT(setProcessingSettings()));
 	connect(ui->a_About, SIGNAL(triggered()), this, SLOT(showAboutDialog()));
-	connect(ui->a_toOil, SIGNAL(triggered()), this, SLOT(setExportToOilData()));
-	connect(ui->a_toFile, SIGNAL(triggered()), this, SLOT(setExportToFileData()));
+	//connect(ui->a_toOil, SIGNAL(triggered()), this, SLOT(setExportToOilData()));
+	//connect(ui->a_toFile, SIGNAL(triggered()), this, SLOT(setExportToFileData()));
 	connect(ui->a_Depthmeter_Connection, SIGNAL(triggered()), this, SLOT(setDepthMeterSettings()));
 	connect(ui->a_StepMotor, SIGNAL(triggered()), this, SLOT(setStepMotorCOMSettings()));
 	connect(ui->a_Change_Tool, SIGNAL(triggered()), this, SLOT(changeLoggingTool()));
+	connect(ui->a_DataFile_Settings, SIGNAL(triggered()), this, SLOT(setDataFileSettings()));
 	
 	connect(dock_RxTxControl, SIGNAL(dockLocationChanged(Qt::DockWidgetArea)), rxtxControl, SLOT(changeLocation(Qt::DockWidgetArea)));
 	connect(dock_RFPulseControl, SIGNAL(dockLocationChanged(Qt::DockWidgetArea)), rfpulseControl, SLOT(changeLocation(Qt::DockWidgetArea)));
@@ -569,10 +595,13 @@ void MainWindow::setConnections()
 	connect(com_commander, SIGNAL(device_data_timed_out(uint32_t)), msg_processor, SLOT(reportNoResponse(uint32_t)));
 	connect(com_commander, SIGNAL(msg_state(int, int)), nmrtoolLinker, SLOT(showMsgTrafficReport(int, int)));
 
+	connect(logging_widget, SIGNAL(new_calibration_coef(double)), this, SLOT(saveNewCalibrCoefficient(double)));
+
 	connect(tcp_data_manager, SIGNAL(get_data(const QString&, int)), this, SLOT(sendDataToNetClients(const QString&, int)));
 
 	//connect(depthMonitor, SIGNAL(connected(bool)), this, SLOT(depthDepthMeterConnected(bool)));
 	connect(depthTemplate, SIGNAL(connected(bool)), this, SLOT(depthDepthMeterConnected(bool)));
+	connect(depthTemplate, SIGNAL(new_core_diameter(double)), logging_widget, SLOT(setCoreDiameter(double)));
 
 	connect(nmrtoolLinker, SIGNAL(control_nmrtool(bool)), com_commander, SLOT(setNMRToolState(bool)));
 	connect(this, SIGNAL(control_sdsptool(bool)), com_commander, SLOT(setSDSPToolState(bool)));
@@ -612,6 +641,8 @@ void MainWindow::setConnections()
 
 	connect(expScheduler, SIGNAL(finished()), this, SLOT(setExpSchedulerFinished()));
 	connect(expScheduler, SIGNAL(started()), this, SLOT(setExpSchedulerStarted()));
+	connect(expScheduler, SIGNAL(calibration_started()), logging_widget, SLOT(startCalibration()));
+	connect(expScheduler, SIGNAL(calibration_finished()), logging_widget, SLOT(finishCalibration()));
 
 	connect(clocker, SIGNAL(clock()), com_commander, SLOT(timeClocked()));	
 	connect(this, SIGNAL(stop_clocker()), clocker, SLOT(stopThread()));
@@ -740,7 +771,9 @@ void MainWindow::placeInfoToExpToolBar(QString& str_count, QString &str_time)
 }
 
 void MainWindow::placeInfoToExpToolBar(QString& tool_info)
-{	
+{		
+	//QString text = QString("<font color = darkBlue><b>%1</b></font>").arg(tool_info);
+	//lblTool->setText(trUtf8(text.toLocal8Bit()));
 	lblTool->setText(QString("<font color = darkBlue><b>%1</b></font>").arg(tool_info));		
 }
 
@@ -884,6 +917,7 @@ void MainWindow::changeLoggingTool()
 		if (settings->contains("Tool/type")) tool_type = settings->value("Tool/type").toString(); 
 
 		if (current_tool.id == uid) current_tool_index = i;
+		if (current_tool.type == tool_type) current_tool_index = i;
 
 		QStringList tab_widgets;
 		if (settings->contains("VisualSettings/TabWidgets")) tab_widgets = settings->value("VisualSettings/TabWidgets").toStringList();
@@ -901,6 +935,7 @@ void MainWindow::changeLoggingTool()
 			{
 				ToolInfo tool_info = tools[j];
 				if (tool_info.id == uid) tool_exist = true;
+				if (tool_info.type == tool_type) tool_exist = true;
 			}
 
 			if (!tool_exist)
@@ -938,7 +973,7 @@ void MainWindow::changeLoggingTool()
 		app_settings->setValue("Tool/Type", QVariant(cur_tool_type));
 		app_settings->setValue("Tool/CfgFile", QVariant(cur_tool_file));
 
-		if (!current_tool.file_name.isEmpty() && tool_id > 0)
+		if (!current_tool.file_name.isEmpty() /*&& tool_id > 0*/ )
 		{			
 			current_tool.file_name = cur_tool_file;
 			current_tool.id = tool_id;
@@ -1220,7 +1255,7 @@ void MainWindow::loadAppSettings()
 	bool ok = false;
 	QString cur_tool_file = "";
 	QString cur_tool_type = "";
-	unsigned char tool_id = 0;	
+	unsigned char tool_id = 0;
 	bool file_settings_ok = false;
 	if (app_settings->contains("Tool/Id") && app_settings->contains("Tool/CfgFile") && app_settings->contains("Tool/Type")) 
 	{		
@@ -1385,8 +1420,8 @@ void MainWindow::loadToolsSettings()
 
 void MainWindow::sendToolSettings()
 {
-	//if (nmrtoolLinker->getConnectionState() != ConnectionState::State_OK) return;
-		
+	// поле field_gradient не отправляется в DSP, т.к. совсем там не нужно.
+
 	QVector<int> params;
 	for (int i = 0; i < tool_channels.count(); i++)
 	{
@@ -1444,8 +1479,9 @@ void MainWindow::setToolChannels(QSettings *settings)
 			double norm_coef2 = settings->value(channel_head + "/normalize_coef2").toDouble(&ok);	if (!ok) norm_coef2 = 1;
 			double meas_frq = settings->value(channel_head + "/meas_frq").toDouble(&ok);			if (!ok) meas_frq = 1;
 			double sample_frq = settings->value(channel_head + "/sample_frq").toDouble(&ok);		if (!ok) sample_frq = 1;
+			double field_gradient = settings->value(channel_head + "/field_gradient").toDouble(&ok);if (!ok) field_gradient = 0;
 			uint32_t addr_rx = settings->value(channel_head + "/addr_rx").toInt(&ok);				if (!ok) addr_rx = 0;
-			uint32_t addr_tx = settings->value(channel_head + "/addr_tx").toInt(&ok);				if (!ok) addr_tx = 0;	
+			uint32_t addr_tx = settings->value(channel_head + "/addr_tx").toInt(&ok);				if (!ok) addr_tx = 0;				
 			uint32_t frq1 = settings->value(channel_head + "/frq1").toInt(&ok);						if (!ok) frq1 = 0;	
 			uint32_t frq2 = settings->value(channel_head + "/frq2").toInt(&ok);						if (!ok) frq2 = 0;
 			uint32_t frq3 = settings->value(channel_head + "/frq3").toInt(&ok);						if (!ok) frq3 = 0;
@@ -1454,7 +1490,7 @@ void MainWindow::setToolChannels(QSettings *settings)
 			uint32_t frq6 = settings->value(channel_head + "/frq6").toInt(&ok);						if (!ok) frq6 = 0;
 			QString axisx_title = settings->value(channel_head + "/axisX_title").toString();
 			
-			ToolChannel *channel = new ToolChannel(channel_id, data_type, frq_set_num, channel_name, depth_displ, norm_coef1, norm_coef2, meas_frq, sample_frq, addr_rx, addr_tx, frq1, frq2, frq3, frq4, frq5, frq6);
+			ToolChannel *channel = new ToolChannel(channel_id, data_type, frq_set_num, channel_name, depth_displ, norm_coef1, norm_coef2, meas_frq, sample_frq, field_gradient, addr_rx, addr_tx, frq1, frq2, frq3, frq4, frq5, frq6);
 			tool_channels.append(channel);
 		}
 		else finish = true;		
@@ -1815,7 +1851,7 @@ void MainWindow::initSaveDataAttrs()
 	save_data_attrs.to_save = true;
 	save_data_attrs.to_save_all = false;
 
-	save_data_file = NULL;
+	//save_data_file = NULL;
 	//start_data_export = false;		// по умолчанию не экспортировать измеренные данные	
 	experiment_id = 0;
 }
@@ -1944,6 +1980,8 @@ void MainWindow::initDataTypes()
 	data_type_list_File.append(DataType(DT_AVER_RELAX2, GET_STRING(DT_AVER_RELAX2), false, "Averaged Relaxation data (Moving averaging) #2"));
 	data_type_list_File.append(DataType(DT_AVER_RELAX3, GET_STRING(DT_AVER_RELAX3), false, "Averaged Relaxation data (Moving averaging) #3"));
 	data_type_list_File.append(DataType(DT_SOLID_ECHO, GET_STRING(DT_SOLID_ECHO), false, "Solid Echo data #1"));	
+	data_type_list_File.append(DataType(DT_T1T2_NMR, GET_STRING(DT_T1T2_NMR), false, "T1T2 2D-NMR data #2"));
+	data_type_list_File.append(DataType(DT_DsT2_NMR, GET_STRING(DT_DsT2_NMR), false, "DsT2 2D-NMR data #3"));
 
 	data_type_list_File.append(DataType(DT_GAMMA, GET_STRING(DT_GAMMA), false, "Data of gamma-logging"));
 
@@ -1955,6 +1993,7 @@ void MainWindow::initDataTypes()
 	data_type_list_File.append(DataType(DT_AFR1_TX, GET_STRING(DT_AFR1_TX), false, "Amplitude Frequency Response Tx #1"));
 	data_type_list_File.append(DataType(DT_AFR2_TX, GET_STRING(DT_AFR2_TX), false, "Amplitude Frequency Response Tx #2"));
 	data_type_list_File.append(DataType(DT_AFR3_TX, GET_STRING(DT_AFR3_TX), false, "Amplitude Frequency Response Tx #3"));
+	data_type_list_File.append(DataType(DT_FREQ_TUNE, GET_STRING(DT_FREQ_TUNE), false, "Frequency Autotune"));
 
 	data_type_list_File.append(DataType(DT_RFP, GET_STRING(DT_RFP), false, "RF-Pulse Response #1"));
 	data_type_list_File.append(DataType(DT_RFP2, GET_STRING(DT_RFP2), false, "RF-Pulse Response #2"));
@@ -2018,6 +2057,26 @@ void MainWindow::setExportToFileData()
 			}
 		}
 		if (saving) app_settings->sync();
+	}
+}
+
+void MainWindow::setDataFileSettings()
+{
+	ExportSettingsDialog dlg(app_settings, save_data_attrs.to_save);
+	if (dlg.exec())
+	{
+		save_data_attrs.file_name = dlg.getFileName();
+		save_data_attrs.path = dlg.getPath();
+		save_data_attrs.prefix = dlg.getPrefix();
+		save_data_attrs.postfix = dlg.getPostfix();
+		save_data_attrs.extension = dlg.getExtension();
+		save_data_attrs.to_save = dlg.isDataExported();
+		save_data_attrs.to_save_all = dlg.isAllDataExported();
+
+		app_settings->setValue("SaveDataSettings/Path", save_data_attrs.path);
+		app_settings->setValue("SaveDataSettings/Prefix", save_data_attrs.prefix);			
+		app_settings->setValue("SaveDataSettings/Postfix", save_data_attrs.postfix);
+		app_settings->setValue("SaveDataSettings/Extension", save_data_attrs.extension);
 	}
 }
 
@@ -2272,7 +2331,7 @@ void MainWindow::applySDSPParams(QVector<int>& params)
 	}
 	else if (nmrtoolLinker->getConnectionState() == ConnectionState::State_Connecting)
 	{
-		int ret = QMessageBox::warning(this, "Warning!", tr("Logging Tool is busy!"), QMessageBox::Ok);
+		//int ret = QMessageBox::warning(this, "Warning!", tr("Logging Tool is busy!"), QMessageBox::Ok);
 		return;
 	}
 
@@ -2780,6 +2839,8 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		case DT_SGN_RELAX:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
 		case DT_SGN_RELAX2:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
 		case DT_SGN_RELAX3:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
+		case DT_T1T2_NMR:			ds_name_base = "T1T2 2D-NMR%1#%2"; break;
+		case DT_DsT2_NMR:			ds_name_base = "DsT2 2D-NMR%1#%2"; break;
 		case DT_SOLID_ECHO:			ds_name_base = "nmr_solid_echo_sgn%1#%2"; break;		
 		case DT_SGN_POWER_SE:		ds_name_base = "nmr_se_power_sgn%1#%2"; break;
 		case DT_SGN_POWER_FID:		ds_name_base = "nmr_fft_power_sgn%1#%2"; break;
@@ -2798,6 +2859,7 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		case DT_AFR1_TX:			ds_name_base = "AFR_TX%1#%2"; break;
 		case DT_AFR2_TX:			ds_name_base = "AFR_TX%1#%2"; break;
 		case DT_AFR3_TX:			ds_name_base = "AFR_TX%1#%2"; break;
+		case DT_FREQ_TUNE:			ds_name_base = "Freq_Autotune%1#%2"; break;
 		case DT_RFP:				ds_name_base = "RFP%1#%2"; break;
 		case DT_RFP2:				ds_name_base = "RFP%1#%2"; break;
 		case DT_DU:					ds_name_base = "telemetry_DU#%1"; break;
@@ -2815,6 +2877,8 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		case DT_SGN_RELAX:
 		case DT_SGN_RELAX2:
 		case DT_SGN_RELAX3:
+		case DT_T1T2_NMR:
+		case DT_DsT2_NMR:
 			{
 				int group_index = fields->at(i)->tag;
 				//uint8_t channel_data_id = fields->at(i)->channel-1;
@@ -3018,7 +3082,10 @@ void MainWindow::treatNewData(DeviceData *device_data)
 						gap_list.append(gap_map);
 						full_xdata_list.append(x_data_full);
 
-						forT2spec_dss.append(ds);
+						if (comm_id != DT_T1T2_NMR && comm_id != DT_DsT2_NMR)
+						{
+							forT2spec_dss.append(ds);
+						}						
 					}					
 				}
 								
@@ -3568,22 +3635,13 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		case DT_AFR1_RX:
 		case DT_AFR2_RX:
 		case DT_AFR3_RX:
+		case DT_FREQ_TUNE:
 			{
 				int full_size = 0;
-				int group_index = fields->at(i)->tag;
-				//uint8_t channel_data_id = fields->at(i)->channel-1;
-				/*if (channel_data_id <= 0 || channel_data_id > tool_channels.count()) 
-				{
-					delete x_data;
-					delete y_data;
-					delete bad_map;
-					continue;
-				}*/
+				int group_index = fields->at(i)->tag;				
 				if (group_index > 0)
 				{
-					int data_index = 0;
-					//Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
-					////LUSI::Argument *arg = sequenceProc->getCurrentSequence()->arg_list[group_index-1];
+					int data_index = 0;					
 					JSeqObject *executingJSeq = expScheduler->getExecutingJSeqObject();
 					if (!executingJSeq) 
 					{
@@ -3653,7 +3711,7 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				ds->setChannelId(channel_data_id);
 				//double x_displ = getDepthDisplacement(comm_id, tool_channels);
 				double x_displ = getDepthDisplacement(channel_data_id, tool_channels);
-				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				QPair<bool,double> dpt = depthTemplate->getDepthData(); 
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
@@ -3662,7 +3720,7 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				full_xdata_list.append(x_data_full);
 
 				break;
-			} 
+			} 			
 		case DT_GAMMA:
 			{
 				int full_size = 1;
@@ -3972,6 +4030,7 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 			double norm_coef1 = channel->normalize_coef1;
 			double norm_coef2 = channel->normalize_coef2;
 			double meas_frq = channel->meas_frq;
+			double field_gradient = channel->field_gradient;
 			
 			memo += QString("[channel#%1]\n").arg(channel_id);
 			memo += QString("type=%1\n").arg(channel_type);
@@ -3988,7 +4047,8 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 			memo += QString("depth_displ=%1\n").arg(displ);
 			memo += QString("normalize_coef1=%1\n").arg(norm_coef1);
 			memo += QString("normalize_coef2=%1\n").arg(norm_coef2);
-			memo += QString("meas_frq=%1\n").arg(meas_frq);			
+			memo += QString("meas_frq=%1\n").arg(meas_frq);
+			memo += QString("field_gradient=%1\n").arg(field_gradient);
 			memo += QString("\n\n");			
 		}
 		
@@ -4014,36 +4074,38 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		{
 			DataSet *ds = dss[i];
 			uint8_t comm_id = ds->getDataCode();
-			if (!dataIsExportingToFile(comm_id)) continue;
+			//if (!dataIsExportingToFile(comm_id)) continue;
 
 			switch (comm_id)
 			{
-			case DT_SGN_SE_ORG:			
-			case DT_NS_SE_ORG:			
-			case DT_SGN_FID_ORG:		
-			case DT_NS_FID_ORG:			
-			case DT_SGN_SE:				
-			case DT_NS_SE:				
-			case DT_NS_QUAD_FID_RE:		
-			case DT_NS_QUAD_FID_IM:		
-			case DT_NS_QUAD_SE_RE:		
-			case DT_NS_QUAD_SE_IM:		
-			case DT_SGN_QUAD_FID_RE:	
-			case DT_SGN_QUAD_FID_IM:	
-			case DT_SGN_QUAD_SE_RE:		
-			case DT_SGN_QUAD_SE_IM:		
-			case DT_NS_FFT_FID_RE:		
-			case DT_NS_FFT_SE_RE:		
-			case DT_SGN_FFT_FID_RE:		
-			case DT_SGN_FFT_SE_RE:		
-			case DT_NS_FFT_FID_IM:		
-			case DT_NS_FFT_SE_IM:		
-			case DT_SGN_FFT_FID_IM:		
-			case DT_SGN_FFT_SE_IM:		
-			case DT_SGN_RELAX:	
+			case DT_SGN_SE_ORG:
+			case DT_NS_SE_ORG:
+			case DT_SGN_FID_ORG:
+			case DT_NS_FID_ORG:
+			case DT_SGN_SE:
+			case DT_NS_SE:
+			case DT_NS_QUAD_FID_RE:
+			case DT_NS_QUAD_FID_IM:
+			case DT_NS_QUAD_SE_RE:
+			case DT_NS_QUAD_SE_IM:
+			case DT_SGN_QUAD_FID_RE:
+			case DT_SGN_QUAD_FID_IM:
+			case DT_SGN_QUAD_SE_RE:
+			case DT_SGN_QUAD_SE_IM:
+			case DT_NS_FFT_FID_RE:
+			case DT_NS_FFT_SE_RE:
+			case DT_SGN_FFT_FID_RE:
+			case DT_SGN_FFT_SE_RE:
+			case DT_NS_FFT_FID_IM:
+			case DT_NS_FFT_SE_IM:
+			case DT_SGN_FFT_FID_IM:
+			case DT_SGN_FFT_SE_IM:
+			case DT_SGN_RELAX:
 			case DT_SGN_RELAX2:
 			case DT_SGN_RELAX3:			
 			case DT_SOLID_ECHO:
+			case DT_T1T2_NMR:
+			case DT_DsT2_NMR:
 			case DT_SGN_POWER_SE:		
 			case DT_SGN_POWER_FID:		
 			case DT_NS_POWER_SE:		
@@ -4101,7 +4163,7 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		memo += "[DataY]\n";
 	}
 
-	if (!save_data_attrs.to_save_all)
+	/*if (!save_data_attrs.to_save_all)
 	{		
 		for (int i = 0; i < dss.count(); i++)
 		{
@@ -4111,12 +4173,12 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 				return;
 			}
 
-			/*for (int j = 0; i < ds->getBadData()->size(); j++)
-			{
-				if (ds->getBadData()->data()[j] == BAD_DATA) return;
-			}*/			
+			//for (int j = 0; i < ds->getBadData()->size(); j++)
+			//{
+			//	if (ds->getBadData()->data()[j] == BAD_DATA) return;
+			//}		
 		}		
-	}
+	}*/
 
 	QString d_str = " NAN             ";
 	if (depth.first) 
@@ -4134,7 +4196,7 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 	{
 		DataSet *ds = dss[i];
 		uint8_t comm_id = ds->getDataCode();
-		if (!dataIsExportingToFile(comm_id)) continue;
+		//if (!dataIsExportingToFile(comm_id)) continue;
 
 		QVector<uint8_t> gap_vec = gap[i];
 		switch (comm_id)
@@ -4165,6 +4227,8 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		case DT_SGN_RELAX2:
 		case DT_SGN_RELAX3:		
 		case DT_SOLID_ECHO:
+		case DT_T1T2_NMR:
+		case DT_DsT2_NMR:
 		case DT_SGN_POWER_SE:		
 		case DT_SGN_POWER_FID:		
 		case DT_NS_POWER_SE:		
@@ -4249,7 +4313,7 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		}
 	}
 
-	QTextStream stream(save_data_file);
+	QTextStream stream(&data_to_save);
 	stream << (memo + str_data);
 	data_to_save.close();		
 }
@@ -4301,7 +4365,7 @@ void MainWindow::sendToSDSP(QByteArray& arr)
 	}
 	else if (nmrtoolLinker->getConnectionState() == ConnectionState::State_Connecting)
 	{
-		int ret = QMessageBox::warning(this, "Warning!", tr("Logging Tool is busy!"), QMessageBox::Ok);
+		//int ret = QMessageBox::warning(this, "Warning!", tr("Logging Tool is busy!"), QMessageBox::Ok);
 		return;
 	}
 
@@ -4336,7 +4400,9 @@ void MainWindow::plotData(DataSets &_dss)
 		{
 		case DT_SGN_RELAX:
 		case DT_SGN_RELAX2:
-		case DT_SGN_RELAX3:		
+		case DT_SGN_RELAX3:	
+		case DT_T1T2_NMR:
+		case DT_DsT2_NMR:
 		case DT_SOLID_ECHO:
 			{
 				relax_widget->addDataSet(ds->getDataName(), relax_widget->getRelaxDataPlot(), x_data, y_data, bad_map, false, relax_color_number++);
@@ -4570,13 +4636,19 @@ void MainWindow::plotData(DataSets &_dss)
 				pds->setTypeId(comm_id);
 				break;
 			}
+		case DT_FREQ_TUNE:
+			{
+				freqAutoadjust->setDataSet(ds->getDataName(), x_data, y_data, bad_map);
+				PlottedDataSet *pds = freqAutoadjust->getDataSet();
+				pds->setTypeId(comm_id);
+				break;
+			}
 		case DT_RFP:
 		case DT_RFP2:
 			{
 				rfpulseControl->setDataSet(ds->getDataName(), x_data, y_data, bad_map);
 				PlottedDataSet *pds = rfpulseControl->getDataSet();
 				pds->setTypeId(comm_id);
-
 				break;
 			}
 		case DT_DU_T:	
@@ -4904,6 +4976,7 @@ void MainWindow::saveAllSettings()
 	// Depth meter, step motor COM port settings
 	saveCOMSettings(COM_Port_depth, "DepthMeter");
 	saveCOMSettings(COM_Port_stepmotor, "StepMotor");
+
 }
 
 void MainWindow::showPowerStatus(unsigned char pow_status)
@@ -5001,6 +5074,28 @@ void MainWindow::sdspIsActivated(bool flag)
 	}
 	if (flag && sdsp_index >= 0) ui->tabWidget->setCurrentIndex(sdsp_index);	
 }
+
+void MainWindow::saveNewCalibrCoefficient(double val)
+{
+	for (int i = 0; i < tools_settings.count(); i++)
+	{
+		QSettings *settings = tools_settings[i];
+		if (current_tool.file_name == settings->fileName())
+		{
+			for (int j = 0; j < tool_channels.count(); j++)
+			{
+				ToolChannel *channel = tool_channels[j];
+				if (channel->data_type == "NMR_CHANNEL")
+				{
+					QString channel_rec = QString("channel#%1/normalize_coef1").arg(channel->channel_id);
+					settings->setValue(channel_rec, val);
+					return;
+				}
+			}			
+		}
+	}	
+}
+
 
 ToolChannel* MainWindow::getToolChannel(int _channel_id)
 {

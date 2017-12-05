@@ -116,7 +116,7 @@ public:
 	QList<QVector<double>* > *getDataXList() { return xdata_list; }
 	QList<QVector<double>* > *getDataYList() { return ydata_list; }
 
-	void setKERNParameters(bool _calibr_state, double _core_diameter, double _standard_porosity);
+	void setKERNParameters(bool _calibr_state, double _core_diameter, double _standard_porosity, double _standard_diameter);
 	void addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::DataType dt);
 	void clearAll();
 	void closeLoggingCurveList() { cur_index = -1; }	
@@ -139,11 +139,12 @@ private:
 	//ToolChannel *tool_channel;
 
 	QVector<double> calibration_store;
-	double calibr_normalize_coef;		
+	//double calibr_normalize_coef;		
 	double core_diameter;
 	bool calibration_state;
-	bool already_normalized;	// считаем по новому расчитанному коэффициенту calibr_normalize_coef или по channel->normalize_coef1 
+	//bool already_normalized;	// считаем по новому расчитанному коэффициенту calibr_normalize_coef или по channel->normalize_coef1 
 	double standard_porosity;	
+	double standard_diameter;	// диаметер калибровочного образца
 
 	QList<QHBoxLayout*> hbox_list;
 	QVBoxLayout *legend_vlout;
@@ -153,7 +154,7 @@ private:
 			
 signals:
 	void plot_rescaled(void*);
-	void new_calibration_coef(double);
+	void new_calibration_coef(double, ToolChannel*);
 };
 
 
@@ -225,6 +226,7 @@ private:
 	bool calibration_state;
 	double core_diameter;
 	double standard_porosity;
+	double standard_core_diameter;
 	
 private:
 	void setConnections();
@@ -252,9 +254,10 @@ public slots:
 	void finishCalibration();
 	void setCoreDiameter(double val) { core_diameter = val; }
 	void setStandardPorosity(double val) { standard_porosity = val; }
+	void setStandardCoreDiameter(double val) { standard_core_diameter = val; }
 
 signals:
-	void new_calibration_coef(double);
+	void new_calibration_coef(double, ToolChannel*);
 
 };
 

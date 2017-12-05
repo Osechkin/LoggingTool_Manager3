@@ -81,6 +81,8 @@ private:
 	int findMsgHeader(QUEUE<uint8_t>* _queue, COM_Message *_msg);
 	int checkMsgHeader(COM_Message *_msg);
 	void searchMsgHeader(QUEUE<uint8_t> *_queue, QByteArray &str);
+	void searchMsgHeader2(QUEUE<uint8_t> *_queue, QByteArray &str);
+
 	//bool findMsgBody(bool &len_ok);
 	void searchPackets(QByteArray &str, COM_Message *_msg, QUEUE<uint8_t>* _queue, QList<int> *shifts);
 	void sendCOMMsg(COM_Message *msg);
@@ -108,6 +110,7 @@ private:
 private:
 	MainWindow *main_win;
 
+	QByteArray prebuff;							// первичеый буффер, куда складываются символы из COM-порта (используется при ожидании заголовков только)
 	QUEUE<uint8_t> *head_q;
 	QUEUE<uint8_t> *body_q;
 	COM_Message* msg_critical;					// критически важное сообщение, которое должно быть послано вне очереди

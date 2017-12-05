@@ -27,6 +27,7 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(QSettings *_settings, Clocker
 	ui->lblZero->setStyleSheet("QLabel { color: darkblue }");
 	ui->lblCalibrLen->setStyleSheet("QLabel { color: darkblue }");
 	ui->lblCoreDiameter->setStyleSheet("QLabel { color: darkblue }");
+	ui->lblPorosity->setStyleSheet("QLabel { color: darkblue }");
 	//ui->cboxFrom->setStyleSheet("QComboBox { color: darkblue }");
 	//ui->cboxTo->setStyleSheet("QComboBox { color: darkblue }");
 	//ui->cboxStep->setStyleSheet("QComboBox { color: darkblue }");
@@ -41,7 +42,8 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(QSettings *_settings, Clocker
 	ui->dsboxStep->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
 	ui->dsboxZero->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
 	ui->dsboxCalibrLength->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
-	ui->dsboxCoreDiameter->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
+	ui->dsboxCoreDiameter->setStyleSheet("QDoubleSpinBox { color: darkblue }");
+	ui->dsboxPorosity->setStyleSheet("QDoubleSpinBox { color: darkGreen }");
 
 	ui->pbtBack->setIcon(QIcon(":/images/play_back.png"));
 	ui->pbtBegin->setIcon(QIcon(":/images/play_begin.png"));
@@ -70,12 +72,14 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(QSettings *_settings, Clocker
 	zero_pos = 0;			// [m]
 	calibr_len = 0;			// [m]
 	core_diameter = 0.1;	// [m]
+	standard_porosity = 30;	// [%]	
 	k_from = 100;			// for [cm]
 	k_to = 100;				// for [cm]
 	k_step = 100;			// for [cm]
 	k_zero = 100;			// for [cm]
 	k_calibr_len = 100;		// for [cm]
-	k_core_d = 100;			// for [cm]
+	k_core_d = 1000;		// for [mm]
+	k_standard_porosity = 1;// to [%]
 
 	upper_bound = 1.65;	// m
 	lower_bound = 0.55;	// m	
@@ -89,6 +93,8 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(QSettings *_settings, Clocker
 	double _upper_bound = upper_bound;
 	double _lower_bound = lower_bound;
 	double _core_diameter = core_diameter;
+	double _standard_porosity = standard_porosity;
+	double _standard_diameter = standard_diameter;
 	if (app_settings->contains("CoreTransportSystem/From")) _from_pos = app_settings->value("CoreTransportSystem/From").toDouble(&_ok);
 	if (_ok) from_pos = _from_pos;
 	if (app_settings->contains("CoreTransportSystem/To")) _to_pos = app_settings->value("CoreTransportSystem/To").toDouble(&_ok);
@@ -105,6 +111,10 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(QSettings *_settings, Clocker
 	if (_ok) calibr_len = _calibr_len;
 	if (app_settings->contains("CoreTransportSystem/CoreDiameter")) _core_diameter = app_settings->value("CoreTransportSystem/CoreDiameter").toDouble(&_ok);
 	if (_ok) core_diameter = _core_diameter;
+	if (app_settings->contains("CoreTransportSystem/StandardPorosity")) _standard_porosity = app_settings->value("CoreTransportSystem/StandardPorosity").toDouble(&_ok);
+	if (_ok) standard_porosity = _standard_porosity;
+	if (app_settings->contains("CoreTransportSystem/StandardCoreDiameter")) _standard_diameter = app_settings->value("CoreTransportSystem/StandardCoreDiameter").toDouble(&_ok);
+	if (_ok) standard_diameter = _standard_diameter;
 	
 	distance_units_list << "mm" << "cm" << "m";	
 		
@@ -169,9 +179,14 @@ LeuzeDistanceMeterWidget::LeuzeDistanceMeterWidget(QSettings *_settings, Clocker
 	ui->dsboxCalibrLength->setValue(calibr_len*k_calibr_len);
 
 	ui->dsboxCoreDiameter->setMinimum(0.1);
-	ui->dsboxCoreDiameter->setMaximum(99);
-	ui->dsboxCoreDiameter->setSingleStep(1);
+	ui->dsboxCoreDiameter->setMaximum(500);
+	ui->dsboxCoreDiameter->setSingleStep(10);
 	ui->dsboxCoreDiameter->setValue(core_diameter*k_core_d);
+
+	ui->dsboxPorosity->setMinimum(0);
+	ui->dsboxPorosity->setMaximum(100);
+	ui->dsboxPorosity->setSingleStep(1);
+	ui->dsboxPorosity->setValue(standard_porosity*k_standard_porosity);
 
 	is_connected = false;
 	ui->framePosControl->setEnabled(is_connected);
@@ -474,16 +489,19 @@ void LeuzeDistanceMeterWidget::startDepthMeter()
 void LeuzeDistanceMeterWidget::setNewTo(double val)
 {
 	to_pos = val / k_to;	
+	saveSettings();
 }
 
 void LeuzeDistanceMeterWidget::setNewFrom(double val)
 {
 	from_pos = val / k_from;	
+	saveSettings();
 }
 
 void LeuzeDistanceMeterWidget::setNewStep(double val)
 {
 	step_pos = val / k_step;
+	saveSettings();
 }
 
 void LeuzeDistanceMeterWidget::setNewCoreDiameter(double val)
@@ -491,6 +509,7 @@ void LeuzeDistanceMeterWidget::setNewCoreDiameter(double val)
 	core_diameter = val / k_core_d;
 
 	emit new_core_diameter(core_diameter);
+	saveSettings();
 }
 
 /*void LeuzeDistanceMeterWidget::changeUnits(QString str)
@@ -944,9 +963,9 @@ void LeuzeDistanceMeterWidget::saveSettings()
 	app_settings->setValue("CoreTransportSystem/To", to_pos);
 	app_settings->setValue("CoreTransportSystem/Step", step_pos);
 	app_settings->setValue("CoreTransportSystem/Zero", zero_pos);
-	app_settings->setValue("CoreTransportSystem/LowerBound", lower_bound);
-	app_settings->setValue("CoreTransportSystem/UpperBound", upper_bound);
-	app_settings->setValue("CoreTransportSystem/CalibrationLength", calibr_len);
-	app_settings->setValue("CoreTransportSystem/CoreDiameter", core_diameter);
+	//app_settings->setValue("CoreTransportSystem/LowerBound", lower_bound);
+	//app_settings->setValue("CoreTransportSystem/UpperBound", upper_bound);
+	//app_settings->setValue("CoreTransportSystem/CalibrationLength", calibr_len);
+	app_settings->setValue("CoreTransportSystem/CoreDiameter", core_diameter);	
 	app_settings->sync();
 }

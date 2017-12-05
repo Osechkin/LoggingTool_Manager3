@@ -128,7 +128,7 @@ Scheduler::DistanceRange::DistanceRange()
 	to = 0;
 	step = 0;
 	pos = nan;
-	do_calibr = false;
+	do_calibr = true;
 	finished = false;
 	is_calibration_range = false;
 

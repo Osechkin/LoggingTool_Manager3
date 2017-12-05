@@ -15,7 +15,7 @@
 // Вывод данных:
 // - амплитуды спинового эхо в последовательности КПМГ
 
-main.name = "2 CPMG with 1 Clay CPMG v.1"
+main.name = "KERN 2CPMG+CLAY+SOLID+2D  v.1"
 main.author = "КФУ: Скирда В.Д., Александров А.А., Савинков А.В, Дорогиницкий М.М."
 main.datetime = "10.10.2017 11:50"
 main.description = "Стандартная активация T2, Двойная активация, Активация глин, Активация солид"
@@ -23,16 +23,16 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 
 // Блок констант
 // [Constants]
-	var DDS_CLK_FRQ = 250000 													// Тактовая частота DDS (кГц) (константа, прошита в ПЛИС)
+	var kHz2Num = 4294967296 / 250000											// 2^32 / (Тактовая частота DDS [кГц])
 	var IF_FRQ = 1250															// Промежуточная частота приемника (кГц) (константа, задана аппаратно)
 	var NMR_SAMPLE_FREQ = 5000													// Частота дискретизации (кГц) (константа, задана аппаратно)
-	var echoes_max = 500
+	var echoes_max = 1000
 	var min_tau = 300
 	var dead_time = 27
 
-	var n_cmpg_max = 11
+	var n_cpmg_max = 11
 	// Таблица TW для измерений T1-T2
-	var TWs = new Array(n_cmpg_max)
+	var TWs = new Array(n_cpmg_max)
 	TWs[3] = 1280 
 	TWs[4] = 640
 	TWs[5] = 320
@@ -42,7 +42,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	TWs[9] = 20
 	TWs[10] = 10
 	// Таблица TD для измерений Ds-T2
-	var TEs1 = new Array(n_cmpg_max)
+	var TEs1 = new Array(n_cpmg_max)
 	TEs1[3] = 400
 	TEs1[4] = 800
 	TEs1[5] = 1600
@@ -52,7 +52,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	TEs1[9] = 25600
 	TEs1[10] = 51200
 	// Таблица TD для измерений STE-T2
-	var TDs = new Array(n_cmpg_max)
+	var TDs = new Array(n_cpmg_max)
 	TDs[3] = 10000
 	TDs[4] = 40000
 	TDs[5] = 70000
@@ -62,21 +62,29 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	TDs[9] = 200000
 	TDs[10] = 230000
 	// Таблица TE
-	var TEs = new Array(n_cmpg_max)
+	var TEs = new Array(n_cpmg_max)
 	
+	//Data types
+	var DT_RELAX1 = 40
+	var DT_RELAX2 = 223
+	var DT_RELAX3 = 113
+	var DT_SOLID = 34
+	var DT_T1T2 = 68
+	var DT_DsT2 = 136
+	var DT_2D_CUR = DT_RELAX1
 //-----------------------------------------------------------------------------------------------------------
 // Блок выбора режима измерений
 // [Measure]
 
-	var st_cmpg = 1																// индекс первой КПМГ
-	var n_cmpg = 0																// количество КПМГ		
+	var st_cpmg = 1																// индекс первой КПМГ
+	var n_cpmg = 0																// количество КПМГ		
 	
 	//	0 - включен: 1 КПМГ => 90-TW-90-tau-[180-tau-Aq-tau]n (TW=TW[1]=to_cpmg1; tau=TE[1]=tau_cpmg1; n=Necho)
 	//	1 - выключен
 	@parameter std_act_enb = { "Стандартная активация", "ON|OFF" }
 	std_act_enb.comment = "Включить измерение КПМГ1"
 	std_act_enb.uitype = "combobox"
-	if (std_act_enb~ == 0) {n_cmpg = 1}
+	if (std_act_enb~ == 0) {n_cpmg = 1}
 	
 	//  0 - выключен; 
 	//	1 - включен: 2 КПМГ => 90-TW1-90-tau1-[180-tau1-Aq-tau1]n - 90-TW2-90-tau1-[180-tau1-Aq-tau1]n (TW1=TW[1]=to_cpmg1; TW2=TW[2]=to_cpmg2; tau1=TE[1]=tau_cpmg1; n=Necho)
@@ -84,7 +92,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	@parameter double_act_enb = { "Двойная активация", "OFF|TW|TE" }
 	double_act_enb.comment = "Включить измерение КПМГ1-2"
 	double_act_enb.uitype = "combobox"
-	if (double_act_enb~ > 0) {n_cmpg = 2}
+	if (double_act_enb~ > 0) {n_cpmg = 2}
 	
 	//  0 - выключен; 
 	//	1 - включен: КПМГ => 90-[TW-90-tau-[180-tau-Aq-tau]n]m (TW=to_clay; tau=tau_clay; n=echoes_clay; m=4)
@@ -100,16 +108,18 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	solid_act_enb.uitype = "combobox"
 	var solid_activation = solid_act_enb~
 	
-	//  0 - выключен; 
+	//	0 - выключен; 
 	//	1 - включен: 8 КПМГ => [90-TWi-90-tau1-[180-tau1-Aq-tau1]n]m (TWi=TW[i]; tau1=TE[1]=tau_cpmg1; n=Necho; m=8)
 	//	2 - включен: 8 КПМГ => [90-TW1-90-taui-[180-taui-Aq-taui]2-[180-tau-Aq-tau]n]m (TW1=TW[1]=to_cpmg1; taui=TE1[i]; tau=TE[1]=tau_cpmg1; n=Necho-2)
-	//	2 - включен: 8 КПМГ => [90-TW1-90-tau-90-TDi-90-tau-Aq-tau-[180-tau-Aq-tau]n]m (TW1=TW[1]=to_cpmg1; TDi=TD[i]; tau=TE[1]=tau_cpmg1; n=Necho-2)
+	//	3 - включен: 8 КПМГ => [90-TW1-90-tau-90-TDi-90-tau-Aq-tau-[180-tau-Aq-tau]n]m (TW1=TW[1]=to_cpmg1; TDi=TD[i]; tau=TE[1]=tau_cpmg1; n=Necho-2)
 	var D2_type = 0
 	@parameter D2_act_enb = { "Активация 2D ", "OFF|T1-T2|Ds-T2|STE-T2"}
 	D2_act_enb.comment = "Включить измерение КПМГ 1-8"
 	D2_act_enb.uitype = "combobox"
-	if (D2_act_enb~ > 0) {n_cmpg = 8; st_cmpg = 3}
-	if (double_act_enb~ > 0) {st_cmpg = 1}
+	if (D2_act_enb~ > 0) {n_cpmg = 8; st_cpmg = 3}
+	if (D2_act_enb~ == 1) {DT_2D_CUR = DT_T1T2}
+	if (D2_act_enb~ > 1) {DT_2D_CUR = DT_DsT2}
+	if (double_act_enb~ > 0) {st_cpmg = 1}
 	
 	var echo_enb = 0;var fourier_enb = 0;
 	//	0 - выключен; 1 - включен вывод эхо
@@ -119,14 +129,14 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	if (sgn_enb~ == 1) {echo_enb = 1}
 	if (sgn_enb~ == 2) {fourier_enb = 1}
 	
-	//	0 - режим однократного запуска; 1 - режим накоплений; 2 - режим непрерывного запуска
-	@parameter infinite_enb = { "Режим", "SCAN|AVER|INFINITE" }
-	infinite_enb.comment = "Режим SCAN - однократный запуск; Режим AVER - n повторений; Режим INFINITE - непрерывный запуск"
+	//	0 - режим однократного запуска; 1 - режим непрерывного запуска
+	@parameter infinite_enb = { "Режим", "SCAN|INFINITE" }
+	infinite_enb.comment = "Режим SCAN - однократный запуск; Режим INFINITE - непрерывный запуск"
 	infinite_enb.uitype = "combobox"
 	var mode = infinite_enb~
 	
 	@parameter averages = { "Усреднений", 1, min=1, max=100}
-	averages.comment = "количство повторений в режиме AVER"
+	averages.comment = "количетво повторений в режиме AVER"
 	averages.uitype = "spinbox"
 	
 	@section meas = { "Режим измерений" }
@@ -147,11 +157,11 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	@parameter tx_frq_ofs = { "Частота резонанса", 0, min=-488, max=488, units="кГц" }
 	tx_frq_ofs.comment = "Смещение частоты относительно заданной базовой частоты"
 	tx_frq_ofs.uitype = "spinbox"
-	tx_frq_ofs.exec(tx_frq_ofs~ * 4294967296 / DDS_CLK_FRQ)
+	tx_frq_ofs.exec(tx_frq_ofs~ * kHz2Num)
 	//	Смещение опорной частоты передатчика
 	@parameter tx_frq2_ofs = { "Опорная частота передатчика", 0, min=-488, max=488, units="кГц" }
 	tx_frq2_ofs.comment = "Смещение опорной частоты передачи относительно заданной базовой частоты"
-	tx_frq2_ofs.exec(tx_frq2_ofs~ / DDS_CLK_FRQ * 4294967296)
+	tx_frq2_ofs.exec(tx_frq2_ofs~ * kHz2Num)
 	//	Смещение частоты оцифровки относительно заданной базовой
 		
 	@section s_freqs = { "Частоты" }
@@ -182,7 +192,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	s_rx.append(KU)
 
 //-----------------------------------------------------------------------------------------------------------
-// Блок длительности РЧ-импульсов
+// Блок параметров передатчика
 // [RF_pulses]
 	
 	// Длительность 90-градусного рч-импульса
@@ -203,10 +213,24 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	var dph = 180
 	dph = dph * 46603.375 																				// "град."
 	
-	@section s_rf_pulses = { "РЧ импульсы" }
-	s_rf_pulses.append(rfp_90)
-	s_rf_pulses.append(rfp_180)
+	@section s_tx = { "Передатчик" }
+	s_tx.append(rfp_90)
+	s_tx.append(rfp_180)
+
+//-----------------------------------------------------------------------------------------------------------
+// Блок параметров ГМП
+// [Reciever]
 	
+	//	Включить градиент
+	@parameter gradient = { "Градиент", "ON|OFF" }
+	gradient.comment = "Сотояние блока ГМП (ON - включен, OFF - выключен)"
+	gradient.uitype = "combobox"
+	var grad_on
+	if (gradient~ == 0) {grad_on = 1} else {grad_on = 0}
+
+	@section s_grad = { "Градиент" }
+	s_grad.append(gradient)
+
 //-----------------------------------------------------------------------------------------------------------
 // Блок временных параметров последовательности
 // [Intervals]
@@ -271,55 +295,54 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	function get_to_next_180(tau) { return (tau - to_aq_shift~ - (to_echo_aq~ / 2) - 1) }
 	function get_red_tau(tau) { return (tau - rfp_90~ / 2) }
 
-	var to_cpmg_t = new Array(n_cmpg_max)
-		
 	TWs[1] = to_cpmg1~; TEs[1] = tau_cpmg1~;
 
 	if (double_act_enb~ == 1) {TWs[2] = to_cpmg2~; TEs[2] = tau_cpmg1~}
 	if (double_act_enb~ == 2) {TWs[2] = to_cpmg1~; TEs[2] = tau_cpmg2~}	
 	
 	if (D2_act_enb~ == 1) 
-		{for (var i = 3; i < n_cmpg_max; ++i) {TEs[i] = tau_cpmg1~}}
+		{for (var i = 3; i < n_cpmg_max; ++i) {TEs[i] = tau_cpmg1~}}
 	if (D2_act_enb~ == 2) 
 		{
-			var to_aq_start_1 = new Array(n_cmpg_max)
-			var to_next_180_1 = new Array(n_cmpg_max)
-			var red_tau_1 = new Array(n_cmpg_max)
-			for (var i = 3; i < n_cmpg_max; ++i) {TWs[i] = TWs[1]; TEs[i] = tau_cpmg1~}
-			for (var i = 3; i < n_cmpg_max; ++i) {to_aq_start_1[i] = get_to_aq_start(TEs1[i])}
-			for (var i = 3; i < n_cmpg_max; ++i) {to_next_180_1[i] = get_to_next_180(TEs1[i])}
-			for (var i = 3; i < n_cmpg_max; ++i) {red_tau_1[i] = get_red_tau(TEs1[i])}
+			var to_aq_start_1 = new Array(n_cpmg_max)
+			var to_next_180_1 = new Array(n_cpmg_max)
+			var red_tau_1 = new Array(n_cpmg_max)
+			for (var i = 3; i < n_cpmg_max; ++i) {TWs[i] = TWs[1]; TEs[i] = tau_cpmg1~}
+			for (var i = 3; i < n_cpmg_max; ++i) {to_aq_start_1[i] = get_to_aq_start(TEs1[i])}
+			for (var i = 3; i < n_cpmg_max; ++i) {to_next_180_1[i] = get_to_next_180(TEs1[i])}
+			for (var i = 3; i < n_cpmg_max; ++i) {red_tau_1[i] = get_red_tau(TEs1[i])}
 		}
 	if (D2_act_enb~ == 3) 
-		{for (var i = 3; i < n_cmpg_max; ++i) {TWs[i] = TWs[1]; TEs[i] = tau_cpmg1~}}
+		{for (var i = 3; i < n_cpmg_max; ++i) {TWs[i] = TWs[1]; TEs[i] = tau_cpmg1~}}
 	
 	// Массив TW
-	var to_cpmg = new Array(n_cmpg_max)	
-	for (var i = 1; i < n_cmpg_max; ++i) {to_cpmg[i] = get_us(TWs[i])}
+	var to_cpmg = new Array(n_cpmg_max)	
+	for (var i = 1; i < n_cpmg_max; ++i) {to_cpmg[i] = get_us(TWs[i])}
 
 	// Массив задержек перед АЦП 
-	var to_aq_start = new Array(n_cmpg_max)
-	for (var i = 1; i < n_cmpg_max; ++i) {to_aq_start[i] = get_to_aq_start(TEs[i])}				// Задержка перед АЦП в КПМГi, мкс
+	var to_aq_start = new Array(n_cpmg_max)
+	for (var i = 1; i < n_cpmg_max; ++i) {to_aq_start[i] = get_to_aq_start(TEs[i])}				// Задержка перед АЦП в КПМГi, мкс
 	// Задержка перед АЦП в CLAY КПМГ, мкс
 	var to_aq_start_clay = get_to_aq_start(tau_clay~)											// Задержка перед АЦП в CLAY КПМГ, мкс
 	var to_solid_aq_start = rfp_90~ + tau_solid~ 
 
 	// Массив задержек перед 180<sup>0</sup> импульсом
-	var to_next_180 = new Array(n_cmpg_max)
-	for (var i = 1; i < n_cmpg_max; ++i) {to_next_180[i] = get_to_next_180(TEs[i])}				// Задержка перед 180<sup>0</sup> импульсом КПМГi, мкс
+	var to_next_180 = new Array(n_cpmg_max)
+	for (var i = 1; i < n_cpmg_max; ++i) {to_next_180[i] = get_to_next_180(TEs[i])}				// Задержка перед 180<sup>0</sup> импульсом КПМГi, мкс
 	// "Задержка перед 180<sup>0</sup> импульсом CLAY КПМГ"
 	var to_next_clay_180 = get_to_next_180(tau_clay~)											// Задержка перед 180<sup>0</sup> импульсом CLAY КПМГ, мкс
 
 	// Массив: Первое tau, скорректированное
-	var red_tau = new Array(n_cmpg_max)
-	for (var i = 1; i < n_cmpg_max; ++i) {red_tau[i] = get_red_tau(TEs[i])}						// Первое tau_cpmgi, скорректированное с учетом длительности РЧ импульсов, мкс
+	var red_tau = new Array(n_cpmg_max)
+	for (var i = 1; i < n_cpmg_max; ++i) {red_tau[i] = get_red_tau(TEs[i])}						// Первое tau_cpmgi, скорректированное с учетом длительности РЧ импульсов, мкс
 	if (D2_act_enb~ == 2) 
-		{for (var i = 3; i < n_cmpg_max; ++i) {red_tau[i] = get_red_tau(TEs1[i])}}
+		{for (var i = 3; i < n_cpmg_max; ++i) {red_tau[i] = get_red_tau(TEs1[i])}}
 	// "Первое tau_clay, скорректированное с учетом длительности РЧ импульсов, мкс"
 	var red_tau_clay = get_red_tau(tau_clay~)
 	
 	// "Интервал повторения, мкс"
 	var to_data_tx = 3000000
+	if (D2_act_enb~ > 0) {var to_data_tx = 6000000}
 	// "Интревал для насыщающей последовательности"
 	var t1 = 200
 
@@ -332,11 +355,11 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	noise.comment = "Число окон АЦП для измерения шума"
 	noise.uitype = "spinbox"
 	// Количество окон измерения эхо
-	@parameter Necho = { "КПМГ(1,2). Окон эхо", 300, min=2, max=500 }
+	@parameter Necho = { "КПМГ(1,2). Окон эхо", 300, min=2, max=1000 }
 	Necho.comment = "Число окон АЦП для измерения сигналов спинового эхо"
 	Necho.uitype = "spinbox"
-	var echoes = new Array(n_cmpg_max)
-	for (var i = 1; i < n_cmpg_max; ++i) {echoes[i] = Necho~}
+	var echoes = new Array(n_cpmg_max)
+	for (var i = 1; i < n_cpmg_max; ++i) {echoes[i] = Necho~}
 	if (double_act_enb~ == 2) 
 	{
 		echoes[2] = Math.floor(Necho~ * TEs[1]/TEs[2])
@@ -374,8 +397,8 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// "Время на вычисление"
 	var to_echo_proc = 1000;																		// Время на выполнение пакетов инструкций по вычислению амплитуд эхо, мкс
 	// "Время на вычисление"
-	var to_echoes_proc = new Array(n_cmpg_max)
-	for (var i = 1; i < n_cmpg_max; ++i) 
+	var to_echoes_proc = new Array(n_cpmg_max)
+	for (var i = 1; i < n_cpmg_max; ++i) 
 		{to_echoes_proc[i] = to_echo_proc*(echoes[i] + noise~ + 1) + 50000 - 1}						// Время на выполнение пакетов инструкций по вычислению амплитуд эхо КПМГ1 и КПМГ2, мкс
 	// "Время на вычисление"
 	var to_clay_echoes_proc = to_echo_proc*(echoes_clay~ + 1) + 100000 - 1;							// Время на выполнение пакетов инструкций по вычислению амплитуд эхо CLAY КПМГ, мкс
@@ -400,9 +423,9 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	@parameter sn = { "Сигнал/шум", 5, min=0 }
 	sn.comment = "Отношение сигнал/шум";
 	
-	@section s_dataorg = { "Источник данных" }
-	s_dataorg.append(emul);
-	s_dataorg.append(sn);
+	//@section s_dataorg = { "Источник данных" }
+	//s_dataorg.append(emul);
+	//s_dataorg.append(sn);
 
 // -----------------------------------------------------------------------------------------------------------
 // Проверяемые после вычислений условия
@@ -456,42 +479,42 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	cpmg2_X.size = echoes[2];
 	cpmg2_X.points = cpmg_X(cpmg2_X.size, TEs[2]);
 
-	@argument cpmg3_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
+	@argument cpmg3_X = { "Временные отсчёты эхо в последовательности КПМГ3" }
 	cpmg3_X.units = "ms";
 	cpmg3_X.size = echoes[3];
 	cpmg3_X.points = D2_X(cpmg3_X.size, TEs[3],3);
 
-	@argument cpmg4_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
+	@argument cpmg4_X = { "Временные отсчёты эхо в последовательности КПМГ4" }
 	cpmg4_X.units = "ms";
 	cpmg4_X.size = echoes[4];
 	cpmg4_X.points = D2_X(cpmg4_X.size, TEs[4],4);
 
-	@argument cpmg5_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
+	@argument cpmg5_X = { "Временные отсчёты эхо в последовательности КПМГ5" }
 	cpmg5_X.units = "ms";
 	cpmg5_X.size = echoes[5];
 	cpmg5_X.points = D2_X(cpmg5_X.size, TEs[5],5);
 
-	@argument cpmg6_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
+	@argument cpmg6_X = { "Временные отсчёты эхо в последовательности КПМГ6" }
 	cpmg6_X.units = "ms";
 	cpmg6_X.size = echoes[6];
 	cpmg6_X.points = D2_X(cpmg6_X.size, TEs[6],6);
 
-	@argument cpmg7_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
+	@argument cpmg7_X = { "Временные отсчёты эхо в последовательности КПМГ7" }
 	cpmg7_X.units = "ms";
 	cpmg7_X.size = echoes[7];
 	cpmg7_X.points = D2_X(cpmg7_X.size, TEs[7],7);
 
-	@argument cpmg8_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
+	@argument cpmg8_X = { "Временные отсчёты эхо в последовательности КПМГ8" }
 	cpmg8_X.units = "ms";
 	cpmg8_X.size = echoes[8];
 	cpmg8_X.points = D2_X(cpmg8_X.size, TEs[8],8);
 
-	@argument cpmg9_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
+	@argument cpmg9_X = { "Временные отсчёты эхо в последовательности КПМГ9" }
 	cpmg9_X.units = "ms";
 	cpmg9_X.size = echoes[9];
 	cpmg9_X.points = D2_X(cpmg9_X.size, TEs[9],9);
 
-	@argument cpmg10_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
+	@argument cpmg10_X = { "Временные отсчёты эхо в последовательности КПМГ10" }
 	cpmg10_X.units = "ms";
 	cpmg10_X.size = echoes[10];
 	cpmg10_X.points = D2_X(cpmg10_X.size, TEs[10],10);
@@ -542,7 +565,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	#begin(CPMG1)
 		INS_WIN_TIME(3, 0, win_type, time_shift, time_width)
 		INS_WIN_FREQ(3, 0, win_type, freq_shift, freq_width)
-		INS_SGN_PROC3(9, 0, noise, echoes[1], 1, proc_id, echo_enb, fourier_enb, 1, 1, 40)						// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[1], 1, proc_id, echo_enb, fourier_enb, averages, 1, DT_RELAX1)		// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
@@ -553,20 +576,20 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_004]
 	@proc CPMG2 = { "Decay calc" }
 	#begin(CPMG2)
-		INS_SGN_PROC3(9, 0, noise, echoes[2], 1, proc_id, echo_enb, fourier_enb, 1, 2, 223)						// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[2], 1, proc_id, echo_enb, fourier_enb, 1, 2, DT_RELAX2)				// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
 	#end	
 
-// -----------------------------------------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------------------
 	// Вычисление амплитуд КПМГ3, формирование массива для передачи данных
 	// [Package_005]
 	@proc CPMG3 = { "Decay calc" }
 	#begin(CPMG3)
 		INS_WIN_TIME(3, 0, win_type, time_shift, time_width)
 		INS_WIN_FREQ(3, 0, win_type, freq_shift, freq_width)
-		INS_SGN_PROC3(9, 0, noise, echoes[3], 1, proc_id, 0, 0, 1, 3, 1)										// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[3], 1, proc_id, 0, 0, 1, 3, DT_2D_CUR)								// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
@@ -577,7 +600,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_006]
 	@proc CPMG4 = { "Decay calc" }
 	#begin(CPMG4)
-		INS_SGN_PROC3(9, 0, noise, echoes[4], 1, proc_id, 0, 0, 1, 4, 1)										// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[4], 1, proc_id, 0, 0, 1, 4, DT_2D_CUR)								// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
@@ -588,7 +611,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_007]
 	@proc CPMG5 = { "Decay calc" }
 	#begin(CPMG5)
-		INS_SGN_PROC3(9, 0, noise, echoes[5], 1, proc_id, 0, 0, 1, 5, 1)										// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[5], 1, proc_id, 0, 0, 1, 5, DT_2D_CUR)								// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
@@ -599,7 +622,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_008]
 	@proc CPMG6 = { "Decay calc" }
 	#begin(CPMG6)
-		INS_SGN_PROC3(9, 0, noise, echoes[6], 1, proc_id, 0, 0, 1, 6, 1)										// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[6], 1, proc_id, 0, 0, 1, 6, DT_2D_CUR)								// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
@@ -610,7 +633,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_009]
 	@proc CPMG7 = { "Decay calc" }
 	#begin(CPMG7)
-		INS_SGN_PROC3(9, 0, noise, echoes[7], 1, proc_id, 0, 0, 1, 7, 1)										// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[7], 1, proc_id, 0, 0, 1, 7, DT_2D_CUR)								// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
@@ -621,7 +644,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_010]
 	@proc CPMG8 = { "Decay calc" }
 	#begin(CPMG8)
-		INS_SGN_PROC3(9, 0, noise, echoes[8], 1, proc_id, 0, 0, 1, 8, 1)										// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[8], 1, proc_id, 0, 0, 1, 8, DT_2D_CUR)								// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
@@ -632,7 +655,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_011]
 	@proc CPMG9 = { "Decay calc" }
 	#begin(CPMG9)
-		INS_SGN_PROC3(9, 0, noise, echoes[9], 1, proc_id, 0, 0, 1, 9, 1)										// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[9], 1, proc_id, 0, 0, 1, 9, DT_2D_CUR)								// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
@@ -643,7 +666,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_012]
 	@proc CPMG10 = { "Decay calc" }
 	#begin(CPMG10)
-		INS_SGN_PROC3(9, 0, noise, echoes[10], 1, proc_id, 0, 0, 1, 10, 1)										// вычисление амплитуды
+		INS_SGN_PROC3(9, 0, noise, echoes[10], 1, proc_id, 0, 0, 1, 10, DT_2D_CUR)								// вычисление амплитуды
 		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                       // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                         // очистка указателя стека                                   
 		INS_NO_OP(0, 0)  
@@ -656,8 +679,8 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	#begin(ClAY)
 		INS_WIN_TIME(3, 0, win_type, time_shift, time_width)
 		INS_WIN_FREQ(3, 0, win_type, freq_shift, freq_width)
-		INS_SGN_PROC3(9, 0, 1, echoes_clay, accum_clay, proc_id, echo_enb, fourier_enb, 0, 11, 113)				 // вычисление амплитуды                                          
-		INS_CLEAR_HX(2, 0, 0, 500)                                                                               // очистка массивов контейнера data_heapX
+		INS_SGN_PROC3(9, 0, 1, echoes_clay, accum_clay, proc_id, echo_enb, fourier_enb, 0, 11, DT_RELAX3)		 // вычисление амплитуды                                          
+		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                        // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                          // очистка указателя стека                                       
 		INS_NO_OP(0, 0)           
 	#end
@@ -669,14 +692,14 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	#begin(SOLID)
 		INS_WIN_TIME(3, 0, 1, 0, 2047)
 		INS_WIN_FREQ(3, 0, 2, freq_shift, 1023)
-		INS_SGN_PROC3(9, 0, 1, 1, 2, proc_id, echo_enb, fourier_enb, 0, 12, 34)									 // вычисление амплитуды                                          
-		INS_CLEAR_HX(2, 0, 0, 500)                                                                               // очистка массивов контейнера data_heapX
+		INS_SGN_PROC3(9, 0, 1, 1, 2, proc_id, echo_enb, fourier_enb, 0, 12, DT_SOLID)							 // вычисление амплитуды                                          
+		INS_CLEAR_HX(2, 0, 0, echoes_max)                                                                        // очистка массивов контейнера data_heapX
 		INS_CL_ST(0, 0)                                                                                          // очистка указателя стека                                       
 		INS_NO_OP(0, 0)           
 	#end
 	
 	// Массив номеров пакетов
-	var CMPG_pkg_num = new Array(n_cmpg_max)
+	var CMPG_pkg_num = new Array(n_cpmg_max)
 	CMPG_pkg_num[1] = CPMG1.id
 	CMPG_pkg_num[2] = CPMG2.id
 	CMPG_pkg_num[3] = CPMG3.id
@@ -700,7 +723,6 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 
 // [Commands]
 // Инициализация и задержка на передачу данных
-// 12 * 0,4 мкс = 4,8 мкс + delay_before_rf_pulses
 @comm fpga = { "FPGA program" }
 #begin(fpga)
 	// ***********************************************************************************************************
@@ -709,112 +731,112 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// -----------------------------------------------------------------------------------------------------------
 	// ***********************************************************************************************************
 				
-		COM_CYCLE_OPEN averages						// начало цикла накоплений
-		COM_TIME 0, 1, 255          				// интервал для SPI
-		COM_SWITCH_FRQ channel						// установка базовых частот канала ЯМР
-		COM_OFS01 tx_frq_ofs						// установка гетеродинной частоты передатчика
-		COM_OFS02 tx_frq2_ofs						// установка вспомогательной частоты передатчика 
-		COM_OFS03 tx_frq_ofs						// установка гетеродинной частоты приёмника
-		COM_PH_RST 0, 0, 0							// синхронизация фаз всех РЧ каналов для возможности накопления на осциллографе
-		COM_SET_VC_DAC_2 vc_dac						// установка напряжения на варикапах
-		COM_TIME 0, 1, 255          				// интервал для SPI
-		COM_SET_GAIN_1 KU							// установка коэффициента ослбления приемника
-		COM_GRADIENT_ON 0, 0, 1						// включение градиента
+		COM_CYCLE_OPEN averages								// начало цикла накоплений
+		COM_TIME 0, 1, 255									// интервал для SPI
+		COM_SWITCH_FRQ channel								// установка базовых частот канала ЯМР
+		COM_OFS01 tx_frq_ofs								// установка гетеродинной частоты передатчика
+		COM_OFS02 tx_frq2_ofs								// установка вспомогательной частоты передатчика 
+		COM_OFS03 tx_frq_ofs								// установка гетеродинной частоты приёмника
+		COM_PH_RST 0, 0, 0									// синхронизация фаз всех РЧ каналов для возможности накопления на осциллографе
+		COM_SET_VC_DAC_2 vc_dac								// установка напряжения на варикапах
+		COM_TIME 0, 1, 255									// интервал для SPI
+		COM_SET_GAIN_1 KU									// установка коэффициента ослбления приемника
+		COM_GRADIENT_ON grad_on								// включение градиента
 		
-		COM_TIME before_aq          				// Задержка на установление режимов работы устройств
-		COM_PROC_CONTROL_STB_3 0, 0, 1				// установка флага начала общего окна данных
+		COM_TIME before_aq									// Задержка на установление режимов работы устройств
+		COM_PROC_CONTROL_STB_3 0, 0, 1						// установка флага начала общего окна данных
 
 	// ***********************************************************************************************************
 	// ***********************************************************************************************************
-	//	Стандартная (КПМГ)(n_cmpg=1) и Двойная (2 КПМГ)(n_cmpg=1) активация. канал channel.
+	//	Стандартная (КПМГ)(n_cpmg=1) и Двойная (2 КПМГ)(n_cpmg=1) активация. канал channel.
 	// -----------------------------------------------------------------------------------------------------------
 	// ***********************************************************************************************************
 		
-		for (var i = st_cmpg; i < st_cmpg+n_cmpg; ++i)	// std_activation = 0, пропустить КПМГ 1,2
+		for (var i = st_cpmg; i < st_cpmg+n_cpmg; ++i)		// std_activation = 0, пропустить КПМГ 1,2
 		{			
-			COM_TIME to_strobe							// интервал строба идентификации пакета
-			COM_PROC_CONTROL_STB_2 0, 0, 1				// установка флага начала окна данных прибора ЯМР, включение счётчика окон АЦП
+			COM_TIME to_strobe								// интервал строба идентификации пакета
+			COM_PROC_CONTROL_STB_2 0, 0, 1					// установка флага начала окна данных прибора ЯМР, включение счётчика окон АЦП
 			
 			// Измерение шума во внутреннем цикле 
-			COM_CYCLE_OPEN noise						// начало цикла для измерений шума
-				COM_TIME to_echo_aq						// интервал оцифровки сигнала
-				COM_PROC_CONTROL_STB_1 0, 254, 1		// запуск АЦП
-				COM_TIME (2*min_tau)					// интервал  до следующего окна шума в цикле
-				COM_PROC_CONTROL_STB_1 0, 1, 0			// останов АЦП, выполнение Package_001
-			COM_CYCLE_CLOSE 0, 0, 0						// окончание цикла измерений шума
+			COM_CYCLE_OPEN noise							// начало цикла для измерений шума
+				COM_TIME to_echo_aq							// интервал оцифровки сигнала
+				COM_PROC_CONTROL_STB_1 0, 254, 1			// запуск АЦП
+				COM_TIME (2*min_tau)						// интервал  до следующего окна шума в цикле
+				COM_PROC_CONTROL_STB_1 0, STD_ECHO, 0		// останов АЦП, выполнение пакета STD_ECHO
+			COM_CYCLE_CLOSE 0, 0, 0							// окончание цикла измерений шума
 			
 			// Насыщающая последовательность 90-градусных импульсов 
-			COM_PH01 ph_x_p								// установка фазы +x рч-импульса
+			COM_PH01 ph_x_p									// установка фазы +x рч-импульса
 			var sp=6
 			for (var j = sp-1; j >= 1 ; --j) 
 			{  
 				var interval = t1*Math.pow(2,j)
-				COM_TIME interval						// интервал времени
-				COM_RF01 rfp_90							// запуск pi/2 рч-импульса	
+				COM_TIME interval							// интервал времени
+				COM_RF01 rfp_90								// запуск pi/2 рч-импульса	
 			};
-			COM_TIME to_cpmg[i]							// интервал TWi (востановление намагниченности)
-			COM_RF01 rfp_90								// запуск pi/2 рч-импульса
+			COM_TIME to_cpmg[i]								// интервал TWi (востановление намагниченности)
+			COM_RF01 rfp_90									// запуск pi/2 рч-импульса
 			
 			// Формирование и измерение эхо во внутреннем цикле
 			// - формирование 90-град. рч-импульса
-			COM_TIME red_tau[i]							// интервал времени tau_cpmg1 с поправкой на длительность импульса
-			COM_PH_RST 0, 0, 1							// синхронизация фаз всех РЧ каналов для возможности накопления на осциллографе
-			COM_PH01 ph_x_p								// установка фазы +x рч-импульса
-			COM_RF01 rfp_90								// запуск pi/2 рч-импульса
+			COM_TIME red_tau[i]								// интервал времени tau_cpmg1 с поправкой на длительность импульса
+			COM_PH_RST 0, 0, 1								// синхронизация фаз всех РЧ каналов для возможности накопления на осциллографе
+			COM_PH01 ph_x_p									// установка фазы +x рч-импульса
+			COM_RF01 rfp_90									// запуск pi/2 рч-импульса
 			
 			var N = echoes[i]
-			if (i > 2 & D2_act_enb~ == 2)				// - формирование и измерение 2х первых эхо, для Ds-T2
+			if (i > 2 & D2_act_enb~ == 2)					// - формирование и измерение 2х первых эхо, для Ds-T2
 			{ 
 				N = echoes[i] - 2
-				COM_TIME to_aq_start_1[i]				// интервал перед формированием эхо после импульса
-				COM_PH01 ph_y_p							// установка фазы +y рч-импульса
-				COM_RF01 rfp_180						// запуск pi рч-импульса
-				COM_TIME to_echo_aq						// интервал оцифровки сигнала
-				COM_PROC_CONTROL_STB_1 0, 254, 1		// запуск АЦП
-				COM_TIME to_next_180_1[i]				// интервал  до следующего рч-импульса в цикле КПМГ
-				COM_PROC_CONTROL_STB_1 0, 1, 0			// останов АЦП, выполнение Package_001
+				COM_TIME to_aq_start_1[i]					// интервал перед формированием эхо после импульса
+				COM_PH01 ph_y_p								// установка фазы +y рч-импульса
+				COM_RF01 rfp_180							// запуск pi рч-импульса
+				COM_TIME to_echo_aq							// интервал оцифровки сигнала
+				COM_PROC_CONTROL_STB_1 0, 254, 1			// запуск АЦП
+				COM_TIME to_next_180_1[i]					// интервал  до следующего рч-импульса в цикле КПМГ
+				COM_PROC_CONTROL_STB_1 0, STD_ECHO, 0		// останов АЦП, выполнение пакета STD_ECHO
 
-				COM_TIME to_aq_start_1[i]				// интервал перед формированием эхо после импульса
-				COM_PH01 ph_y_p							// установка фазы +y рч-импульса
-				COM_RF01 rfp_180						// запуск pi рч-импульса
-				COM_TIME to_echo_aq						// интервал оцифровки сигнала
-				COM_PROC_CONTROL_STB_1 0, 254, 1		// запуск АЦП
-				COM_TIME to_next_180[i]					// интервал  до следующего рч-импульса в цикле КПМГ
-				COM_PROC_CONTROL_STB_1 0, 1, 0			// останов АЦП, выполнение Package_001
+				COM_TIME to_aq_start_1[i]					// интервал перед формированием эхо после импульса
+				COM_PH01 ph_y_p								// установка фазы +y рч-импульса
+				COM_RF01 rfp_180							// запуск pi рч-импульса
+				COM_TIME to_echo_aq							// интервал оцифровки сигнала
+				COM_PROC_CONTROL_STB_1 0, 254, 1			// запуск АЦП
+				COM_TIME to_next_180[i]						// интервал  до следующего рч-импульса в цикле КПМГ
+				COM_PROC_CONTROL_STB_1 0, STD_ECHO, 0		// останов АЦП, выполнение пакета STD_ECHO
 			}
 
-			if (i > 2 & D2_act_enb~ == 3)				// - формирование и измерение стимулированного эхо, для STE-Ds-T2
+			if (i > 2 & D2_act_enb~ == 3)					// - формирование и измерение стимулированного эхо, для STE-Ds-T2
 			{ 
 				N = echoes[i] - 1
 				COM_TIME TDs[i]
-				COM_PH01 ph_y_p							// установка фазы +y рч-импульса
-				COM_RF01 rfp_90							// запуск pi/2 рч-импульса
-				COM_TIME to_aq_start[i]					// интервал перед формированием эхо после импульса
-				COM_RF01 rfp_90							// запуск pi/2 рч-импульса
-				COM_TIME to_echo_aq						// интервал оцифровки сигнала
-				COM_PROC_CONTROL_STB_1 0, 254, 1		// запуск АЦП
-				COM_TIME to_next_180[i]					// интервал  до следующего рч-импульса в цикле КПМГ
-				COM_PROC_CONTROL_STB_1 0, 1, 0			// останов АЦП, выполнение Package_001
+				COM_PH01 ph_y_p								// установка фазы +y рч-импульса
+				COM_RF01 rfp_90								// запуск pi/2 рч-импульса
+				COM_TIME to_aq_start[i]						// интервал перед формированием эхо после импульса
+				COM_RF01 rfp_90								// запуск pi/2 рч-импульса
+				COM_TIME to_echo_aq							// интервал оцифровки сигнала
+				COM_PROC_CONTROL_STB_1 0, 254, 1			// запуск АЦП
+				COM_TIME to_next_180[i]						// интервал  до следующего рч-импульса в цикле КПМГ
+				COM_PROC_CONTROL_STB_1 0, STD_ECHO, 0		// останов АЦП, выполнение пакета STD_ECHO
 			}
 
 			// - формирование цикла из 180-град. РЧ импульсов, измерение и накопление амплитуды эхо 
-			COM_CYCLE_OPEN N							// начало цикла для эхо
-				COM_TIME to_aq_start[i]					// интервал перед формированием эхо после импульса
-				COM_PH01 ph_y_p							// установка фазы +y рч-импульса
-				COM_RF01 rfp_180						// запуск pi рч-импульса
-				COM_TIME to_echo_aq						// интервал оцифровки сигнала
-				COM_PROC_CONTROL_STB_1 0, 254, 1		// запуск АЦП
-				COM_TIME to_next_180[i]					// интервал  до следующего рч-импульса в цикле КПМГ
-				COM_PROC_CONTROL_STB_1 0, 1, 0			// останов АЦП, выполнение Package_001
-			COM_CYCLE_CLOSE 0, 0, 0						// окончание цикла измерений эхо
-			COM_TIME to_aq_start[i]						// интервал tau перед началом обработки 
+			COM_CYCLE_OPEN N								// начало цикла для эхо
+				COM_TIME to_aq_start[i]						// интервал перед формированием эхо после импульса
+				COM_PH01 ph_y_p								// установка фазы +y рч-импульса
+				COM_RF01 rfp_180							// запуск pi рч-импульса
+				COM_TIME to_echo_aq							// интервал оцифровки сигнала
+				COM_PROC_CONTROL_STB_1 0, 254, 1			// запуск АЦП
+				COM_TIME to_next_180[i]						// интервал  до следующего рч-импульса в цикле КПМГ
+				COM_PROC_CONTROL_STB_1 0, STD_ECHO, 0		// останов АЦП, выполнение пакета STD_ECHO
+			COM_CYCLE_CLOSE 0, 0, 0							// окончание цикла измерений эхо
+			COM_TIME to_aq_start[i]							// интервал tau перед началом обработки 
 
 			// КПМГ. Вычисление амплитуд, формирование буфера передачи данных.
-			COM_TIME to_strobe							// интервал строба идентификации пакета
-			COM_PROC_CONTROL_STB_2 0, 0, 0				// сброс счётчика окон
-			COM_PROC_CONTROL_STB_1 0, 200, 1			// установка флага фиктивного устройства
-			COM_TIME to_echoes_proc[i]					// интервал рассчета амплитуд КПМГ
-			COM_PROC_CONTROL_STB_1 0,CMPG_pkg_num[i], 0	// снятие флага окна АЦП, выполнение пакета № i
+			COM_TIME to_strobe								// интервал строба идентификации пакета
+			COM_PROC_CONTROL_STB_2 0, 0, 0					// сброс счётчика окон
+			COM_PROC_CONTROL_STB_1 0, 200, 1				// установка флага фиктивного устройства
+			COM_TIME to_echoes_proc[i]						// интервал рассчета амплитуд КПМГ
+			COM_PROC_CONTROL_STB_1 0, CMPG_pkg_num[i], 0	// снятие флага окна АЦП, выполнение пакета CMPGi
 		}
 
 	// ***********************************************************************************************************
@@ -823,61 +845,61 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// -----------------------------------------------------------------------------------------------------------
 	// ***********************************************************************************************************
 
-		if (clay_activation == 1)						// clay_activation = 0, пропустить CLAY КПМГ
+		if (clay_activation == 1)							// clay_activation = 0, пропустить CLAY КПМГ
 		{
-			COM_SET_ACC_02 ph_y_p						// записать фазу ph_y_p в регистр аккумуляции фазы 
-			// Формирование фазового цикла											//
-			COM_CYCLE_OPEN accum_clay					// начало цикла
-				COM_TIME to_strobe						// интервал строба идентификации пакета
-				COM_PROC_CONTROL_STB_2 0, 0, 1			// установка флага начала окна данных прибора ЯМР, включение счётчика окон АЦП
+			COM_SET_ACC_02 ph_y_p							// записать фазу ph_y_p в регистр аккумуляции фазы 
+			// Формирование фазового цикла												//
+			COM_CYCLE_OPEN accum_clay						// начало цикла
+				COM_TIME to_strobe							// интервал строба идентификации пакета
+				COM_PROC_CONTROL_STB_2 0, 0, 1				// установка флага начала окна данных прибора ЯМР, включение счётчика окон АЦП
 
 				// Измерение шума 
-				COM_TIME to_echo_aq						// интервал оцифровки сигнала
-				COM_PROC_CONTROL_STB_1 0, 254, 1		// запуск АЦП
-				COM_TIME (2*min_tau)					// интервал  до следующего окна шума в цикле
-				COM_PROC_CONTROL_STB_1 0, 2, 0			// останов АЦП, выполнение Package_002
+				COM_TIME to_echo_aq							// интервал оцифровки сигнала
+				COM_PROC_CONTROL_STB_1 0, 254, 1			// запуск АЦП
+				COM_TIME (2*min_tau)						// интервал  до следующего окна шума в цикле
+				COM_PROC_CONTROL_STB_1 0, CLAY_ECHO, 0		// останов АЦП, выполнение пакета CLAY_ECHO
 				
 				// Насыщающая последовательность 90-градусных импульсов
-				COM_PH01 ph_x_p							// установка фазы +x рч-импульса
+				COM_PH01 ph_x_p								// установка фазы +x рч-импульса
 				var sp=6
 				for (var j = sp-1; j >= 1 ; --j) 
 				{  
 					var interval = t1*Math.pow(2,j)
-					COM_TIME interval					// интервал времени
-					COM_RF01 rfp_90						// запуск pi/2 рч-импульса	
+					COM_TIME interval						// интервал времени
+					COM_RF01 rfp_90							// запуск pi/2 рч-импульса	
 				}
-				COM_TIME to_clay						// интервал TW1 (востановление намагниченности)
-				COM_RF01 rfp_90							// запуск pi/2 рч-импульса
+				COM_TIME to_clay							// интервал TW1 (востановление намагниченности)
+				COM_RF01 rfp_90								// запуск pi/2 рч-импульса
 
 				// Формирование и измерение эхо во внутреннем цикле
 				// - формирование 90-град. рч-импульса
-				COM_TIME red_tau_clay					// интервал времени tau_cpmg1 с поправкой на длительность импульса
+				COM_TIME red_tau_clay						// интервал времени tau_cpmg1 с поправкой на длительность импульса
 				COM_PH_RST 0, 0, 1							// синхронизация фаз всех РЧ каналов для возможности накопления на осциллографе
-				COM_PH01 ph_x_p							// установка фазы +x рч-импульса
-				COM_RF01 rfp_90							// запуск pi/2 рч-импульса
+				COM_PH01 ph_x_p								// установка фазы +x рч-импульса
+				COM_RF01 rfp_90								// запуск pi/2 рч-импульса
 
 				// - формирование цикла из 180-град. РЧ импульсов, измерение и накопление амплитуды эхо 
-				COM_CYCLE_OPEN echoes_clay				// начало цикла для эхо
-					COM_TIME to_aq_start_clay			// интервал перед формированием эхо после импульса
-					COM_ACC_TO_PH 0, 2, 1				// установка инкрементированной на dph фазы рч-импульса
-					COM_RF01 rfp_180					// запуск pi рч-импульса
-					COM_TIME to_echo_aq					// интервал оцифровки сигнала
-					COM_PROC_CONTROL_STB_1 0, 254, 1	// запуск АЦП
-					COM_TIME to_next_clay_180			// интервал  до следующего рч-импульса в цикле КПМГ
-					COM_PROC_CONTROL_STB_1 0, 2, 0		// останов АЦП, выполнение Package_002
-				COM_CYCLE_CLOSE 0, 0, 0					// окончание цикла измерений эхо
+				COM_CYCLE_OPEN echoes_clay					// начало цикла для эхо
+					COM_TIME to_aq_start_clay				// интервал перед формированием эхо после импульса
+					COM_ACC_TO_PH 0, 2, 1					// установка инкрементированной на dph фазы рч-импульса
+					COM_RF01 rfp_180						// запуск pi рч-импульса
+					COM_TIME to_echo_aq						// интервал оцифровки сигнала
+					COM_PROC_CONTROL_STB_1 0, 254, 1		// запуск АЦП
+					COM_TIME to_next_clay_180				// интервал  до следующего рч-импульса в цикле КПМГ
+					COM_PROC_CONTROL_STB_1 0, CLAY_ECHO, 0	// останов АЦП, выполнение пакета CLAY_ECHO
+				COM_CYCLE_CLOSE 0, 0, 0						// окончание цикла измерений эхо
 				
-				COM_TIME to_aq_start_clay				// интервал перед формированием эхо после импульса
-				COM_ADD_TO_ACC_02 dph					// инкремент фазы
-				COM_PROC_CONTROL_STB_2 0, 0, 0			// сброс счётчика окон
-			COM_CYCLE_CLOSE 0, 0, 0						// окончание фазового цикла
+				COM_TIME to_aq_start_clay					// интервал перед формированием эхо после импульса
+				COM_ADD_TO_ACC_02 dph						// инкремент фазы
+				COM_PROC_CONTROL_STB_2 0, 0, 0				// сброс счётчика окон
+			COM_CYCLE_CLOSE 0, 0, 0							// окончание фазового цикла
 
 			// CLAY КПМГ. Вычисление амплитуд, формирование буфера передачи данных.
-			COM_TIME to_strobe							// интервал строба идентификации пакета
-			COM_PROC_CONTROL_STB_2 0, 0, 0				// установка флага начала окна данных прибора ЯМР, включение счётчика окон АЦП
-			COM_PROC_CONTROL_STB_1 0, 200, 1			// установка флага фиктивного устройства для выполнения пакета
-			COM_TIME to_clay_echoes_proc				// интервал рассчета амплитуд КПМГ
-			COM_PROC_CONTROL_STB_1 0, ClAY, 0			// снятие флага окна АЦП, выполнение Package № CLAY
+			COM_TIME to_strobe								// интервал строба идентификации пакета
+			COM_PROC_CONTROL_STB_2 0, 0, 0					// установка флага начала окна данных прибора ЯМР, включение счётчика окон АЦП
+			COM_PROC_CONTROL_STB_1 0, 200, 1				// установка флага фиктивного устройства для выполнения пакета
+			COM_TIME to_clay_echoes_proc					// интервал рассчета амплитуд КПМГ
+			COM_PROC_CONTROL_STB_1 0, ClAY, 0				// снятие флага окна АЦП, выполнение пакета CLAY
 		}
 
 	// ***********************************************************************************************************
@@ -886,56 +908,56 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// -----------------------------------------------------------------------------------------------------------
 	// ***********************************************************************************************************
 
-		if (solid_activation == 1)						// solid_act_enb = 0, пропустить SOLID ECHO
+		if (solid_activation == 1)							// solid_act_enb = 0, пропустить SOLID ECHO
 		{
-			COM_SET_ACC_02 ph_y_p						// записать фазу ph_y_p в регистр аккумуляции фазы
+			COM_SET_ACC_02 ph_y_p							// записать фазу ph_y_p в регистр аккумуляции фазы
 			// Формирование фазового цикла 
-			COM_CYCLE_OPEN 2							// начало цикла
-				COM_TIME to_strobe						// интервал строба идентификации пакета
-				COM_PROC_CONTROL_STB_2 0, 0, 1			// установка флага начала окна данных прибора ЯМР, включение счётчика окон АЦП
+			COM_CYCLE_OPEN 2								// начало цикла
+				COM_TIME to_strobe							// интервал строба идентификации пакета
+				COM_PROC_CONTROL_STB_2 0, 0, 1				// установка флага начала окна данных прибора ЯМР, включение счётчика окон АЦП
 				
 				// Измерение шума 
-				COM_TIME to_echo_aq						// интервал оцифровки сигнала
-				COM_PROC_CONTROL_STB_1 0, 254, 1		// запуск АЦП
-				COM_TIME (2*min_tau)					// интервал  до следующего окна шума в цикле
-				COM_PROC_CONTROL_STB_1 0, 3, 0			// останов АЦП, выполнение Package_003
+				COM_TIME to_echo_aq							// интервал оцифровки сигнала
+				COM_PROC_CONTROL_STB_1 0, 254, 1			// запуск АЦП
+				COM_TIME (2*min_tau)						// интервал  до следующего окна шума в цикле
+				COM_PROC_CONTROL_STB_1 0, SOLID_ECHO, 0		// останов АЦП, выполнение пакета SOLID_ECHO
 
 				// Насыщающая последовательность 90-градусных импульсов
-				COM_PH01 ph_x_p							// установка фазы +x рч-импульса
+				COM_PH01 ph_x_p								// установка фазы +x рч-импульса
 				var sp=6
 				for (var j = sp-1; j >= 1 ; --j) 
 				{  
 					var interval = t1*Math.pow(2,j)
-					COM_TIME interval					// интервал времени
-					COM_RF01 rfp_90						// запуск pi/2 рч-импульса	
+					COM_TIME interval						// интервал времени
+					COM_RF01 rfp_90							// запуск pi/2 рч-импульса	
 				}
-				COM_TIME to_cpmg[1]						// интервал TW1 (востановление намагниченности)
-				COM_RF01 rfp_90							// запуск pi/2 рч-импульса
+				COM_TIME to_cpmg[1]							// интервал TW1 (востановление намагниченности)
+				COM_RF01 rfp_90								// запуск pi/2 рч-импульса
 				// - формирование 90-град. рч-импульса
-				COM_TIME tau_solid						// интервал времени tau_cpmg1 с поправкой на длительность импульса
-				COM_PH_RST 0, 0, 1						// синхронизация фаз всех РЧ каналов для возможности накопления на осциллографе
-				COM_PH01 ph_x_p							// установка фазы +x рч-импульса
-				COM_RF01 rfp_90							// запуск pi/2 рч-импульса
+				COM_TIME tau_solid							// интервал времени tau_cpmg1 с поправкой на длительность импульса
+				COM_PH_RST 0, 0, 1							// синхронизация фаз всех РЧ каналов для возможности накопления на осциллографе
+				COM_PH01 ph_x_p								// установка фазы +x рч-импульса
+				COM_RF01 rfp_90								// запуск pi/2 рч-импульса
 				// - формирование 90-град. рч-импульса
-				COM_TIME to_solid_aq_start				// интервал перед формированием эхо после импульса
-				COM_ACC_TO_PH 0, 2, 1					// установка инкрементированной на dph фазы рч-импульса
-				COM_RF01 rfp_90							// запуск pi/2 рч-импульса
-				COM_TIME to_echo_aq						// интервал оцифровки сигнала
-				COM_PROC_CONTROL_STB_1 0, 254, 1		// запуск АЦП
-				COM_TIME (2*min_tau)					// интервал для обработки эхо 
-				COM_PROC_CONTROL_STB_1 0, 3, 0			// останов АЦП, выполнение Package_003
+				COM_TIME to_solid_aq_start					// интервал перед формированием эхо после импульса
+				COM_ACC_TO_PH 0, 2, 1						// установка инкрементированной на dph фазы рч-импульса
+				COM_RF01 rfp_90								// запуск pi/2 рч-импульса
+				COM_TIME to_echo_aq							// интервал оцифровки сигнала
+				COM_PROC_CONTROL_STB_1 0, 254, 1			// запуск АЦП
+				COM_TIME (2*min_tau)						// интервал для обработки эхо 
+				COM_PROC_CONTROL_STB_1 0, SOLID_ECHO, 0		// останов АЦП, выполнение пакета SOLID_ECHO
 				
-				COM_TIME to_strobe						// интервал строба идентификации пакета
-				COM_ADD_TO_ACC_02 dph					// инкремент фазы
-				COM_PROC_CONTROL_STB_2 0, 0, 0			// сброс счётчика окон
-			COM_CYCLE_CLOSE 0, 0, 0						// окончание фазового цикла
+				COM_TIME to_strobe							// интервал строба идентификации пакета
+				COM_ADD_TO_ACC_02 dph						// инкремент фазы
+				COM_PROC_CONTROL_STB_2 0, 0, 0				// сброс счётчика окон
+			COM_CYCLE_CLOSE 0, 0, 0							// окончание фазового цикла
 
 			// Вычисление амплитуд, формирование буфера передачи данных.
-			COM_TIME to_strobe							// интервал строба идентификации пакета
-			COM_PROC_CONTROL_STB_2 0, 0, 0				// сброс счётчика окон
-			COM_PROC_CONTROL_STB_1 0, 200, 1			// установка флага фиктивного устройства
-			COM_TIME to_solid_proc						// интервал рассчета амплитуд КПМГ
-			COM_PROC_CONTROL_STB_1 0,SOLID, 0			// снятие флага окна АЦП, выполнение пакета № i
+			COM_TIME to_strobe								// интервал строба идентификации пакета
+			COM_PROC_CONTROL_STB_2 0, 0, 0					// сброс счётчика окон
+			COM_PROC_CONTROL_STB_1 0, 200, 1				// установка флага фиктивного устройства
+			COM_TIME to_solid_proc							// интервал рассчета амплитуд КПМГ
+			COM_PROC_CONTROL_STB_1 0, SOLID, 0				// снятие флага окна АЦП, выполнение пакета SOLID
 		}
 
 	// ***********************************************************************************************************
@@ -944,24 +966,20 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// -----------------------------------------------------------------------------------------------------------
 	// ***********************************************************************************************************
 
-		COM_TIME to_strobe								// интервал до времени отдыха на разнесение стробов
-		COM_PROC_CONTROL_STB_3 0, 0, 0					// установка флага окончания общего окна данных, передача данных в рабочую станцию
-		COM_TIME to_data_tx								// интервал до начала следующей последовательности, в котором выполняется передача данных
-		COM_GRADIENT_ON 0, 0, 0							// выключение градиента
-		COM_TIME 0, 0, 0								// интервал для команды 1 мкс
-		if (mode == 0)									 
+		COM_TIME to_strobe									// интервал до времени отдыха на разнесение стробов
+		COM_PROC_CONTROL_STB_3 0, 0, 0						// установка флага окончания общего окна данных, передача данных в рабочую станцию
+		COM_TIME to_data_tx									// интервал до начала следующей последовательности, в котором выполняется передача данных
+		COM_GRADIENT_ON 0, 0, 0								// выключение градиента
+		COM_TIME 0, 0, 0									// интервал для команды 1 мкс
+		COM_CYCLE_CLOSE 0, 0, 0								// окончание цикла накоплений
+		if (mode == 0)										 
 		{
 			COM_STOP 0, 0, 0
-		}												// конец последовательности
-		if (mode == 1)									 
-		{
-			COM_CYCLE_CLOSE 0, 0, 0
-			COM_STOP 0, 0, 0
-		}
-		if (mode == 2) 
+		}													// конец последовательности
+		if (mode == 1) 
 		{
 			COM_RET 0, 0, 0
-		}												// возврат в начало
+		}													// возврат в начало
 
 #end
 // ***********************************************************************************************************

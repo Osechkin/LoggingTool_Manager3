@@ -343,14 +343,21 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 	logging_widget = new LoggingWidget(tool_channels, ui->tabLogging); 
 	double core_d = 0.10; 
-	double core_porosity = 0.30;
+	double core_porosity = 30;
+	double core_diameter = 0.10;
 	bool _ok;
 	if (app_settings->contains("CoreTransportSystem/CoreDiameter")) core_d = app_settings->value("CoreTransportSystem/CoreDiameter").toDouble(&_ok);
+	else app_settings->setValue("CoreTransportSystem/CoreDiameter", 0.10);
 	if (_ok) logging_widget->setCoreDiameter(core_d);
-	else logging_widget->setCoreDiameter(0.10);
-	if (app_settings->contains("CoreTransportSystem/CoreDiameter")) core_porosity = app_settings->value("CoreTransportSystem/StandardPorosity").toDouble(&_ok);
+	else logging_widget->setCoreDiameter(0.10);	
+	if (app_settings->contains("CoreTransportSystem/StandardPorosity")) core_porosity = app_settings->value("CoreTransportSystem/StandardPorosity").toDouble(&_ok);
+	else app_settings->setValue("CoreTransportSystem/StandardPorosity", 30);
 	if (_ok) logging_widget->setStandardPorosity(core_porosity);
-	else logging_widget->setStandardPorosity(0.30);
+	else logging_widget->setStandardPorosity(30);	
+	if (app_settings->contains("CoreTransportSystem/StandardCoreDiameter")) core_diameter = app_settings->value("CoreTransportSystem/StandardCoreDiameter").toDouble(&_ok);
+	else app_settings->setValue("CoreTransportSystem/StandardCoreDiameter", 0.10);
+	if (_ok) logging_widget->setStandardCoreDiameter(core_diameter);
+	else logging_widget->setStandardCoreDiameter(0.10);
 	QGridLayout *grlout_logging = new QGridLayout(ui->tabLogging);
 	grlout_logging->setContentsMargins(1,1,1,1);
 	grlout_logging->addWidget(logging_widget, 0, 0, 1, 1);
@@ -595,7 +602,7 @@ void MainWindow::setConnections()
 	connect(com_commander, SIGNAL(device_data_timed_out(uint32_t)), msg_processor, SLOT(reportNoResponse(uint32_t)));
 	connect(com_commander, SIGNAL(msg_state(int, int)), nmrtoolLinker, SLOT(showMsgTrafficReport(int, int)));
 
-	connect(logging_widget, SIGNAL(new_calibration_coef(double)), this, SLOT(saveNewCalibrCoefficient(double)));
+	connect(logging_widget, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SLOT(saveNewCalibrCoefficient(double, ToolChannel*)));
 
 	connect(tcp_data_manager, SIGNAL(get_data(const QString&, int)), this, SLOT(sendDataToNetClients(const QString&, int)));
 
@@ -4977,6 +4984,7 @@ void MainWindow::saveAllSettings()
 	saveCOMSettings(COM_Port_depth, "DepthMeter");
 	saveCOMSettings(COM_Port_stepmotor, "StepMotor");
 
+
 }
 
 void MainWindow::showPowerStatus(unsigned char pow_status)
@@ -5075,7 +5083,7 @@ void MainWindow::sdspIsActivated(bool flag)
 	if (flag && sdsp_index >= 0) ui->tabWidget->setCurrentIndex(sdsp_index);	
 }
 
-void MainWindow::saveNewCalibrCoefficient(double val)
+void MainWindow::saveNewCalibrCoefficient(double val, ToolChannel *channel)
 {
 	for (int i = 0; i < tools_settings.count(); i++)
 	{
@@ -5084,8 +5092,9 @@ void MainWindow::saveNewCalibrCoefficient(double val)
 		{
 			for (int j = 0; j < tool_channels.count(); j++)
 			{
-				ToolChannel *channel = tool_channels[j];
-				if (channel->data_type == "NMR_CHANNEL")
+				ToolChannel *_channel = tool_channels[j];
+				//if (channel->data_type == "NMR_CHANNEL")
+				if (_channel == channel)
 				{
 					QString channel_rec = QString("channel#%1/normalize_coef1").arg(channel->channel_id);
 					settings->setValue(channel_rec, val);

@@ -287,34 +287,91 @@ void COMCommander::treatCOMData(COM_Message *_msg)
 
 void COMCommander::searchMsgHeader(QUEUE<uint8_t> *_queue, QByteArray &str)
 {
+	//QString str_data = "";
+
 	if (msg_header_state == NOT_DEFINED)
-	{			
+	{				
 		for (int i = 0; i < str.count(); i++) 
 		{
 			uint8_t ch = str[i];
+			//str_data += QString::number(ch) + " ";	
+
 			if (ch == START_BYTE && i == 0)
 			{
 				msg_header_state = STARTED;		
+				_queue->clear();
 				msg_timer->start(msg_header_delay);
 			}
 			else if (ch == STOP_BYTE && _queue->count() == HEADER_LEN)
 			{
 				incom_msg_state = STARTED;	
+				break;
 			}
 			else _queue->put(ch);
 		}
+		//qDebug() << "not defined: " << str_data; 
 	}
 	else if (msg_header_state == STARTED)
 	{
 		for (int i = 0; i < str.count(); i++) 
 		{
 			uint8_t ch = str[i];
+			//str_data += QString::number(ch) + " ";	
+
 			if (ch == STOP_BYTE && _queue->count() == HEADER_LEN)
 			{
 				incom_msg_state = STARTED;	
+				break;
 			}
 			else _queue->put(ch);
 		}
+		//qDebug() << "started: " << str_data; 
+	}
+}
+
+void COMCommander::searchMsgHeader2(QUEUE<uint8_t> *_queue, QByteArray &str)
+{
+	//QString str_data = "";
+
+	if (msg_header_state == NOT_DEFINED)
+	{				
+		for (int i = 0; i < str.count(); i++) 
+		{
+			uint8_t ch = str.at(0);
+			str.remove(0,1);
+			//str_data += QString::number(ch) + " ";	
+
+			if (ch == START_BYTE)
+			{
+				msg_header_state = STARTED;		
+				_queue->clear();
+				msg_timer->start(msg_header_delay);
+			}
+			else if (ch == STOP_BYTE && _queue->count() == HEADER_LEN)
+			{
+				incom_msg_state = STARTED;	
+				break;
+			}
+			else _queue->put(ch);
+		}
+		//qDebug() << "not defined: " << str_data; 
+	}
+	else if (msg_header_state == STARTED)
+	{
+		for (int i = 0; i < str.count(); i++) 
+		{
+			uint8_t ch = str.at(0);
+			str.remove(0,1);
+			//str_data += QString::number(ch) + " ";	
+
+			if (ch == STOP_BYTE && _queue->count() == HEADER_LEN)
+			{
+				incom_msg_state = STARTED;	
+				break;
+			}
+			else _queue->put(ch);
+		}
+		//qDebug() << "started: " << str_data; 
 	}
 }
 
@@ -453,15 +510,17 @@ void COMCommander::onDataAvailable()
 	QByteArray str = COM_port->readAll();
 
 	if (!str.isEmpty())
-	{		
+	{
+		//prebuff += str;
+
 		if (msg_header_state < FINISHED)
 		{
-			searchMsgHeader(head_q, str);		
-			uint8_t sz = head_q->count(); 		
+			searchMsgHeader(head_q, str);
+			uint8_t sz = head_q->count();
 
 			if (msg_header_state == STARTED && sz < HEADER_LEN) return;
 			else if (msg_header_state < FINISHED && incom_msg_state == STARTED && sz == HEADER_LEN)
-			{									
+			{
 				treatCOMData(msg_incomming);
 			}
 		}

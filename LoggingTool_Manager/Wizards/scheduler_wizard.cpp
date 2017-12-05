@@ -681,7 +681,7 @@ void SchedulerWizard::addItem()
 					double _step = leuze_meter->getStep();
 					double _calibr_len = leuze_meter->getCalibrationLength();
 					
-					dist_range_obj->setFromToStep(from_to, _step, false);
+					dist_range_obj->setFromToStep(from_to, _step, true);
 					dist_range_obj->setBounds(bounds);
 					dist_range_obj->setCalibrationLength(_calibr_len);
 				}				

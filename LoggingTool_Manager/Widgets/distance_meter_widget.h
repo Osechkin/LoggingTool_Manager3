@@ -76,12 +76,15 @@ private:
 	double zero_pos;
 	double calibr_len;
 	double core_diameter;
+	double standard_porosity;
+	double standard_diameter;
 	double k_from;
 	double k_to;
 	double k_step;
 	double k_zero;
 	double k_calibr_len;
 	double k_core_d;
+	double k_standard_porosity;
 
 	double lower_bound;
 	double upper_bound;		

@@ -272,7 +272,7 @@ private slots:
 	void setExpSchedulerFinished();
 	void setExpSchedulerStarted();
 
-	void saveNewCalibrCoefficient(double val);
+	void saveNewCalibrCoefficient(double val, ToolChannel *channel);
 
 private:
 	void loadToolsSettings();

@@ -417,15 +417,18 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	time_shift = us2pts(time_shift); time_width = us2pts(time_width)
 	freq_shift = kHz2pts(freq_shift); freq_width = kHz2pts(freq_width)
 
-	@parameter emul = { "Эмуляция данных", 1, min=0, max=1 }
+	@parameter emul = { "Эмуляция данных", "OFF|ON" }
+	emul.uitype = "combobox"
 	emul.comment = "Эмулировать исходные данные ЯМР ? (Да/Нет)";
+	var emul_state = 1
+	if (emul~ > 0) emul_state = 0;
 	
 	@parameter sn = { "Сигнал/шум", 5, min=0 }
 	sn.comment = "Отношение сигнал/шум";
-	
-	//@section s_dataorg = { "Источник данных" }
-	//s_dataorg.append(emul);
-	//s_dataorg.append(sn);
+		
+	@section s_dataorg = { "Источник данных" }	
+	s_dataorg.append(emul);
+	s_dataorg.append(sn);
 
 // -----------------------------------------------------------------------------------------------------------
 // Проверяемые после вычислений условия
@@ -536,7 +539,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_001]
 	@proc STD_ECHO = { "ECHO" }
 	#begin(STD_ECHO)
-		INS_NS_SGN_UPP_PRE3(6, 0, emul, noise, 1, sn, 1, k_fe)                                  
+		INS_NS_SGN_UPP_PRE3(6, 0, emul_state, noise, 1, sn, 1, k_fe)                                  
 		INS_NO_OP(0, 0)
 	#end
 	 
@@ -545,7 +548,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_002]
 	@proc CLAY_ECHO = { "CLAY ECHO" }
 	#begin(CLAY_ECHO)
-		INS_NS_SGN_UPP_PRE3(6, 0, emul, 1, echoes_clay, sn, 0, k_fe)                                  
+		INS_NS_SGN_UPP_PRE3(6, 0, emul_state, 1, echoes_clay, sn, 0, k_fe)                                  
 		INS_NO_OP(0, 0)
 	#end
 
@@ -554,7 +557,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_002a]
 	@proc SOLID_ECHO = { "SOLID ECHO" }
 	#begin(SOLID_ECHO)
-		INS_NS_SGN_UPP_PRE3(6, 0, emul, 1, 2, sn, 0, k_se)                                  
+		INS_NS_SGN_UPP_PRE3(6, 0, emul_state, 1, 2, sn, 0, k_se)                                  
 		INS_NO_OP(0, 0)
 	#end
 	

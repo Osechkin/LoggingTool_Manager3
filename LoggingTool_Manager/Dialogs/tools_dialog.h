@@ -27,6 +27,7 @@ public:
 	QStringList getTabWidgets() { return current_tool_tab_widgets; }
 	QStringList getSeqWizards() { return current_tool_seq_wizards; }
 	QStringList getDepthMonitors() { return current_tool_depth_monitors; }
+	QStringList getDockWidgets() { return current_tool_dock_widgets; }
 	QString getInfoBarText() { return current_tool_info_bar; } 
 
 private slots:
@@ -39,8 +40,9 @@ private:
 
 	QStringList current_tool_tab_widgets;
 	QStringList current_tool_seq_wizards;
+	QStringList current_tool_dock_widgets;
 	QStringList current_tool_depth_monitors;
-	QString current_tool_info_bar;
+	QString current_tool_info_bar;	
 
 	QList<ToolInfo> tools;
 };

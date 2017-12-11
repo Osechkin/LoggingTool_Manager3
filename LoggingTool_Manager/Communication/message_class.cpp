@@ -223,6 +223,7 @@ DeviceData::DeviceData(uint8_t id, QString _name)
 	case HEADER_OK:
 	case GET_RELAX_DATA:
 	case NMRTOOL_CONNECT:
+	case NMRTOOL_CONNECT_DEF:
 	case NMRTOOL_START:
 	case NMRTOOL_STOP:
 		{
@@ -302,6 +303,7 @@ void DeviceData::linkCmdData(DeviceData *dev_data)
 	case HEADER_OK:
 	case GET_RELAX_DATA:
 	case NMRTOOL_CONNECT:
+	case NMRTOOL_CONNECT_DEF:
 	case NMRTOOL_START:
 	case NMRTOOL_STOP:
 	case SDSP_REQUEST_88:

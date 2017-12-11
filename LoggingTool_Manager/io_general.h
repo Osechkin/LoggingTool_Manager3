@@ -139,6 +139,8 @@ static uint32_t session_uid = 0;
 #define REPEAT_CMD			0xBB		// Request to Repeat data (2^83 of Galois)
 #define DIEL_ADJUST_START	0xB1		// Request to Repeat data (2^86 of Galois)
 #define DIEL_DATA_READY		0xE1		// SDSP data ready to send (2^89 of Galois)
+#define NMRTOOL_CONNECT_DEF	0x1A		// first connect to LoggingTool (2^105 of Galois)
+
 // Format of command:
 // Command (1 byte)
 

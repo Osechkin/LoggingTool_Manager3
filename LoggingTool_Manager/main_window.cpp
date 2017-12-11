@@ -417,6 +417,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	applyToolSettings();
 
 	setWindowState(Qt::WindowMaximized);
+
+	//setDefaultCommSettings(true);
+	default_comm_settings_on = false;
+	nmrtoolLinker->setDefaultCommSettingsState(default_comm_settings_on);
 }
 
 MainWindow::~MainWindow()
@@ -445,7 +449,7 @@ MainWindow::~MainWindow()
 	qDeleteAll(tools_settings.begin(), tools_settings.end());
 
 	//delete depthMonitor;
-		
+	
 	int count = 0;
 	/*while (count < msg_data_container->size())
 	{
@@ -492,17 +496,20 @@ void MainWindow::setActions()
 {
 	ui->toolBarMain->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-	a_connect = new QAction(this);
+	//a_connect = new QAction(this);
+	a_connect = ui->a_connect;
 	a_connect->setText("Connect");
 	a_connect->setCheckable(true);    
 	a_connect->setIcon(QIcon(":/images/add.png"));
 
-	a_disconnect = new QAction(this);
+	//a_disconnect = new QAction(this);
+	a_disconnect = ui->a_disconnect;
 	a_disconnect->setText("Disconnect");
 	a_disconnect->setCheckable(false);    
 	a_disconnect->setIcon(QIcon(":/images/remove.png")); 
 
-	a_start = new QAction(this);
+	//a_start = new QAction(this);
+	a_start = ui->a_start;
 	a_start->setText("Start Sequence");
 	a_start->setCheckable(true);
 	//a_start->setIcon(QIcon(":/images/play.png"));
@@ -519,26 +526,30 @@ void MainWindow::setActions()
 	a_apply_prg->setCheckable(true);
 	a_apply_prg->setIcon(QIcon(":/images/record_button_red.png"));
 
-	a_stop = new QAction(this);
+	//a_stop = new QAction(this);
+	a_stop = ui->a_stop;
 	a_stop->setText("Stop Sequence");
 	a_stop->setCheckable(true);
 	a_stop->setIcon(QIcon(":/images/stop.png"));
 
-	a_break = new QAction(this);
+	//a_break = new QAction(this);
+	a_break = ui->a_break;
 	a_break->setText("Break All Actions");
 	a_break->setCheckable(false);
 	a_break->setIcon(QIcon(":/images/pause.png"));
 
-	a_start_sdsp = new QAction(this);
+	//a_start_sdsp = new QAction(this);
+	a_start_sdsp = ui->a_start_sdsp;
 	a_start_sdsp->setText("Start SDSP");
 	a_start_sdsp->setCheckable(true);	
 	a_start_sdsp->setIcon(QIcon(":/images/start_green.png"));
 
-	a_stop_sdsp = new QAction(this);
+	//a_stop_sdsp = new QAction(this);
+	a_stop_sdsp = ui->a_stop_sdsp;
 	a_stop_sdsp->setText("Stop SDSP");
 	a_stop_sdsp->setCheckable(true);
 	a_stop_sdsp->setIcon(QIcon(":/images/stop_red.png"));
-
+	
 	ui->toolBarMain->addAction(a_connect);
 	ui->toolBarMain->addAction(a_disconnect);
 	ui->toolBarMain->addAction(a_start);	
@@ -632,6 +643,7 @@ void MainWindow::setConnections()
 	connect(nmrtoolLinker, SIGNAL(send_data_toSDSP(QByteArray&)), com_commander, SLOT(sendToSDSP(QByteArray*)));
 	connect(nmrtoolLinker, SIGNAL(tool_settings_applied(bool)), this, SLOT(setToolSettingsApplied(bool)));
 	connect(nmrtoolLinker, SIGNAL(fpga_seq_started(bool)), expScheduler, SLOT(setSeqStarted(bool)));
+	connect(nmrtoolLinker, SIGNAL(default_comm_settings(bool)), this, SLOT(setDefaultCommSettings(bool)));
 	
 	connect(&experiment_timer, SIGNAL(timeout()), this, SLOT(setExperimentalInfo()));
 
@@ -663,6 +675,7 @@ void MainWindow::setConnections()
 	connect(a_break, SIGNAL(triggered()), this, SLOT(breakAllActions()));
 	connect(a_start_sdsp, SIGNAL(triggered(bool)), this, SLOT(startSDSPTool(bool)));
 	connect(a_stop_sdsp, SIGNAL(triggered(bool)), this, SLOT(stopSDSPTool(bool)));
+	connect(ui->a_reset_comm_settings, SIGNAL(triggered()), this, SLOT(resetCommSettings()));
 
 	connect(ui->a_CommunicationLogMonitor, SIGNAL(triggered(bool)), this, SLOT(viewWizard(bool)));
 	connect(ui->a_LoggingToolConsole, SIGNAL(triggered(bool)), this, SLOT(viewWizard(bool)));
@@ -1122,6 +1135,13 @@ void MainWindow::applyToolSettings()
 	dock_expScheduler->setVisible(seq_wizards.contains("ExperimentScheduler"));
 	dock_sdspProc->setVisible(seq_wizards.contains("SDSPWizard"));
 
+	QStringList dock_widgets = current_tool.dock_widgets;
+	dock_msgConnect->setVisible(dock_widgets.contains("LoggingToolConsole"));
+	dock_msgLog->setVisible(dock_widgets.contains("CommunicationLogMonitor"));
+	dock_FreqAutoadjust->setVisible(dock_widgets.contains("FrequencyAutoTune"));
+	dock_RxTxControl->setVisible(dock_widgets.contains("RxTxControl"));
+	dock_RFPulseControl->setVisible(dock_widgets.contains("RFPulseControl"));
+
 	placeInfoToExpToolBar(tr("Logging Tool: %1").arg(current_tool.info_bar));
 }
 
@@ -1311,6 +1331,8 @@ void MainWindow::loadAppSettings()
 			if (settings->contains("VisualSettings/SequenceWizards")) seq_wizards = settings->value("VisualSettings/SequenceWizards").toStringList();
 			QStringList depth_monitors;
 			if (settings->contains("VisualSettings/DepthMonitors")) depth_monitors = settings->value("VisualSettings/DepthMonitors").toStringList(); 
+			QStringList dock_widgets;
+			if (settings->contains("VisualSettings/DockWidgets")) dock_widgets = settings->value("VisualSettings/DockWidgets").toStringList(); 
 			QString tool_info_bar;
 			if (settings->contains("VisualSettings/InfoBar")) tool_info_bar = settings->value("VisualSettings/InfoBar").toString().simplified(); 
 
@@ -1329,6 +1351,7 @@ void MainWindow::loadAppSettings()
 					tool_info.tab_widgets = tab_widgets;
 					tool_info.seq_wizards = seq_wizards;
 					tool_info.depth_monitors = depth_monitors;
+					tool_info.dock_widgets = dock_widgets;
 					tool_info.info_bar = tool_info_bar;
 					tools.append(tool_info);
 				}
@@ -1338,6 +1361,7 @@ void MainWindow::loadAppSettings()
 		QStringList tab_widgets;
 		QStringList seq_widgets;
 		QStringList depth_monitors;
+		QStringList dock_widgets;
 		QString info_bar_text;
 		ToolsDialog *dlg = new ToolsDialog(tools);
 		if (dlg->exec())
@@ -1348,6 +1372,7 @@ void MainWindow::loadAppSettings()
 			tab_widgets = dlg->getTabWidgets();
 			seq_widgets = dlg->getSeqWizards();
 			depth_monitors = dlg->getDepthMonitors();
+			dock_widgets = dlg->getDockWidgets();
 			info_bar_text = dlg->getInfoBarText();
 
 			app_settings->setValue("Tool/Id", QVariant(tool_id));
@@ -1360,6 +1385,7 @@ void MainWindow::loadAppSettings()
 			current_tool.tab_widgets = tab_widgets;
 			current_tool.seq_wizards = seq_widgets;
 			current_tool.depth_monitors = depth_monitors;
+			current_tool.dock_widgets = dock_widgets;
 			current_tool.info_bar = info_bar_text;
 		}			
 		delete dlg;
@@ -1375,12 +1401,15 @@ void MainWindow::loadAppSettings()
 		if (current_tool_settings->contains("VisualSettings/SequenceWizards")) seq_wizards = current_tool_settings->value("VisualSettings/SequenceWizards").toStringList();
 		QStringList depth_monitors;
 		if (current_tool_settings->contains("VisualSettings/DepthMonitors")) depth_monitors = current_tool_settings->value("VisualSettings/DepthMonitors").toStringList(); 
+		QStringList dock_widgets;
+		if (current_tool_settings->contains("VisualSettings/DockWidgets")) dock_widgets = current_tool_settings->value("VisualSettings/DockWidgets").toStringList(); 
 		QString tool_info_bar;
 		if (current_tool_settings->contains("VisualSettings/InfoBar")) tool_info_bar = current_tool_settings->value("VisualSettings/InfoBar").toString().simplified(); 
 		
 		current_tool.tab_widgets = tab_widgets;
 		current_tool.seq_wizards = seq_wizards;
 		current_tool.depth_monitors = depth_monitors;
+		current_tool.dock_widgets = dock_widgets;
 		current_tool.info_bar = tool_info_bar;
 
 		setToolChannels(current_tool_settings);
@@ -2087,6 +2116,30 @@ void MainWindow::setDataFileSettings()
 	}
 }
 
+void MainWindow::resetCommSettings()
+{
+	//default_comm_settings_on = true;
+	setDefaultCommSettings(true);
+	nmrtoolLinker->setDefaultCommSettingsState(true);
+	nmrtoolLinker->startConnection(true);
+}
+
+void MainWindow::setDefaultCommSettings(bool state)
+{
+	default_comm_settings_on = state;
+	if (default_comm_settings_on)
+	{
+		comm_settings->packet_length = 100;
+		comm_settings->block_length = 20;
+		comm_settings->errs_count = 2;
+		comm_settings->packet_delay = 0;
+		comm_settings->antinoise_coding = true;
+		comm_settings->packlen_autoadjust = true;
+		comm_settings->interleaving = false;
+		comm_settings->noise_control = false;
+	}
+}
+
 void MainWindow::setSaveDataAttrs(DataSave &attrs)
 {
 	save_data_attrs.file_name = attrs.file_name;
@@ -2533,6 +2586,7 @@ void MainWindow::setCmdResult(uint8_t cmd, ConnectionState state)
 	switch (cmd)
 	{
 	case NMRTOOL_CONNECT:
+	case NMRTOOL_CONNECT_DEF:
 		if (state == ConnectionState::State_Connecting)
 		{
 			a_disconnect->setEnabled(false);
@@ -4045,10 +4099,10 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 			memo += QString("descp=%1\n").arg(channel_name);
 			memo += QString("frq_set_num=%1\n").arg(channel_frq_set_num);
 			memo += QString("frq1=%1\n").arg(frq1);
-			memo += QString("frq1=%1\n").arg(frq2);
-			memo += QString("frq1=%1\n").arg(frq3);
-			memo += QString("frq1=%1\n").arg(frq4);
-			memo += QString("frq1=%1\n").arg(frq5);
+			memo += QString("frq2=%1\n").arg(frq2);
+			memo += QString("frq3=%1\n").arg(frq3);
+			memo += QString("frq4=%1\n").arg(frq4);
+			memo += QString("frq5=%1\n").arg(frq5);
 			memo += QString("addr_rx=%1\n").arg(addr_rx);
 			memo += QString("addr_tx=%1\n").arg(addr_tx);
 			memo += QString("depth_displ=%1\n").arg(displ);
@@ -4056,7 +4110,7 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 			memo += QString("normalize_coef2=%1\n").arg(norm_coef2);
 			memo += QString("meas_frq=%1\n").arg(meas_frq);
 			memo += QString("field_gradient=%1\n").arg(field_gradient);
-			memo += QString("\n\n");			
+			memo += QString("\n\n");
 		}
 		
 		memo += QString("[Sequence]\n");

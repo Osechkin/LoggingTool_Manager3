@@ -128,6 +128,7 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 			switch (comm_id)
 			{
 			case NMRTOOL_CONNECT:
+			case NMRTOOL_CONNECT_DEF:
 				{
 					if (data.count() > 0)
 					{
@@ -142,8 +143,13 @@ void NMRToolLinker::showCmdResult(uint32_t _uid, QString obj_name, QVariantList 
 							connection_state = ConnectionState::State_OK;
 							connWidget->stopBlinking();
 							connWidget->setReport(connection_state);
+
+							if (comm_id == NMRTOOL_CONNECT) default_comm_settings_on = false;
+							else if (comm_id == NMRTOOL_CONNECT_DEF) default_comm_settings_on = true;
+
 							emit place_to_statusbar(tr(" Logging Tool is connected !"));
 							emit tool_settings_applied(true);
+							emit default_comm_settings(default_comm_settings_on);
 
 							saveCOMPortSettings();
 						}
@@ -724,7 +730,9 @@ void NMRToolLinker::searchForNMRTool()
 	QApplication::setOverrideCursor(Qt::BusyCursor);
 
 	connection_state = ConnectionState::State_Connecting;	
-	emit cmd_resulted(NMRTOOL_CONNECT, connection_state);
+	uint8_t cmd_code = NMRTOOL_CONNECT;
+	if (default_comm_settings_on) cmd_code = NMRTOOL_CONNECT_DEF;
+	emit cmd_resulted(cmd_code, connection_state);
 
 	connWidget->startBlinking();
 	bool res = openCOMPort();
@@ -794,10 +802,21 @@ void NMRToolLinker::findNMRTool()
 	addText(QString("<font color=darkBlue>%1").arg(ctime_srt) + QString(tr("Connect to Logging Tool ")) + QString("[%1] ...</font>").arg(com_port->COM_port->portName()));
 
 	uint32_t id = COM_Message::generateMsgId();
-	DeviceData *device_data = new DeviceData(NMRTOOL_CONNECT, "Connect to Logging Tool", id);
-	msg_container.append(device_data);
-	
-	emit send_msg(device_data, this->objectName()); // Find NMR Tool and Connect	
+	if (default_comm_settings_on)
+	{
+		DeviceData *device_data = new DeviceData(NMRTOOL_CONNECT_DEF, "Connect to Logging Tool with default Communication Settings", id);
+		msg_container.append(device_data);
+
+		emit send_msg(device_data, this->objectName()); // Find NMR Tool and Connect
+	}
+	else
+	{
+		DeviceData *device_data = new DeviceData(NMRTOOL_CONNECT, "Connect to Logging Tool", id);
+		msg_container.append(device_data);
+
+		emit send_msg(device_data, this->objectName()); // Find NMR Tool and Connect
+	}
+		
 	emit place_to_statusbar(tr("Connecting to Logging Tool..."));
 }
 

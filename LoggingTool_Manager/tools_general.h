@@ -24,6 +24,7 @@ struct ToolInfo
 	QString file_name;
 	QStringList tab_widgets;					// список доступных вкладок в главном виджете приложения (полный список: "Logging", "DataPreview", "Oscilloscope", "Monitoring", "SDSP")
 	QStringList seq_wizards;					// список виждетов для ввода последовательности и управления экспериментом (полный список: "SequenceWizard", "ExperimentScheduler")
+	QStringList dock_widgets;					// список отображаемых "плавающих" виджетов (полный список: "LoggingToolConsole", "CommunicationLogMonitor", "FrequencyAutoTune", "RxTxControl", "RFPulseControl")
 	QStringList depth_monitors;					// список глубиномеров и дальномеров (полный список: "DepthEmulator", "Impulse-Ustye", "InternalDepthMeter", "LeuzePositionMeter")
 	QString info_bar;							// самоназвание прибора в InfoBar ("KMRK", "NMKT", "KERN")		
 };

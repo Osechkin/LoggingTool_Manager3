@@ -1413,6 +1413,22 @@ LoggingPlot::LoggingPlot(LoggingData *log_container, QwtPlot *qwt_plot, QFrame *
 	
 	qwt_plot->setAxisScale(QwtPlot::yLeft, 1000, 0, 200);
 	qwt_plot->setAxisScale(QwtPlot::yRight, 1000, 0, 200);
+
+	if (log_container->log_type == LoggingData::NMRBins_Probe1 ||
+		log_container->log_type == LoggingData::NMRBins_Probe2 ||
+		log_container->log_type == LoggingData::NMRBins_Probe3)
+	{
+		qwt_plot->setAxisScale(QwtPlot::xTop, 0, 100, 10);
+		qwt_plot->setAxisScale(QwtPlot::xBottom, 0, 100, 10);
+		qwt_plot->setAxisScaleDiv(QwtPlot::xBottom, QwtScaleDiv(0,100));
+		qwt_plot->setAxisScaleDiv(QwtPlot::xTop, QwtScaleDiv(0,100));
+		zoomer->setZoomBase(false);
+	}
+	/*else
+	{
+		qwt_plot->setAxisScale(QwtPlot::xTop, 0, 1000, 200);
+		qwt_plot->setAxisScale(QwtPlot::xBottom, 0, 1000, 200);
+	}*/	
 	
 	qwt_plot->setAxisMaxMajor(QwtPlot::xBottom, 5);
 	qwt_plot->setAxisMaxMajor(QwtPlot::xTop, 5);

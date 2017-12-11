@@ -476,6 +476,7 @@ void MsgProcessor::receiveMsgFromCOMComander(COM_Message *_msg, uint32_t _uid)
 					break;
 				}
 			case NMRTOOL_CONNECT:
+			case NMRTOOL_CONNECT_DEF:
 				{
 					SmartArr arr = _msg->getMsgHeader()->getShortData();
 					unsigned char device_id = (arr.data[1]);
@@ -1930,6 +1931,12 @@ MsgInfo::ParsingResult MsgProcessor::extractData(MsgInfo *msg_info)
 		case NMRTOOL_CONNECT:
 			{
 				msg_info->setDeviceDataMemo("Connect to Logging Tool", NMRTOOL_CONNECT, MTYPE_SHORT);
+				start_pos += SRV_DATA_LEN;
+				break;
+			}
+		case NMRTOOL_CONNECT_DEF:
+			{
+				msg_info->setDeviceDataMemo("Connect to Logging Tool", NMRTOOL_CONNECT_DEF, MTYPE_SHORT);
 				start_pos += SRV_DATA_LEN;
 				break;
 			}

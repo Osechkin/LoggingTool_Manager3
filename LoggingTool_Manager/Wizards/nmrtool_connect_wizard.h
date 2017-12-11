@@ -119,6 +119,7 @@ public slots:
 	void sendDataToSDSP(QByteArray& arr);
 	void sendDataToSDSP(QVector<int> &params);
 	void sendToolSettings(QVector<int> params);
+	void setDefaultCommSettingsState(bool state) { default_comm_settings_on = state; }
 
 private:
 	void setConnections();
@@ -129,7 +130,8 @@ private:
 	TrafficWidget *trafficWidget;
 	ConnectionWidget *connWidget;
 	bool log_viz_state;
-
+	bool default_comm_settings_on;
+	
 	QSettings *app_settings;
 
 	COM_PORT *com_port;
@@ -158,6 +160,7 @@ signals:
 	void send_data_toSDSP(QByteArray&);						// данные для прямой оправки в диэлектрический прибор
 	void tool_settings_applied(bool);						// признак успешной отправки настроек каротажного прибора	
 	void fpga_seq_started(bool);							// информиование планировшика эксперимента об успехе/неуспехе старта последовательности из программы эксперимента
+	void default_comm_settings(bool);						// 
 };
 
 #endif // NMRTOOL_CONNECT_WIZARD

@@ -1315,6 +1315,7 @@ void COMCommander::executeShortMsg(COM_Message *_msg)
 	{
 	case DATA_OK:
 	case NMRTOOL_CONNECT:
+	case NMRTOOL_CONNECT_DEF:
 		{
 			if (!sent_device_data_queue.empty())
 			{

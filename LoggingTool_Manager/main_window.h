@@ -61,6 +61,8 @@ public:
 	ProcessingRelax &getProcessingRelax() { return processing_relax; }
 	QVector<ToolChannel*> &getCurrentToolChannels() { return tool_channels; }
 	ToolChannel *getToolChannel(int _channel_id);
+
+	bool isDefaultCommSettings() { return default_comm_settings_on; }
 		
 private:
 	void setActions();
@@ -102,7 +104,7 @@ private:
 	bool getExportingStateToOil(DataType &dt);
 	bool dataIsExportingToFile(uint8_t data_code);
 	bool getExportingStateToFile(DataType &dt);
-
+	
 	//void applyFPGAandDSPPrg();
 
 	void initExperimentalInfo();
@@ -216,6 +218,8 @@ private:
 	DataSetWindows data_set_windows;
 	DataTypeList data_type_list_Oil;	// список данных для экспорта в программу-планшет (Oil)
 	DataTypeList data_type_list_File;	// список данных для экспорта во внешний файл
+
+	bool default_comm_settings_on;
 	
 private slots:    
 	void connectToNMRTool(bool flag);   
@@ -244,6 +248,8 @@ private slots:
 	void startExperiment(bool flag);
 	void setExperimentalInfo();
 	void setDataFileSettings();
+	void setDefaultCommSettings(bool state); // { default_comm_settings_on = state; }
+	void resetCommSettings();
 
 	void storeMsgData(MsgInfo* msg_info);
 	//void plotData(DeviceData *device_data);		

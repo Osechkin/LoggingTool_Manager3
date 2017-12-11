@@ -954,6 +954,7 @@ void SchedulerWizard::showItemParameters(Scheduler::SchedulerObject *obj)
 
 			QDoubleSpinBox *dsboxStep = new QDoubleSpinBox;					
 			dsboxStep->setValue(dist_range_obj->step);	
+			dsboxStep->setMinimum(0.2);		// minimal step is 0.2 cm
 			connect(dsboxStep, SIGNAL(valueChanged(double)), dist_range_obj, SLOT(changeStep(double)));
 					
 			QComboBox *cboxDoCalibr = new QComboBox;

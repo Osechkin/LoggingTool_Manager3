@@ -3501,7 +3501,10 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
 				ds->setInitialDataSize(full_size);		
 				ds->setChannelId(channel_data_id);
-				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				//QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				double x_displ = getDepthDisplacement(channel_data_id, tool_channels);
+				QPair<bool,double> dpt = depthTemplate->getDepthData();
+				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
 				dss.append(ds);	
@@ -3564,7 +3567,10 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
 				ds->setInitialDataSize(full_size);		
 				ds->setChannelId(channel_data_id);
+				//QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				double x_displ = getDepthDisplacement(channel_data_id, tool_channels);
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
 				dss.append(ds);
@@ -3624,7 +3630,10 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
 				ds->setInitialDataSize(full_size);
 				ds->setChannelId(channel_data_id);
+				//QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				double x_displ = getDepthDisplacement(channel_data_id, tool_channels);
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
 				dss.append(ds);
@@ -3684,7 +3693,10 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
 				ds->setInitialDataSize(full_size);
 				ds->setChannelId(channel_data_id);
+				//QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				double x_displ = getDepthDisplacement(channel_data_id, tool_channels);
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
 				dss.append(ds);
@@ -3917,7 +3929,10 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
 				ds->setInitialDataSize(full_size);
 				ds->setChannelId(channel_data_id);
+				//QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				double x_displ = getDepthDisplacement(channel_data_id, tool_channels);
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
 				dss.append(ds);
@@ -3974,7 +3989,10 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				static int num_data = 0;
 				DataSet *ds = new DataSet(ds_name_base.arg(++num_data), msg_uid, comm_id, x_data, y_data, bad_map);
 				ds->setInitialDataSize(full_size);
+				//QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				double x_displ = getDepthDisplacement(channel_data_id, tool_channels); 
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
+				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
 				dss.append(ds);

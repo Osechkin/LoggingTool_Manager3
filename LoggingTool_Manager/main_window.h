@@ -218,7 +218,7 @@ private:
 	DataSetWindows data_set_windows;
 	DataTypeList data_type_list_Oil;	// список данных для экспорта в программу-планшет (Oil)
 	DataTypeList data_type_list_File;	// список данных для экспорта во внешний файл
-
+		
 	bool default_comm_settings_on;
 	
 private slots:    

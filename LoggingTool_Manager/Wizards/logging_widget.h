@@ -112,6 +112,8 @@ public:
 	int getQwtPlotIndex() { return qwt_plot_index; }
 	PlotZoomer *getInversePlotZoomer() { return zoomer; }
 
+	LoggingData *getLogContainer() { return log_container; }
+
 	QList<QwtPlotCurve*> *getQwtCurveList() { return &qwt_curve_list; }	
 	QList<QVector<double>* > *getDataXList() { return xdata_list; }
 	QList<QVector<double>* > *getDataYList() { return ydata_list; }
@@ -136,6 +138,7 @@ private:
 	QList<QVector<double>* >* ydata_list;
 	LoggingData::DataType data_type;
 	QString data_title;
+	LoggingData *log_container;
 	//ToolChannel *tool_channel;
 
 	QVector<double> calibration_store;

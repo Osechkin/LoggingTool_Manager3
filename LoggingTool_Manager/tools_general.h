@@ -6,9 +6,15 @@
 #include "qextserialport.h"
 
 
-//#define NMRKern					(5)				// ID прибора ЯМР Керн
-//#define KMRK					(4)				// ID прибора КМРК
-//#define NMKT					(3)				// ID прибора ЯМКТ
+typedef enum { 
+	Depth,							// глубина 
+	Distance,						// расстояние (для приборов с протяжной керна)
+	Time,							// время
+	Temperature,					// температура
+	Concentration					// концентрация
+} ScannedQuantity;	
+
+
 
 struct ToolInfo
 {	
@@ -17,6 +23,7 @@ struct ToolInfo
 		id = _id;
 		type = _type;
 		file_name = _file_name;
+		scanned_quantity = ScannedQuantity::Depth;
 	}
 
 	int id;
@@ -26,7 +33,8 @@ struct ToolInfo
 	QStringList seq_wizards;					// список виждетов для ввода последовательности и управления экспериментом (полный список: "SequenceWizard", "ExperimentScheduler")
 	QStringList dock_widgets;					// список отображаемых "плавающих" виджетов (полный список: "LoggingToolConsole", "CommunicationLogMonitor", "FrequencyAutoTune", "RxTxControl", "RFPulseControl")
 	QStringList depth_monitors;					// список глубиномеров и дальномеров (полный список: "DepthEmulator", "Impulse-Ustye", "InternalDepthMeter", "LeuzePositionMeter")
-	QString info_bar;							// самоназвание прибора в InfoBar ("KMRK", "NMKT", "KERN")		
+	QString info_bar;							// самоназвание прибора в InfoBar ("KMRK", "NMKT", "KERN")	
+	ScannedQuantity scanned_quantity;			// сканируемая прибором величина: глубина (для каротажных приборов), позиция керна (для приборов ЯМР-Керн), время, температура, концентрация и т.д.
 };
 
 

@@ -939,6 +939,15 @@ void MainWindow::changeLoggingTool()
 		if (current_tool.id == uid) current_tool_index = i;
 		if (current_tool.type == tool_type) current_tool_index = i;
 
+		QString scan_q;
+		if (settings->contains("ScannedQuantity/Quantity")) scan_q = settings->value("ScannedQuantity/Quantity").toString(); 
+		if (scan_q == "Depth") current_tool.scanned_quantity == ScannedQuantity::Depth;
+		else if (scan_q == "Distance") current_tool.scanned_quantity == ScannedQuantity::Distance;
+		else if (scan_q == "Time") current_tool.scanned_quantity == ScannedQuantity::Time;
+		else if (scan_q == "Temperature") current_tool.scanned_quantity == ScannedQuantity::Temperature;
+		else if (scan_q == "Concentration") current_tool.scanned_quantity == ScannedQuantity::Concentration;
+		else current_tool.scanned_quantity == ScannedQuantity::Depth;
+
 		QStringList tab_widgets;
 		if (settings->contains("VisualSettings/TabWidgets")) tab_widgets = settings->value("VisualSettings/TabWidgets").toStringList();
 		QStringList seq_wizards;
@@ -4136,6 +4145,13 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		memo += QString("Author = %1\n").arg(cur_seq->author);
 		memo += QString("\n\n");
 		
+		memo += QString("[ScannedQuantity]\n");
+		if (current_tool.scanned_quantity == ScannedQuantity::Depth) memo += QString("Quantity = %1\n").arg("Depth");
+		else if (current_tool.scanned_quantity == ScannedQuantity::Distance) memo += QString("Quantity = %1\n").arg("Distance");
+		else if (current_tool.scanned_quantity == ScannedQuantity::Time) memo += QString("Quantity = %1\n").arg("Time");
+		else if (current_tool.scanned_quantity == ScannedQuantity::Temperature) memo += QString("Quantity = %1\n").arg("Temperature");
+		else if (current_tool.scanned_quantity == ScannedQuantity::Concentration) memo += QString("Quantity = %1\n").arg("Concentration");
+		memo += QString("\n\n");
 
 		memo += "[DataX]\n";
 		QString d_str = " NAN             ";

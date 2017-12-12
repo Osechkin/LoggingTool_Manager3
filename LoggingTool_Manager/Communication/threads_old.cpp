@@ -927,7 +927,9 @@ void COMCommander::onDataAvailable()
 	QByteArray str = COM_port->readAll();
 
 	if (!str.isEmpty())
-	{		
+	{
+		//prebuff += str;
+
 		if (msg_header_state < FINISHED)
 		{
 			searchMsgHeader(head_q, str);
@@ -944,9 +946,13 @@ void COMCommander::onDataAvailable()
 		{
 			// если заголовок служебного сообщения (а значит и все служебное сообщение) успешно принят и декодирован
 			if (msg_incomming->getMsgHeader()->getStartMarker() == MTYPE_SERVICE)
-			{
+			{				
 				msg_incomming->setIOStatus(COM_Message::COMPLETED);
-				
+				//msg_incomming->setStored(true);
+
+				//emit store_COM_message(msg_incomming);
+				//emit COM_message(msg_incomming, 0);
+
 				lock_COM_Msg();
 				COM_Message *msg = new COM_Message(new MsgHeader(gf_data));
 				msg_incomming->copyCOMMsg(msg);
@@ -963,6 +969,9 @@ void COMCommander::onDataAvailable()
 			if (msg_incomming->getMsgHeader()->getStartMarker() == MTYPE_SHORT)
 			{				
 				msg_incomming->setIOStatus(COM_Message::COMPLETED);
+
+				//msg_incomming->setStored(true);
+				//emit store_COM_message(msg_incomming);
 
 				uint32_t dev_data_uid = 0;
 				if (!sent_device_data_queue.empty())
@@ -1138,6 +1147,9 @@ void COMCommander::onDataAvailable()
 			}
 
 			msg_incomming->setIOStatus(COM_Message::COMPLETED);
+
+			//msg_incomming->setStored(true);
+			//emit store_COM_message(msg_incomming);
 
 			uint32_t dev_data_uid = 0;	
 			if (!sent_device_data_queue.empty())

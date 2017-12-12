@@ -25,7 +25,7 @@ public:
 	QString getTitle() { return tr("Leuze Distance Meter"); }
 	DepthMeterType getType() { return DepthMeterType::LeuzeDistanceMeter; }
 
-	double_b getDepth() { return double_b(true, distance-zero_pos-calibr_len); }
+	double_b getDepth() { return double_b(true, distance-zero_pos); }
 	//double_b getRate() { return double_b(false, rate); }
 	//double_b getTension() { return double_b(false, tension); }
 	//int_b getMagnetMarks() { return int_b(false, 0); }

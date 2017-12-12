@@ -979,6 +979,14 @@ void LoggingWidget::scaleDataIn()
 
 	double new_cur_max = (cur_max+cur_min)/2 + delta/2;
 	double new_cur_min = (cur_max+cur_min)/2 - delta/2;
+
+	if (logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe1 ||
+		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe2 ||
+		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe3)
+	{
+		if (new_cur_max > 100) new_cur_max = 100;
+		if (new_cur_min < 0) new_cur_min = 0;
+	}
 		
 	qwtPlot->setAxisScale(QwtPlot::xBottom, new_cur_min, new_cur_max);
 	qwtPlot->setAxisScale(QwtPlot::xTop, new_cur_min, new_cur_max);
@@ -1006,6 +1014,14 @@ void LoggingWidget::scaleDataOut()
 
 	double new_cur_max = (cur_max+cur_min)/2 + delta/2;
 	double new_cur_min = (cur_max+cur_min)/2 - delta/2;
+
+	if (logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe1 ||
+		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe2 ||
+		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe3)
+	{
+		if (new_cur_max > 100) new_cur_max = 100;
+		if (new_cur_min < 0) new_cur_min = 0;
+	}
 
 	qwtPlot->setAxisScale(QwtPlot::xBottom, new_cur_min, new_cur_max);
 	qwtPlot->setAxisScale(QwtPlot::xTop, new_cur_min, new_cur_max);
@@ -1382,6 +1398,7 @@ LoggingPlot::LoggingPlot(LoggingData *log_container, QwtPlot *qwt_plot, QFrame *
 	legend_frame = frame;
 	qwt_plot_index = index;
 	data_title = log_container->data_title;
+	this->log_container = log_container;
 	//tool_channel = NULL;
 	
 	qwtPlot->setCanvasBackground(QBrush(QColor(Qt::white)));

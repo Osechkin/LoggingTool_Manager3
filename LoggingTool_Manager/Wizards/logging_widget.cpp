@@ -385,13 +385,13 @@ LoggingWidget::LoggingWidget(QVector<ToolChannel*> channels, QWidget *parent) : 
 			if (show_on /*&& data_containers.count() < 5*/)
 			{
 				QString d_title = tr("%1 : Solid Echo").arg(channels[i]->name);				
-				LoggingData *dcont = new LoggingData(LoggingData::DataType::SolidEcho_Probe, channels[i], d_title, tr("Value, a.u."));
+				LoggingData *dcont = new LoggingData(LoggingData::DataType::SolidEcho_Probe, channels[i], d_title, tr("Porosity, %"));
 				data_containers << dcont;
 				items << d_title;
 			}			 
 		}
 	}
-	LoggingData *dcont = new LoggingData(LoggingData::DataType::NoType, NULL, tr("No Data"), tr("Value"));
+	LoggingData *dcont = new LoggingData(LoggingData::DataType::NoType, NULL, tr("No Data"), tr("Value, a.u."));
 	data_containers << dcont;
 	items << tr("No Data");
 
@@ -525,7 +525,8 @@ void LoggingWidget::setConnections()
 	for (int i = 0; i < logging_plot_list.count(); i++)
 	{
 		LoggingPlot *logging_plot = logging_plot_list.at(i);
-		connect(logging_plot, SIGNAL(plot_rescaled(void*)), this, SLOT(rescaleAllDepths(void*)));
+		connect(logging_plot, SIGNAL(plot_rescaled(void*)), this, SLOT(rescaleAllPlots(void*)));
+		connect(logging_plot, SIGNAL(vertical_axis_panned(void*)), this, SLOT(rescaleAllDepths(void*)));
 		connect(logging_plot->getInversePlotZoomer(), SIGNAL(zoomed(const QRectF&)), this, SLOT(setRezoomAll(const QRectF&)));
 		connect(logging_plot, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SIGNAL(new_calibration_coef(double, ToolChannel*)));
 	}
@@ -666,13 +667,13 @@ void LoggingWidget::resetLoggingPlots(QVector<ToolChannel*> channels)
 			if (show_on /*&& data_containers.count() < 5*/)
 			{
 				QString d_title = tr("%1 : Solid Echo").arg(channels[i]->name);				
-				LoggingData *dcont = new LoggingData(LoggingData::DataType::SolidEcho_Probe, channels[i], d_title, tr("Value, a.u."));
+				LoggingData *dcont = new LoggingData(LoggingData::DataType::SolidEcho_Probe, channels[i], d_title, tr("Porosity, %"));
 				data_containers << dcont;
 				items << d_title;
 			}			 
 		}
 	}
-	LoggingData *dcont = new LoggingData(LoggingData::DataType::NoType, NULL, tr("No Data"), tr("Value"));
+	LoggingData *dcont = new LoggingData(LoggingData::DataType::NoType, NULL, tr("No Data"), tr("Value, a.u."));
 	data_containers << dcont;
 	items << tr("No Data");
 
@@ -982,11 +983,12 @@ void LoggingWidget::scaleDataIn()
 
 	if (logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe1 ||
 		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe2 ||
-		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe3)
+		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe3 ||
+		logging_plot->getLogContainer()->log_type == LoggingData::SolidEcho_Probe)
 	{
 		if (new_cur_max > 100) new_cur_max = 100;
-		if (new_cur_min < 0) new_cur_min = 0;
-	}
+		new_cur_min = 0;
+	}	
 		
 	qwtPlot->setAxisScale(QwtPlot::xBottom, new_cur_min, new_cur_max);
 	qwtPlot->setAxisScale(QwtPlot::xTop, new_cur_min, new_cur_max);
@@ -1017,12 +1019,13 @@ void LoggingWidget::scaleDataOut()
 
 	if (logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe1 ||
 		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe2 ||
-		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe3)
+		logging_plot->getLogContainer()->log_type == LoggingData::NMRBins_Probe3 ||
+		logging_plot->getLogContainer()->log_type == LoggingData::SolidEcho_Probe)
 	{
 		if (new_cur_max > 100) new_cur_max = 100;
-		if (new_cur_min < 0) new_cur_min = 0;
+		new_cur_min = 0;
 	}
-
+	
 	qwtPlot->setAxisScale(QwtPlot::xBottom, new_cur_min, new_cur_max);
 	qwtPlot->setAxisScale(QwtPlot::xTop, new_cur_min, new_cur_max);
 
@@ -1298,7 +1301,7 @@ void LoggingWidget::setDataType(int index)
 	}	
 }
 
-void LoggingWidget::rescaleAllDepths(void *qwtplot_obj)
+void LoggingWidget::rescaleAllPlots(void *qwtplot_obj)
 {
 	QwtPlot *qwtPlot = (QwtPlot*)qwtplot_obj;
 	double cur_min_depth = qwtPlot->axisScaleDiv(QwtPlot::yLeft).lowerBound();
@@ -1328,6 +1331,27 @@ void LoggingWidget::rescaleAllDepths(void *qwtplot_obj)
 		scale_div.setTicks(QwtScaleDiv::MajorTick, ticks_major);
 		scale_div.setTicks(QwtScaleDiv::MinorTick, ticks_minor);
 		qwt_plot->setAxisScaleDiv(QwtPlot::xTop, scale_div);*/
+		
+		qwtPlot->replot();		
+
+		ui.cntDepthFrom->setValue(int(cur_max_depth));
+		ui.cntDepthTo->setValue(int(cur_min_depth));
+	}
+}
+
+void LoggingWidget::rescaleAllDepths(void *qwtplot_obj)
+{
+	QwtPlot *qwtPlot = (QwtPlot*)qwtplot_obj;
+	double cur_min_depth = qwtPlot->axisScaleDiv(QwtPlot::yLeft).lowerBound();
+	double cur_max_depth = qwtPlot->axisScaleDiv(QwtPlot::yLeft).upperBound();
+
+	for (int i = 0; i < logging_plot_list.count(); i++)
+	{
+		LoggingPlot *logging_plot = logging_plot_list.at(i);
+		QwtPlot *qwt_plot = logging_plot->getQwtPlot();
+		
+		qwt_plot->setAxisScale(QwtPlot::yLeft, cur_min_depth, cur_max_depth);
+		qwt_plot->setAxisScale(QwtPlot::yRight, cur_min_depth, cur_max_depth);
 		
 		qwtPlot->replot();		
 
@@ -1413,14 +1437,16 @@ LoggingPlot::LoggingPlot(LoggingData *log_container, QwtPlot *qwt_plot, QFrame *
 	grid->enableY(true);	
 	grid->attach(qwtPlot);	
 
-	QwtPlotPicker *picker = new QwtPlotPicker(QwtPlot::xBottom, QwtPlot::yLeft, QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn, qwtPlot->canvas());	
+	picker = new QwtPlotPicker(QwtPlot::xBottom, QwtPlot::yLeft, QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn, qwtPlot->canvas());	
 	picker->setRubberBandPen(QColor(Qt::green));
 	picker->setRubberBand(QwtPicker::CrossRubberBand);
 	picker->setTrackerPen(QColor(Qt::darkMagenta));
 
-	QwtPlotPanner *panner = new QwtPlotPanner(qwtPlot->canvas());
+	panner = new QwtPlotPanner(qwtPlot->canvas());
 	panner->setAxisEnabled(QwtPlot::yRight, false);
 	panner->setMouseButton(Qt::RightButton);
+	connect(panner, SIGNAL(moved(int,int)), this, SLOT(onMoved(int,int)));
+	connect(panner, SIGNAL(panned(int,int)), this, SLOT(onPanned(int,int)));
 
 	zoomer = new PlotZoomer(QwtPlot::xBottom, QwtPlot::yLeft, qwtPlot->canvas());
 	zoomer->setEnabled(true);
@@ -1433,7 +1459,8 @@ LoggingPlot::LoggingPlot(LoggingData *log_container, QwtPlot *qwt_plot, QFrame *
 
 	if (log_container->log_type == LoggingData::NMRBins_Probe1 ||
 		log_container->log_type == LoggingData::NMRBins_Probe2 ||
-		log_container->log_type == LoggingData::NMRBins_Probe3)
+		log_container->log_type == LoggingData::NMRBins_Probe3 ||
+		log_container->log_type == LoggingData::SolidEcho_Probe)
 	{
 		qwt_plot->setAxisScale(QwtPlot::xTop, 0, 100, 10);
 		qwt_plot->setAxisScale(QwtPlot::xBottom, 0, 100, 10);
@@ -1475,6 +1502,39 @@ LoggingPlot::~LoggingPlot()
 		qwt_curve->detach();
 		delete qwt_curve;
 	}
+}
+
+void LoggingPlot::onMoved(int dx, int dy)
+{
+	/*QWidget *plot_canvas = panner->canvas(); 
+	QRect rect = panner->rect();
+	int height = plot_canvas->height();
+	int axis_min = qwtPlot->axisScaleDiv(QwtPlot::yLeft).lowerBound();
+	int axis_max = qwtPlot->axisScaleDiv(QwtPlot::yLeft).upperBound();*/
+	
+}
+
+void LoggingPlot::onPanned(int dx, int dy)
+{
+	double x_min = qwtPlot->axisScaleDiv(QwtPlot::xBottom).lowerBound();
+	double x_max = qwtPlot->axisScaleDiv(QwtPlot::xBottom).upperBound();
+	double y_min = qwtPlot->axisScaleDiv(QwtPlot::yLeft).lowerBound();
+	double y_max = qwtPlot->axisScaleDiv(QwtPlot::yLeft).upperBound();
+	double width = fabs(x_max-x_min);
+
+	if (x_min < 0) 
+	{
+		qwtPlot->setAxisScale(QwtPlot::xBottom, 0, width);
+		qwtPlot->replot();
+	}
+	else if (x_max > 100)
+	{
+		qwtPlot->setAxisScale(QwtPlot::xBottom, 100-width, 100);
+		qwtPlot->replot();
+	}
+
+	void *qwtplot_obj = (void*)qwtPlot;
+	emit vertical_axis_panned(qwtplot_obj);
 }
 
 void LoggingPlot::setDataType(LoggingData::DataType dt, LoggingData *dcont)

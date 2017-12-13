@@ -67,6 +67,64 @@ protected:
 };
 
 
+class PlotPanner: public QwtPlotPanner
+{
+
+public:
+	explicit PlotPanner(QWidget* parent) : QwtPlotPanner(parent) { }
+
+	virtual bool eventFilter( QObject * object, QEvent * event)
+	{
+		if ( object == NULL || object != parentWidget() )
+			return false;
+
+		switch ( event->type() )
+		{
+		case QEvent::MouseButtonPress:
+			{
+				widgetMousePressEvent( static_cast<QMouseEvent *>( event ) );
+				break;
+			}
+		case QEvent::MouseMove:
+			{
+				QMouseEvent * evr = static_cast<QMouseEvent *>( event );
+				widgetMouseMoveEvent( evr );
+				widgetMouseReleaseEvent( evr  );
+				setMouseButton(evr->button(), evr->modifiers());
+				widgetMousePressEvent( evr);
+				break;
+			}
+		case QEvent::MouseButtonRelease:
+			{
+				QMouseEvent * evr = static_cast<QMouseEvent *>( event );
+				widgetMouseReleaseEvent( static_cast<QMouseEvent *>( event ) );
+				break;
+				grab();
+			}
+		case QEvent::KeyPress:
+			{
+				widgetKeyPressEvent( static_cast<QKeyEvent *>( event ) );
+				break;
+			}
+		case QEvent::KeyRelease:
+			{
+				widgetKeyReleaseEvent( static_cast<QKeyEvent *>( event ) );
+				break;
+			}
+		case QEvent::Paint:
+			{
+				if ( isVisible() )
+					return true;
+				break;
+			}
+		default:;
+		}
+
+		return false;
+	}
+};
+
+
 class TimeScaleDraw: public QwtScaleDraw
 {
 public:

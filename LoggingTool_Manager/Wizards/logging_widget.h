@@ -126,11 +126,17 @@ public:
 private:
 	void setCurveSettings(QwtPlotCurve *curve, LoggingData::BinType dt = LoggingData::None);
 	void addNewLog(QString log_name, LoggingData::BinType dt = LoggingData::None);
+
+private slots:
+	void onMoved(int dx, int dy);
+	void onPanned(int dx, int dy);
 		
 private:
 	QwtPlot *qwtPlot;
 	QFrame *legend_frame;
 	PlotZoomer *zoomer;
+	QwtPlotPicker *picker;
+	QwtPlotPanner *panner;
 
 	int qwt_plot_index;
 	QList<QwtPlotCurve*> qwt_curve_list;
@@ -157,6 +163,7 @@ private:
 			
 signals:
 	void plot_rescaled(void*);
+	void vertical_axis_panned(void*);
 	void new_calibration_coef(double, ToolChannel*);
 };
 
@@ -240,6 +247,7 @@ private:
 
 private slots:
 	void setDataType(int index);
+	void rescaleAllPlots(void *qwtplot_obj);
 	void rescaleAllDepths(void *qwtplot_obj);
 	void setRezoomAll(const QRectF &rect);
 	//void setDepthScale();

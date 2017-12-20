@@ -218,9 +218,10 @@ void COMCommander::sendCOMMsg(COM_Message *msg)
 		if (msg->getIOStatus() == COM_Message::SENT)
 		{
 			int packet_delay = main_win->getCommSettings()->packet_delay;
+			qDebug() << msg->getPackets().count() << msg->getPackets().first()->getPacketLen();
 			for (int i = 0; i < msg->getPackets().count(); i++)
 			{
-				Sleep(100);
+				Sleep(20);
 
 				SmartArr arr;
 				msg->getPacketRawData(&arr, i);				
@@ -1647,7 +1648,8 @@ void COMCommander::executeServiceMsg(COM_Message *_msg)
 					}
 
 					int data_len = pos;
-					int pack_len = estimateBestPackLen(data_len, comm_settings->block_length, 2*comm_settings->errs_count);
+					int pack_len = main_win->getCommSettings()->packet_length;
+					if (main_win->getCommSettings()->packlen_autoadjust) pack_len = estimateBestPackLen(data_len, comm_settings->block_length, 2*comm_settings->errs_count);
 					int pack_count = (int)ceil(data_len/(double)pack_len);
 										
 					hdr_info.block_len = comm_settings->block_length;
@@ -1994,7 +1996,8 @@ void COMCommander::decodePackByteArray(SmartArr byte_arr, int block_len, GF_Data
 	}	
 }
 
-int COMCommander::estimateBestPackLen(int data_len, int block_len, int rs_part_len)
+
+/*int COMCommander::estimateBestPackLen(int data_len, int block_len, int rs_part_len)
 {
 	int pack_count = 1;
 	int max_len = 0;
@@ -2025,6 +2028,27 @@ int COMCommander::estimateBestPackLen(int data_len, int block_len, int rs_part_l
 	
 	return res;
 }
+*/
+
+
+int COMCommander::estimateBestPackLen(int data_len, int block_len, int rs_part_len)
+{
+	int blocks = ceil((double)data_len/(block_len-rs_part_len));
+	int full_data_len = blocks*block_len;
+			
+	bool ready = false;
+	int pack_len = floor(254.0/block_len)*block_len;
+	int new_pack_len = pack_len;
+	int pack_count = ceil((double)full_data_len/(new_pack_len-PACK_INFO_LEN-1));
+	while (pack_count*(new_pack_len-PACK_INFO_LEN-1) - full_data_len > 0)
+	{
+		pack_len = new_pack_len;
+		new_pack_len -= block_len;
+	}
+
+	return pack_len;
+}
+
 
 
 void COMCommander::executeMultyPackMsg(COM_Message *_msg, uint32_t _uid, bool res)
@@ -2059,6 +2083,7 @@ void COMCommander::executeMultyPackMsg(COM_Message *_msg, uint32_t _uid, bool re
 	emit COM_message(msg, _uid);
 	unlock_COM_Msg();
 }
+
 
 void COMCommander::clearCOMMsg(COM_Message *_msg)
 {

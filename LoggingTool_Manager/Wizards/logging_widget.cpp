@@ -528,7 +528,8 @@ void LoggingWidget::setConnections()
 		connect(logging_plot, SIGNAL(plot_rescaled(void*)), this, SLOT(rescaleAllPlots(void*)));
 		connect(logging_plot, SIGNAL(vertical_axis_panned(void*)), this, SLOT(rescaleAllDepths(void*)));
 		connect(logging_plot->getInversePlotZoomer(), SIGNAL(zoomed(const QRectF&)), this, SLOT(setRezoomAll(const QRectF&)));
-		connect(logging_plot, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SIGNAL(new_calibration_coef(double, ToolChannel*)));
+		//connect(logging_plot, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SIGNAL(new_calibration_coef(double, ToolChannel*))); save new calibr coefficient to the tool.cfg file. Temporary reactivated
+		connect(logging_plot, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SLOT(calibrateNMRData(double, ToolChannel*)));
 	}
 
 	//connect(ui.tbtDapth, SIGNAL(clicked()), this, SLOT(setDepthScale()));
@@ -915,7 +916,7 @@ void LoggingWidget::clearAllData()
 	for (int i = 0; i < data_containers.count(); i++)
 	{
 		LoggingData *logging_data = data_containers.at(i);
-		logging_data->log_type = LoggingData::NoType;
+		//logging_data->log_type = LoggingData::NoType;
 
 		ToolData *depth_data = logging_data->depth_data;
 		ToolData *data = logging_data->logging_data;
@@ -1249,6 +1250,55 @@ void LoggingWidget::addDataSets(DataSets _dss)
 		LoggingPlot *logging_plot = logging_plot_list.at(i);
 		logging_plot->closeLoggingCurveList();
 	}
+}
+
+void LoggingWidget::calibrateNMRData(double calibr_coef, ToolChannel *channel)
+{
+	foreach (LoggingPlot *logging_plot, logging_plot_list)
+	{
+		int tool_channel_id = logging_plot->getLogContainer()->channel_id();
+		if (tool_channel_id == channel->channel_id)
+		{
+			ToolData *ydata_list = logging_plot->getDataYList();
+			LoggingData::DataType data_type = logging_plot->getDataType();
+
+			switch (data_type)
+			{
+			case LoggingData::NMRBins_Probe1:
+				{
+					int cur_index = 0;
+
+					QVector<double> *y_mphs = ydata_list->at(cur_index+1);
+					for (int j = 0; j < y_mphs->size(); j++)
+					{
+						y_mphs->data()[j] = y_mphs->data()[j] / channel->normalize_coef1 * calibr_coef;
+					}
+					QVector<double> *y_mphi = ydata_list->at(cur_index+2);
+					for (int j = 0; j < y_mphi->size(); j++)
+					{
+						y_mphi->data()[j] = y_mphi->data()[j] / channel->normalize_coef1 * calibr_coef;
+					}
+					QVector<double> *y_mffi = ydata_list->at(cur_index+3);
+					for (int j = 0; j < y_mffi->size(); j++)
+					{
+						y_mffi->data()[j] = y_mffi->data()[j] / channel->normalize_coef1 * calibr_coef;
+					}
+					break;
+				}
+			case LoggingData::SolidEcho_Probe:
+				{
+					QVector<double> *y_data = ydata_list->at(0);
+					for (int j = 0; j < y_data->size(); j++)
+					{
+						y_data->data()[j] = y_data->data()[j] / channel->normalize_coef1 * calibr_coef;
+					}
+				}
+			default: break;
+			}
+
+			channel->normalize_coef1 = calibr_coef;
+		}
+	}	
 }
 
 void LoggingWidget::setDataType(int index)
@@ -1628,8 +1678,10 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 						double Pcalibr = standard_porosity;
 						double Dcalibr = standard_diameter;
 						double calibr_normalize_coef = (Pcalibr/S)*(Dcalibr*Dcalibr/core_diameter/core_diameter);
-												
-						QVector<double> *y_mphs = ydata_list->at(cur_index+1);
+								
+						emit new_calibration_coef(calibr_normalize_coef, channel);
+
+						/*QVector<double> *y_mphs = ydata_list->at(cur_index+1);
 						for (int j = 0; j < y_mphs->size(); j++)
 						{
 							y_mphs->data()[j] = y_mphs->data()[j] / channel->normalize_coef1 * calibr_normalize_coef;
@@ -1645,10 +1697,9 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 							y_mffi->data()[j] = y_mffi->data()[j] / channel->normalize_coef1 * calibr_normalize_coef;
 						}
 
-						channel->normalize_coef1 = calibr_normalize_coef;
+						channel->normalize_coef1 = calibr_normalize_coef; */
 
 						//already_normalized = true;
-
 						//emit new_calibration_coef(calibr_normalize_coef, channel);	// удалил временно. Обеспечить запись не в rern.cfg, а в файл данных
 					}	
 					calibration_store.clear();

@@ -504,10 +504,26 @@ void MsgProcessor::receiveMsgFromCOMComander(COM_Message *_msg, uint32_t _uid)
 				{
 					SmartArr arr = _msg->getMsgHeader()->getShortData();
 					int err_code = arr.data[1];
-					
+					/* Error codes from Logging Tool:
+					MSG_OK = 0,								// многопакетное сообщение было успешно принято и раскодировано
+					MSG_NO_PACKS = 1,						// пакеты многопакетного сообщения не поступили
+					MSG_DATA_NOT_ALL = 2,					// данные (пакеты) не поступили в полном обхеме для их расшифровки
+					MSG_DECODE_ERR = 3,						// фатальная ошибка при раскодировании принятых пакетов
+					MSG_BAD_PACKETS = 4,					// пакеты не прошли проверку на crc и т.п.
+					MSG_EXTRACT_ERR = 5						// ошибка при извлечении данных из пакетов
+					*/
+					QString err_str = "";
+					switch (err_code)
+					{
+					case 1: err_str = "Packets were not received!"; break;
+					case 2: err_str = "Some packets were lost!"; break;
+					case 3: err_str = "Decoding error!"; break;
+					case 4: err_str = "Bad CRC!"; break;
+					case 5: err_str = "Damaged data was extracted!"; break;
+					}
 					QDateTime ctime = QDateTime::currentDateTime();
 					QString ctime_str = "&lt;" + ctime.toString("hh:mm:ss") + "&gt;: ";
-					QString err_msg = QString(tr("Logging Tool cannot receive and process message. Error code: %1 ").arg(err_code));
+					QString err_msg = QString(tr("Logging Tool cannot receive and process data. Error message: %1 ").arg(err_str));
 					err_msg = "<font color=red>" + ctime_str + err_msg + "</font>"; 
 
 					emit message_str_to_Tool_console(err_msg);

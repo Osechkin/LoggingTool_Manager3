@@ -259,6 +259,7 @@ private slots:
 	void scaleDataOut();
 	void scaleDepthIn();
 	void scaleDepthOut();
+	void calibrateNMRData(double calibr_coef, ToolChannel *channel);
 
 public slots:
 	void startCalibration();

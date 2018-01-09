@@ -1261,37 +1261,44 @@ void LoggingWidget::calibrateNMRData(double calibr_coef, ToolChannel *channel)
 		{
 			ToolData *ydata_list = logging_plot->getDataYList();
 			LoggingData::DataType data_type = logging_plot->getDataType();
-
+						
 			switch (data_type)
 			{
 			case LoggingData::NMRBins_Probe1:
 				{
 					int cur_index = 0;
-
-					QVector<double> *y_mphs = ydata_list->at(cur_index+1);
-					for (int j = 0; j < y_mphs->size(); j++)
+					if (ydata_list->isEmpty())
 					{
-						y_mphs->data()[j] = y_mphs->data()[j] / channel->normalize_coef1 * calibr_coef;
-					}
-					QVector<double> *y_mphi = ydata_list->at(cur_index+2);
-					for (int j = 0; j < y_mphi->size(); j++)
-					{
-						y_mphi->data()[j] = y_mphi->data()[j] / channel->normalize_coef1 * calibr_coef;
-					}
-					QVector<double> *y_mffi = ydata_list->at(cur_index+3);
-					for (int j = 0; j < y_mffi->size(); j++)
-					{
-						y_mffi->data()[j] = y_mffi->data()[j] / channel->normalize_coef1 * calibr_coef;
-					}
+						QVector<double> *y_mphs = ydata_list->at(cur_index++);
+						for (int j = 0; j < y_mphs->size(); j++)
+						{
+							y_mphs->data()[j] = y_mphs->data()[j] / channel->normalize_coef1 * calibr_coef;
+						}
+						QVector<double> *y_mphi = ydata_list->at(cur_index++);
+						for (int j = 0; j < y_mphi->size(); j++)
+						{
+							y_mphi->data()[j] = y_mphi->data()[j] / channel->normalize_coef1 * calibr_coef;
+						}
+						QVector<double> *y_mffi = ydata_list->at(cur_index++);
+						for (int j = 0; j < y_mffi->size(); j++)
+						{
+							y_mffi->data()[j] = y_mffi->data()[j] / channel->normalize_coef1 * calibr_coef;
+						}
+					}					
 					break;
 				}
 			case LoggingData::SolidEcho_Probe:
-				{
-					QVector<double> *y_data = ydata_list->at(0);
-					for (int j = 0; j < y_data->size(); j++)
+				{					
+					int cur_index = 0;
+					if (!ydata_list->isEmpty()) 
 					{
-						y_data->data()[j] = y_data->data()[j] / channel->normalize_coef1 * calibr_coef;
-					}
+						QVector<double> *y_data = ydata_list->at(cur_index++);
+						for (int j = 0; j < y_data->size(); j++)
+						{
+							y_data->data()[j] = y_data->data()[j] / channel->normalize_coef1 * calibr_coef;
+						}
+					}	
+					break;
 				}
 			default: break;
 			}

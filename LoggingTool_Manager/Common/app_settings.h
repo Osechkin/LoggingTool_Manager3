@@ -44,6 +44,15 @@ static QString toAlignedString(int len, double val)
 	return out;
 }
 
+static QString toAlignedSpacedString(int num, int str_len, QString sym)
+{
+	QString str_comm = QString("%1").arg(num);
+	int str_comm_len = str_comm.length();
+	str_comm = sym.repeated(str_len).replace(0,str_comm_len, str_comm);
+
+	return str_comm;
+}
+
 static bool QStringToBool(const QString &str)
 {
 	bool res = false;

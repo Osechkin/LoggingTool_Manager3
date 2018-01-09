@@ -2863,6 +2863,7 @@ void MainWindow::treatNewData(DeviceData *device_data)
 	forT2spec_dss.clear();
 	QList<QVector<uint8_t> > gap_list;
 	QList<QVector<double> > full_xdata_list;
+	QMap<QPair<int,int>, int> data_num_generator;
 	for (int i = 0; i < fields->size(); i++)
 	{				
 		QVector<double> *y_data = new QVector<double>(fields->at(i)->value->size());		
@@ -2909,8 +2910,8 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		case DT_SGN_RELAX:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
 		case DT_SGN_RELAX2:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
 		case DT_SGN_RELAX3:			ds_name_base = "nmr_relax_sgn%1#%2"; break;
-		case DT_T1T2_NMR:			ds_name_base = "T1T2 2D-NMR%1#%2"; break;
-		case DT_DsT2_NMR:			ds_name_base = "DsT2 2D-NMR%1#%2"; break;
+		case DT_T1T2_NMR:			ds_name_base = "T1T2_2D-NMR%1#%2"; break;
+		case DT_DsT2_NMR:			ds_name_base = "DsT2_2D-NMR%1#%2"; break;
 		case DT_SOLID_ECHO:			ds_name_base = "nmr_solid_echo_sgn%1#%2"; break;		
 		case DT_SGN_POWER_SE:		ds_name_base = "nmr_se_power_sgn%1#%2"; break;
 		case DT_SGN_POWER_FID:		ds_name_base = "nmr_fft_power_sgn%1#%2"; break;
@@ -2960,6 +2961,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 					continue;
 				}*/
 				int full_size = 0;
+				double te = 0;
+				double tw = 0;
+				double td = 0;
 				if (group_index > 0)
 				{
 					int data_index = 0; 
@@ -2976,6 +2980,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 						continue;
 					}
 					LUSI::Argument *arg = executingJSeq->lusi_Seq->getArgument(group_index);
+					te = arg->getTE();
+					tw = arg->getTW();
+					td = arg->getTD();
 					full_size = arg->getSize();
 								
 					for (int j = 0; j < x_data->size(); j++)
@@ -3141,13 +3148,26 @@ void MainWindow::treatNewData(DeviceData *device_data)
 						DataSet *ds = new DataSet(ds_name_base.arg(channel_data_id).arg(++num_data), msg_uid, comm_id, x_data, aver_y_vec, aver_bad_vec);
 						ds->setInitialDataSize(full_size);	
 						ds->setGroupIndex(group_index);
-						ds->setChannelId(channel_data_id);
+						ds->setChannelId(channel_data_id);						
 						//double x_displ = getDepthDisplacement(comm_id, tool_channels);
 						double x_displ = getDepthDisplacement(channel_data_id, tool_channels);
 						QPair<bool,double> dpt = depthTemplate->getDepthData(); //depthMonitor->getDepthData();
 						dpt.second = dpt.second + x_displ;
 						ds->setDepth(dpt);
 						ds->setExpId(experiment_id);
+						ds->setTE(te);
+						ds->setTW(tw);
+						ds->setTD(td);
+						QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+						if (data_num_generator.contains(key))
+						{							
+							int last_data_num = data_num_generator[key];
+							ds->setDataNum(last_data_num+1);
+							data_num_generator[key] = last_data_num+1;
+						}
+						else data_num_generator[key] = 1;
+						ds->setDataNum(data_num_generator[key]);
+
 						dss.append(ds);
 						gap_list.append(gap_map);
 						full_xdata_list.append(x_data_full);
@@ -3180,6 +3200,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				int group_index = fields->at(i)->tag;
 				
 				int full_size = 0;
+				double te = 0;
+				double tw = 0;
+				double td = 0;
 				if (group_index > 0)
 				{
 					int data_index = 0; 					
@@ -3192,6 +3215,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 						continue;
 					}
 					LUSI::Argument *arg = executingJSeq->lusi_Seq->getArgument(group_index);
+					te = arg->getTE();
+					tw = arg->getTW();
+					td = arg->getTD();
 					full_size = arg->getSize();
 								
 					for (int j = 0; j < x_data->size(); j++)
@@ -3323,7 +3349,20 @@ void MainWindow::treatNewData(DeviceData *device_data)
 						QPair<bool,double> dpt = depthTemplate->getDepthData(); 
 						dpt.second = dpt.second + x_displ;
 						ds->setDepth(dpt);
+						ds->setTE(te);
+						ds->setTW(tw);
+						ds->setTD(td);
 						ds->setExpId(experiment_id);
+						QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+						if (data_num_generator.contains(key))
+						{							
+							int last_data_num = data_num_generator[key];							
+							ds->setDataNum(last_data_num+1);
+							data_num_generator[key] = last_data_num+1;
+						}
+						else data_num_generator[key] = 1;
+						ds->setDataNum(data_num_generator[key]);
+
 						dss.append(ds);
 						gap_list.append(gap_map);
 						full_xdata_list.append(x_data_full);						
@@ -3390,6 +3429,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -3450,6 +3499,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -3516,6 +3575,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);	
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -3582,6 +3651,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -3645,6 +3724,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -3708,6 +3797,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -3719,6 +3818,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 		case DT_AFR3_RX:
 		case DT_FREQ_TUNE:
 			{
+				double te = 0;
+				double tw = 0;
+				double td = 0;
 				int full_size = 0;
 				int group_index = fields->at(i)->tag;				
 				if (group_index > 0)
@@ -3733,6 +3835,9 @@ void MainWindow::treatNewData(DeviceData *device_data)
 						continue;
 					}
 					LUSI::Argument *arg = executingJSeq->lusi_Seq->getArgument(group_index);
+					te = arg->getTE();
+					tw = arg->getTW();
+					td = arg->getTD();
 					for (int j = 0; j < x_data->size(); j++)
 					{
 						full_size++;
@@ -3796,7 +3901,20 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				QPair<bool,double> dpt = depthTemplate->getDepthData(); 
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
+				ds->setTE(te);
+				ds->setTW(tw);
+				ds->setTD(td);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);			
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -3844,6 +3962,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -3894,6 +4022,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -3944,6 +4082,16 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];							
+					ds->setDataNum(last_data_num+1);
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);
 				gap_list.append(gap_map);
 				
@@ -4004,6 +4152,15 @@ void MainWindow::treatNewData(DeviceData *device_data)
 				dpt.second = dpt.second + x_displ;
 				ds->setDepth(dpt);
 				ds->setExpId(experiment_id);
+				QPair<int,int> key = QPair<int,int>(comm_id,channel_data_id);
+				if (data_num_generator.contains(key))
+				{							
+					int last_data_num = data_num_generator[key];						
+					data_num_generator[key] = last_data_num+1;
+				}
+				else data_num_generator[key] = 1;
+				ds->setDataNum(data_num_generator[key]);
+
 				dss.append(ds);
 				gap_list.append(gap_map);
 				full_xdata_list.append(x_data_full);
@@ -4026,6 +4183,7 @@ void MainWindow::treatNewData(DeviceData *device_data)
 }
 
 
+/*
 void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<QVector<double> > &full_xdata)
 {
 	if (dss.isEmpty()) return;
@@ -4258,23 +4416,6 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		memo += "[DataY]\n";
 	}
 
-	/*if (!save_data_attrs.to_save_all)
-	{		
-		for (int i = 0; i < dss.count(); i++)
-		{
-			DataSet *ds = dss[i];
-			if (ds->getYData()->size() != ds->getInitialDataSize()) 
-			{
-				return;
-			}
-
-			//for (int j = 0; i < ds->getBadData()->size(); j++)
-			//{
-			//	if (ds->getBadData()->data()[j] == BAD_DATA) return;
-			//}		
-		}		
-	}*/
-
 	QString d_str = " NAN             ";
 	if (depth.first) 
 	{
@@ -4411,7 +4552,484 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 	QTextStream stream(&data_to_save);
 	stream << (memo + str_data);
 	data_to_save.close();		
+}*/
+
+
+void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<QVector<double> > &full_xdata)
+{
+	if (dss.isEmpty()) return;
+	if (!nmrtool_state) return;
+	if (!save_data_attrs.to_save)
+	{
+		placeInfoToStatusBar(QString("<font color=red><b>Measured data is not saved to the file!</b></font>"));			// не записывать данные !
+		return;
+	}
+		
+	//profiler.tic(4, "MainWindow::exportData()");
+	
+	JSeqObject *executingJSeq = expScheduler->getExecutingJSeqObject();
+	if (!executingJSeq) return;
+	LUSI::Sequence *cur_seq = executingJSeq->lusi_Seq;
+
+	QDateTime ctime = QDateTime::currentDateTime();
+	QString ctime_str = ctime.toString("d-M-yyyy_hh:mm:ss");
+
+	uint32_t uid = dss[0]->getUId();
+	QPair<bool, double> depth = dss[0]->getDepth();
+
+	static QVector<int> x_full_size; 
+
+	bool xdata_is_ok = true;
+	QString memo = "";
+
+	QString file_name = expScheduler->getDataFile();	
+	if (file_name.isEmpty()) return;
+
+	QFileInfo data_file_info(file_name);
+	int data_file_size = data_file_info.size();
+	if (data_file_size == 0)
+	//if (start_data_export)
+	{		
+		memo = "[Description]\n";
+		memo += QString("Device = %1\n").arg(current_tool.type);
+		memo += QString("DeviceUId = %1\n").arg(current_tool.id);
+		memo += QString("Object = %1\n").arg("Скважина X");
+		memo += QString("Company = %1\n").arg("КФУ");
+		memo += QString("Experiment = %1\n").arg("");
+		memo += QString("Operator = %1\n").arg("");			
+		memo += QString("DateTime = %1\n").arg(ctime_str);
+		memo += QString("\n\n");
+
+		memo += "[Format]\n";
+		memo += QString("Version = %1\n").arg("1.0");
+		memo += QString("DecimalSymbol = %1\n").arg(".");
+		memo += QString("DataSeparator = %1\n").arg(" ");
+		memo += QString("DataSetSeparator = %1\n").arg(";");
+		memo += QString("\n\n");
+
+		memo += "[Intervals]\n";
+		for (int i = 0; i < cur_seq->param_list.count(); i++)
+		{			
+			LUSI::Parameter *param = cur_seq->param_list[i];			
+			if (!param->getReadOnly())
+			{
+				//QString int_name = param->name;				
+				//QString int_caption = param->caption;				
+				//double int_value = param->app_value;
+				QString int_name = param->getObjName();
+				QString int_caption = param->getTitle();
+				int int_value = param->getAppValue();
+				memo += QString("%1 = %2\t; %3\n").arg(int_name).arg(int_value).arg(int_caption);
+			}			
+		}	
+		memo += QString("\n\n");
+
+		 // Channels & settings
+		for (int i = 0; i < tool_channels.count(); i++)
+		{
+			ToolChannel *channel = tool_channels[i];
+			int channel_id = channel->channel_id;
+			QString channel_name = channel->name;
+			QString channel_type = channel->data_type;
+			int channel_frq_set_num = channel->frq_set_num;
+			int frq1 = channel->frq1;
+			int frq2 = channel->frq2;
+			int frq3 = channel->frq3;
+			int frq4 = channel->frq4;
+			int frq5 = channel->frq5;
+			int frq6 = channel->frq6;
+			int addr_rx = channel->addr_rx;
+			int addr_tx = channel->addr_tx;
+			double displ = channel->depth_displ;
+			double norm_coef1 = channel->normalize_coef1;
+			double norm_coef2 = channel->normalize_coef2;
+			double meas_frq = channel->meas_frq;
+			double field_gradient = channel->field_gradient;
+			
+			memo += QString("[channel#%1]\n").arg(channel_id);
+			memo += QString("type=%1\n").arg(channel_type);
+			memo += QString("channel_id=%1\n").arg(channel_id);
+			memo += QString("descp=%1\n").arg(channel_name);
+			memo += QString("frq_set_num=%1\n").arg(channel_frq_set_num);
+			memo += QString("frq1=%1\n").arg(frq1);
+			memo += QString("frq2=%1\n").arg(frq2);
+			memo += QString("frq3=%1\n").arg(frq3);
+			memo += QString("frq4=%1\n").arg(frq4);
+			memo += QString("frq5=%1\n").arg(frq5);
+			memo += QString("addr_rx=%1\n").arg(addr_rx);
+			memo += QString("addr_tx=%1\n").arg(addr_tx);
+			memo += QString("depth_displ=%1\n").arg(displ);
+			memo += QString("normalize_coef1=%1\n").arg(norm_coef1);
+			memo += QString("normalize_coef2=%1\n").arg(norm_coef2);
+			memo += QString("meas_frq=%1\n").arg(meas_frq);
+			memo += QString("field_gradient=%1\n").arg(field_gradient);
+			memo += QString("\n\n");
+		}
+		
+		memo += QString("[Sequence]\n");
+		memo += QString("Name = %1\n").arg(cur_seq->name);
+		memo += QString("Author = %1\n").arg(cur_seq->author);
+		memo += QString("\n\n");
+		
+		QString str_quantity = "                ";	// 16 spaces
+		memo += QString("[ScannedQuantity]\n");
+		if (current_tool.scanned_quantity == ScannedQuantity::Depth)				{ memo += QString("Quantity = %1\n").arg("Depth"); str_quantity.replace(0,6, "#DEPTH"); }
+		else if (current_tool.scanned_quantity == ScannedQuantity::Distance)		{ memo += QString("Quantity = %1\n").arg("Distance"); str_quantity.replace(0,9, "#DISTANCE"); }
+		else if (current_tool.scanned_quantity == ScannedQuantity::Time)			{ memo += QString("Quantity = %1\n").arg("Time"); str_quantity.replace(0,5, "#TIME"); }
+		else if (current_tool.scanned_quantity == ScannedQuantity::Temperature)		{ memo += QString("Quantity = %1\n").arg("Temperature"); str_quantity.replace(0,5, "#TEMP"); }
+		else if (current_tool.scanned_quantity == ScannedQuantity::Concentration)	{ memo += QString("Quantity = %1\n").arg("Concentration"); str_quantity.replace(0,5, "#CONC"); }
+		memo += QString("\n\n");
+
+
+		memo += "[DataColumns]\n";
+		memo += str_quantity;
+		memo += "#DATE_TIME             ";
+		for (int i = 0; i < dss.count(); i++)
+		{
+			DataSet *ds = dss[i];
+			uint8_t comm_id = ds->getDataCode();
+
+			switch (comm_id)
+			{
+			case DT_SGN_SE_ORG:
+			case DT_NS_SE_ORG:
+			case DT_SGN_FID_ORG:
+			case DT_NS_FID_ORG:
+			case DT_SGN_SE:
+			case DT_NS_SE:
+			case DT_NS_QUAD_FID_RE:
+			case DT_NS_QUAD_FID_IM:
+			case DT_NS_QUAD_SE_RE:
+			case DT_NS_QUAD_SE_IM:
+			case DT_SGN_QUAD_FID_RE:
+			case DT_SGN_QUAD_FID_IM:
+			case DT_SGN_QUAD_SE_RE:
+			case DT_SGN_QUAD_SE_IM:
+			case DT_NS_FFT_FID_RE:
+			case DT_NS_FFT_SE_RE:
+			case DT_SGN_FFT_FID_RE:
+			case DT_SGN_FFT_SE_RE:
+			case DT_NS_FFT_FID_IM:
+			case DT_NS_FFT_SE_IM:
+			case DT_SGN_FFT_FID_IM:
+			case DT_SGN_FFT_SE_IM:
+			case DT_SGN_RELAX:
+			case DT_SGN_RELAX2:
+			case DT_SGN_RELAX3:			
+			case DT_SOLID_ECHO:
+			case DT_T1T2_NMR:
+			case DT_DsT2_NMR:
+			case DT_SGN_POWER_SE:		
+			case DT_SGN_POWER_FID:		
+			case DT_NS_POWER_SE:		
+			case DT_NS_POWER_FID:		
+			case DT_SGN_FFT_FID_AM:		
+			case DT_NS_FFT_FID_AM:		
+			case DT_SGN_FFT_SE_AM:		
+			case DT_NS_FFT_SE_AM:		
+			case DT_GAMMA:		
+			case DT_DIEL:
+			case DT_AFR1_RX:
+			case DT_AFR2_RX:
+			case DT_AFR3_RX:
+			case DT_RFP:
+			case DT_RFP2:
+			case DT_DU_T:
+			case DT_PU_T:
+			case DT_TU_T:
+				{
+					QString ds_name = ds->getDataName();
+					QStringList dn_list = ds_name.split("#");
+					ds_name = "'" + dn_list.first() + "#" + toAlignedString(5, dn_list.last().toInt()) + "'   ";					
+
+					int ds_name_len = ds_name.length();
+					QString str_ds_name = QString(" ").repeated(ds_name_len);
+					str_ds_name.replace(0,13, "#DATASET_NAME");
+					memo += str_ds_name;	
+
+					memo += "#DATA_TYPE   #CHANNEL   #GROUP_INDEX   #DATA_NUM   ";					
+					if (ds->TE() > 0 || ds->TD() > 0 || ds->TW() > 0) memo += "#TE            #TW            #TD             "; 
+					
+					int x_size = full_xdata[i].count();
+					for (int j = 0; j < x_size; j++) 
+					{
+						QString str_num = "#" + QString("%1").arg(j+1);
+						int str_num_len = str_num.length();
+						str_num = QString(" ").repeated(16).replace(0,str_num_len,str_num);
+						memo += str_num;
+					}
+					//if (x_size > 0) memo += " ";	// space for ";"
+					break;
+				}
+			default: break;
+			}
+		}
+		memo += "\n\n";
+
+		memo += "[DataX]\n";
+		QString d_str = " NAN            ";
+		if (depth.first) 
+		{
+			d_str = QString::number(depth.second, 'E', 6);
+			if (depth.second >= 0) d_str = QString(" %1%2").arg(d_str).arg("   ");
+			else d_str = QString("%1%2").arg(d_str).arg("   ");
+		}
+		memo += d_str;
+
+		memo += QString("%1;   ").arg(ctime_str);
+
+		for (int i = 0; i < dss.count(); i++)
+		{
+			DataSet *ds = dss[i];
+			uint8_t comm_id = ds->getDataCode();
+			
+			switch (comm_id)
+			{
+			case DT_SGN_SE_ORG:
+			case DT_NS_SE_ORG:
+			case DT_SGN_FID_ORG:
+			case DT_NS_FID_ORG:
+			case DT_SGN_SE:
+			case DT_NS_SE:
+			case DT_NS_QUAD_FID_RE:
+			case DT_NS_QUAD_FID_IM:
+			case DT_NS_QUAD_SE_RE:
+			case DT_NS_QUAD_SE_IM:
+			case DT_SGN_QUAD_FID_RE:
+			case DT_SGN_QUAD_FID_IM:
+			case DT_SGN_QUAD_SE_RE:
+			case DT_SGN_QUAD_SE_IM:
+			case DT_NS_FFT_FID_RE:
+			case DT_NS_FFT_SE_RE:
+			case DT_SGN_FFT_FID_RE:
+			case DT_SGN_FFT_SE_RE:
+			case DT_NS_FFT_FID_IM:
+			case DT_NS_FFT_SE_IM:
+			case DT_SGN_FFT_FID_IM:
+			case DT_SGN_FFT_SE_IM:
+			case DT_SGN_RELAX:
+			case DT_SGN_RELAX2:
+			case DT_SGN_RELAX3:			
+			case DT_SOLID_ECHO:
+			case DT_T1T2_NMR:
+			case DT_DsT2_NMR:
+			case DT_SGN_POWER_SE:		
+			case DT_SGN_POWER_FID:		
+			case DT_NS_POWER_SE:		
+			case DT_NS_POWER_FID:		
+			case DT_SGN_FFT_FID_AM:		
+			case DT_NS_FFT_FID_AM:		
+			case DT_SGN_FFT_SE_AM:		
+			case DT_NS_FFT_SE_AM:		
+			case DT_GAMMA:		
+			case DT_DIEL:
+			case DT_AFR1_RX:
+			case DT_AFR2_RX:
+			case DT_AFR3_RX:
+			case DT_RFP:
+			case DT_RFP2:
+			case DT_DU_T:
+			case DT_PU_T:
+			case DT_TU_T:
+				{
+					QString ds_name = ds->getDataName();
+					QStringList dn_list = ds_name.split("#");
+					ds_name = dn_list.first() + "#" + toAlignedString(5, dn_list.last().toInt());
+					memo += "'" + ds_name + "'   ";
+										
+					//memo += toAlignedSpacedString(comm_id, 13, " ");				// for #DATA_TYPE
+					memo += toAlignedSpacedString(ds->getChannelId(), 11, " ");		// for #CHANNEL
+					memo += toAlignedSpacedString(ds->getGroupIndex(), 15, " ");	// for #GROUP_INDEX
+					memo += toAlignedSpacedString(ds->getDataNum(), 12, " ");		// for #DATA_NUM
+
+					if (ds->TE() > 0 || ds->TW() > 0 || ds->TD() > 0) 
+					{
+						memo += QString::number(ds->TE(), 'E', 6) + "   ";
+						memo += QString::number(ds->TW(), 'E', 6) + "   ";
+						memo += QString::number(ds->TD(), 'E', 6) + "   ";
+					}
+
+					int x_size = full_xdata[i].count();
+					QVector<double> *x_vec = &full_xdata[i];
+					x_full_size.push_back(x_size);
+					for (int j = 0; j < x_size; j++)
+					{
+						double val = x_vec->at(j);
+						QString x_str = "";
+						if (j < x_size-1)
+						{					
+							x_str = QString::number(val, 'E', 6);
+							if (val >= 0) x_str = QString(" %1%2").arg(x_str).arg("   ");
+							else x_str = QString("%1%2").arg(x_str).arg("   ");
+						}
+						else if (j < x_size)
+						{
+							x_str = QString::number(val, 'E', 6);
+							if (val >= 0) x_str = QString(" %1%2").arg(x_str).arg(";   ");
+							else x_str = QString("%1%2").arg(x_str).arg(";   ");
+						}
+
+						memo += x_str;
+					}
+					break;
+				}			
+			default: break;
+			}
+		}
+		memo += QString("\n\n");
+		memo += "[DataY]\n";
+	}
+
+	QString d_str = " NAN            ";
+	if (depth.first) 
+	{
+		d_str = QString::number(depth.second, 'E', 6);
+		if (depth.second >= 0) d_str = QString(" %1%2").arg(d_str).arg("   ");
+		else d_str = QString("%1%2").arg(d_str).arg("   ");
+	}
+	QString str_data = "";
+	str_data += d_str;
+	str_data += QString("%1;   ").arg(ctime_str);
+
+
+	for (int i = 0; i < dss.count(); i++)
+	{
+		DataSet *ds = dss[i];
+		uint8_t comm_id = ds->getDataCode();
+		//if (!dataIsExportingToFile(comm_id)) continue;
+
+		QVector<uint8_t> gap_vec = gap[i];
+		switch (comm_id)
+		{
+		case DT_SGN_SE_ORG:			
+		case DT_NS_SE_ORG:			
+		case DT_SGN_FID_ORG:		
+		case DT_NS_FID_ORG:			
+		case DT_SGN_SE:				
+		case DT_NS_SE:				
+		case DT_NS_QUAD_FID_RE:		
+		case DT_NS_QUAD_FID_IM:		
+		case DT_NS_QUAD_SE_RE:		
+		case DT_NS_QUAD_SE_IM:		
+		case DT_SGN_QUAD_FID_RE:	
+		case DT_SGN_QUAD_FID_IM:	
+		case DT_SGN_QUAD_SE_RE:		
+		case DT_SGN_QUAD_SE_IM:		
+		case DT_NS_FFT_FID_RE:		
+		case DT_NS_FFT_SE_RE:		
+		case DT_SGN_FFT_FID_RE:		
+		case DT_SGN_FFT_SE_RE:		
+		case DT_NS_FFT_FID_IM:		
+		case DT_NS_FFT_SE_IM:		
+		case DT_SGN_FFT_FID_IM:		
+		case DT_SGN_FFT_SE_IM:		
+		case DT_SGN_RELAX:	
+		case DT_SGN_RELAX2:
+		case DT_SGN_RELAX3:		
+		case DT_SOLID_ECHO:
+		case DT_T1T2_NMR:
+		case DT_DsT2_NMR:
+		case DT_SGN_POWER_SE:		
+		case DT_SGN_POWER_FID:		
+		case DT_NS_POWER_SE:		
+		case DT_NS_POWER_FID:		
+		case DT_SGN_FFT_FID_AM:		
+		case DT_NS_FFT_FID_AM:		
+		case DT_SGN_FFT_SE_AM:		
+		case DT_NS_FFT_SE_AM:		
+		case DT_GAMMA:	
+		case DT_DIEL:
+		case DT_AFR1_RX:
+		case DT_AFR2_RX:
+		case DT_AFR3_RX:
+		case DT_RFP:
+		case DT_RFP2:
+		case DT_DU_T:
+		case DT_PU_T:
+		case DT_TU_T:
+			{
+				//QVector<double> *x_vec = ds->getXData();
+				QVector<double> *y_vec = ds->getYData();
+
+				QString ds_name = ds->getDataName();
+				QStringList dn_list = ds_name.split("#");
+				ds_name = dn_list.first() + "#" + toAlignedString(5, dn_list.last().toInt());
+				str_data += "'" + ds_name + "'   ";
+
+				str_data += toAlignedSpacedString(comm_id, 13, " ");				// for #DATA_TYPE
+				str_data += toAlignedSpacedString(ds->getChannelId(), 11, " ");		// for #CHANNEL
+				str_data += toAlignedSpacedString(ds->getGroupIndex(), 15, " ");	// for #GROUP_INDEX
+				str_data += toAlignedSpacedString(ds->getDataNum(), 12, " ");		// for #DATA_NUM
+				
+				if (ds->TE() > 0 || ds->TW() > 0 || ds->TD() > 0) 
+				{
+					str_data += QString::number(ds->TE(), 'E', 6) + "   ";
+					str_data += QString::number(ds->TW(), 'E', 6) + "   ";
+					str_data += QString::number(ds->TD(), 'E', 6) + "   ";
+				}
+
+				int cnt = 0;
+				//for (int j = 0; j < y_vec->size(); j++)
+				for (int j = 0; j < gap_vec.count(); j++)
+				{			
+					if (cnt < y_vec->size()) 
+					{
+						if (gap_vec[j] == DATA_OK)
+						{
+							QString str_value = "";
+							double val = y_vec->at(cnt);
+							if (cnt < y_vec->size()-1)
+							{
+								QString str_v = QString::number(val, 'E', 6);
+								if (val >= 0) str_value = QString(" %1%2").arg(str_v).arg("   ");
+								else str_value = QString("%1%2").arg(str_v).arg("   ");
+								str_data += str_value;
+							}
+							else if (cnt < y_vec->size())
+							{
+								QString str_v = QString::number(val, 'E', 6);
+								if (val >= 0) str_value = QString(" %1%2").arg(str_v).arg(";   ");
+								else str_value = QString("%1%2").arg(str_v).arg(";   ");				
+								str_data += str_value;
+							}	
+							cnt++;						
+						}
+						else
+						{						
+							QString str_value = " NAN             ";										
+							str_data += str_value;
+						}		
+					}			
+				}
+			}		
+		default: break;
+		}		
+	}
+	str_data += QString("\n");
+		
+	QFile data_to_save(file_name);
+	if (data_file_size == 0)	
+	{		
+		if (!data_to_save.open(QIODevice::WriteOnly))
+		{
+			placeInfoToStatusBar(QString("<font color=red><b>Warning! Cannot open file '%1' to save data!</b></font>").arg(file_name));
+			return;
+		}
+	}
+	else
+	{
+		if (!data_to_save.open(QIODevice::Append))
+		{
+			placeInfoToStatusBar(QString("<font color=red><b>Warning! Cannot open file '%1' to save data!</b></font>").arg(file_name));
+			return;
+		}
+	}
+
+	QTextStream stream(&data_to_save);
+	stream << (memo + str_data);
+	data_to_save.close();		
 }
+
 
 void MainWindow::depthDepthMeterConnected(bool flag)
 {

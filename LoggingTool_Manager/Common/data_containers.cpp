@@ -18,6 +18,11 @@ DataSet::DataSet()
 
 	group_index = 0;
 	channel_id = 0;
+	data_num = 0;
+
+	te = 0;
+	tw = 0;
+	td = 0;
 
 	x = NULL;
 	y = NULL;
@@ -38,6 +43,11 @@ DataSet::DataSet(uint32_t _uid, uint8_t _comm_id, QVector<double> *_x, QVector<d
 
 	group_index = 0;
 	channel_id = 0;
+	data_num = 0;
+
+	te = 0;
+	tw = 0;
+	td = 0;
 
 	x = _x;
 	y = _y;
@@ -63,6 +73,11 @@ DataSet::DataSet(QString &_name, uint32_t _uid, uint8_t _comm_id, QVector<double
 
 	group_index = 0;
 	channel_id = 0;
+	data_num = 0;
+
+	te = 0;
+	tw = 0;
+	td = 0;
 
 	x = _x;
 	y = _y;
@@ -93,6 +108,7 @@ void DataSet::copyTo(DataSet *_ds)
 	QString _name = ds->getDataName();
 	int _initial_data_size = ds->getInitialDataSize();
 	int _group_index = ds->getGroupIndex();
+	int _data_num = ds->getDataNum();
 
 	QDateTime _cr_time = ds->getCreationTime();
 
@@ -115,6 +131,7 @@ void DataSet::copyTo(DataSet *_ds)
 	_ds->setInitialDataSize(_initial_data_size);
 	_ds->setGroupIndex(_group_index);
 	_ds->setDataCode(_comm_id);
+	_ds->setDataNum(_data_num);
 	_ds->setDataName(_name);
 	_ds->setExpId(_exp_id);
 	_ds->setUId(_uid);

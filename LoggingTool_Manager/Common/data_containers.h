@@ -34,6 +34,9 @@ public:
 	unsigned int getChannelId() { return channel_id; }
 	void setChannelId(uint8_t _channel_id) { channel_id = _channel_id; }
 
+	int getDataNum() { return data_num; }
+	void setDataNum(int _data_num) { data_num = _data_num; }
+
 	QDateTime getCreationTime() { return cr_time; }
 	void setCreationTime( QDateTime _time) { cr_time = _time; }
 
@@ -53,6 +56,13 @@ public:
 	//void setBadData(QVector<uint8_t>* _bad_map) { bad_data = _bad_map; }
 	void setData(QVector<double>* _xvec, QVector<double>* _yvec, QVector<uint8_t>* _bad_map);
 
+	double TE() { return te; }
+	void setTE(double _te) { te = _te; }
+	double TW() { return tw; }
+	void setTW(double _tw) { tw = _tw; }
+	double TD() { return td; }
+	void setTD(double _td) { td = _td; }
+
 private:
 	QString name;
 	uint32_t UId;	
@@ -65,6 +75,7 @@ private:
 
 	int group_index;			// групповой идентификатор
 	unsigned int channel_id;	// номер канала данных (датчик яћ–1, датчик яћ–2 и т.д.)
+	int data_num;				// номер набора данных в одной серии измерений (например, номер спада в двумерном яћ–)
 
 	double bad_data_index;		// дол€ некорректных данных, которые не были успешно декодированы
 	int initial_size;			// исходна€ длина вход€щих данных (вектор "y" уже содержит данные без искаженных помехами и пропущенных значений)
@@ -72,6 +83,10 @@ private:
 	double depth;				// глубина, на которой были измерены данные [m]
 	bool depth_flag;			// показетель, €вл€етс€ ли глубина истинной (противоположный случай - отсоединилс€ глубиномер)
 	QDateTime cr_time;			// врем€ создани€ набора данных
+
+	double te;					// задержка TE в данных яћ–
+	double tw;					// задержка TW в данных яћ–
+	double td;					// задержка TD в данных яћ–
 };
 
 typedef QList<DataSet*> DataSets;

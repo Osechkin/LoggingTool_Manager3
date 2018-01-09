@@ -194,6 +194,8 @@ s_delays.append(delay_for_strobes);
 s_delays.append(time_blank_pwr_prior_to_adc);
 s_delays.append(delay_pre_damp_pulse);
 
+@export_param = { "TW1", var1, "mks" }
+
 
 // "Задержка на обработку шума"
 var delay_for_proc_noise = 3000;	// "Задержка на выполнение пакетов инструкций по обработке шума, мкс"

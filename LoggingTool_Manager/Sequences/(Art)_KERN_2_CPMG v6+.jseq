@@ -466,7 +466,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 			{ 
 				var tau1 = TEs[k];
 				if (D2_act_enb~ == 2) tau1 = TEs1[k];
-				if(i < 2) {pts[i] = 2*tau1 * (i + 1) / 1000}
+				if (i < 2) {pts[i] = 2*tau1 * (i + 1) / 1000}
 				else {pts[i] = (4*tau1 + 2*tau * (i - 1)) / 1000}
 			};
 		return pts;
@@ -476,6 +476,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	cpmg1_X.units = "ms";
 	cpmg1_X.size = echoes[1];
 	cpmg1_X.points = cpmg_X(cpmg1_X.size, TEs[1]);
+	cpmg1_X.TE = 10000;
 	
 	@argument cpmg2_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
 	cpmg2_X.units = "ms";
@@ -504,7 +505,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 
 	@argument cpmg7_X = { "Временные отсчёты эхо в последовательности КПМГ7" }
 	cpmg7_X.units = "ms";
-	cpmg7_X.size = echoes[7];
+	cpmg7_X.size = echoes[7];	
 	cpmg7_X.points = D2_X(cpmg7_X.size, TEs[7],7);
 
 	@argument cpmg8_X = { "Временные отсчёты эхо в последовательности КПМГ8" }

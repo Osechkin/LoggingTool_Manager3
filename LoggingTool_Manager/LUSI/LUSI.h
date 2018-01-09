@@ -415,6 +415,9 @@ namespace LUSI
 		//Q_PROPERTY(QString func READ getFunc WRITE setFunc);
 		Q_PROPERTY(int size READ getSize WRITE setSize);
 		Q_PROPERTY(QVariantList points READ getPoints WRITE setPoints);
+		Q_PROPERTY(double TE READ getTE WRITE setTE);
+		Q_PROPERTY(double TW READ getTW WRITE setTW);
+		Q_PROPERTY(double TD READ getTD WRITE setTD);
 		Q_PROPERTY(int group_index READ getAppValue WRITE setGroupIndex);
 
 	public:
@@ -438,6 +441,15 @@ namespace LUSI
 
 		QVariantList getPoints() const { return points; }
 
+		double getTE() const { return TE; }
+		void setTE(double _te) { TE = _te; }
+
+		double getTW() const { return TW; }
+		void setTW(double _tw) { TW = _tw; }
+
+		double getTD() const { return TD; }
+		void setTD(double _td) { TD = _td; }
+
 		int getAppValue() const { return group_index; }
 		void setGroupIndex(int _group_index) { group_index = _group_index; }
 
@@ -454,6 +466,9 @@ namespace LUSI
 		//QString func;
 		int size;
 		QVariantList points;
+		double TE;				// параметр задержки TE в последовательност€х яћ–
+		double TW;				// параметр задержки TW в последовательност€х яћ–
+		double TD;				// параметр задержки TD в последовательност€х яћ–
 		int group_index;
 	};
 

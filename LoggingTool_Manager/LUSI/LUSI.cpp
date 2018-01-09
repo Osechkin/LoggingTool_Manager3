@@ -442,6 +442,10 @@ LUSI::Argument::Argument(QString _obj_name)
 	comment = "";
 	units = "";
 	size = 0;	
+
+	TE = 0;
+	TD = 0;
+	TW = 0;
 	
 	group_index = 0;
 }

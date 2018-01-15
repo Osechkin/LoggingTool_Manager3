@@ -417,18 +417,15 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	time_shift = us2pts(time_shift); time_width = us2pts(time_width)
 	freq_shift = kHz2pts(freq_shift); freq_width = kHz2pts(freq_width)
 
-	@parameter emul = { "Эмуляция данных", "OFF|ON" }
-	emul.uitype = "combobox"
+	@parameter emul = { "Эмуляция данных", 1, min=0, max=1 }
 	emul.comment = "Эмулировать исходные данные ЯМР ? (Да/Нет)";
-	var emul_state = 1
-	if (emul~ > 0) emul_state = 0;
 	
 	@parameter sn = { "Сигнал/шум", 5, min=0 }
 	sn.comment = "Отношение сигнал/шум";
-		
-	@section s_dataorg = { "Источник данных" }	
-	s_dataorg.append(emul);
-	s_dataorg.append(sn);
+	
+	//@section s_dataorg = { "Источник данных" }
+	//s_dataorg.append(emul);
+	//s_dataorg.append(sn);
 
 // -----------------------------------------------------------------------------------------------------------
 // Проверяемые после вычислений условия
@@ -466,7 +463,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 			{ 
 				var tau1 = TEs[k];
 				if (D2_act_enb~ == 2) tau1 = TEs1[k];
-				if (i < 2) {pts[i] = 2*tau1 * (i + 1) / 1000}
+				if(i < 2) {pts[i] = 2*tau1 * (i + 1) / 1000}
 				else {pts[i] = (4*tau1 + 2*tau * (i - 1)) / 1000}
 			};
 		return pts;
@@ -475,62 +472,93 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	@argument cpmg1_X = { "Временные отсчёты эхо в последовательности КПМГ1" }
 	cpmg1_X.units = "ms";
 	cpmg1_X.size = echoes[1];
-	cpmg1_X.points = cpmg_X(cpmg1_X.size, TEs[1]);
-	cpmg1_X.TE = 10000;
+	cpmg1_X.TE = TEs[1];
+	cpmg1_X.TW = TWs[1]*1000;
+	cpmg1_X.points = cpmg_X(cpmg1_X.size, cpmg1_X.TE);
 	
 	@argument cpmg2_X = { "Временные отсчёты эхо в последовательности КПМГ2" }
 	cpmg2_X.units = "ms";
 	cpmg2_X.size = echoes[2];
-	cpmg2_X.points = cpmg_X(cpmg2_X.size, TEs[2]);
+	cpmg2_X.TE = TEs[2];
+	cpmg2_X.TW = TWs[2]*1000;
+	cpmg2_X.points = cpmg_X(cpmg2_X.size, cpmg2_X.TE);
 
 	@argument cpmg3_X = { "Временные отсчёты эхо в последовательности КПМГ3" }
 	cpmg3_X.units = "ms";
 	cpmg3_X.size = echoes[3];
-	cpmg3_X.points = D2_X(cpmg3_X.size, TEs[3],3);
+	cpmg3_X.TE = TEs[3];
+	cpmg3_X.TW = TWs[3]*1000;
+	cpmg3_X.TD = (D2_act_enb~ == 3 ? TDs[3] : 0)
+	cpmg3_X.points = D2_X(cpmg3_X.size, cpmg3_X.TE,3);
 
 	@argument cpmg4_X = { "Временные отсчёты эхо в последовательности КПМГ4" }
 	cpmg4_X.units = "ms";
 	cpmg4_X.size = echoes[4];
-	cpmg4_X.points = D2_X(cpmg4_X.size, TEs[4],4);
+	cpmg4_X.TE = TEs[4];
+	cpmg4_X.TW = TWs[4]*1000;
+	cpmg4_X.TD = (D2_act_enb~ == 3 ? TDs[4] : 0)
+	cpmg4_X.points = D2_X(cpmg4_X.size, cpmg4_X.TE,4);
 
 	@argument cpmg5_X = { "Временные отсчёты эхо в последовательности КПМГ5" }
 	cpmg5_X.units = "ms";
 	cpmg5_X.size = echoes[5];
-	cpmg5_X.points = D2_X(cpmg5_X.size, TEs[5],5);
+	cpmg5_X.TE = TEs[5];
+	cpmg5_X.TW = TWs[5]*1000;
+	cpmg5_X.TD = (D2_act_enb~ == 3 ? TDs[5] : 0)
+	cpmg5_X.points = D2_X(cpmg5_X.size, cpmg5_X.TE,5);
 
 	@argument cpmg6_X = { "Временные отсчёты эхо в последовательности КПМГ6" }
 	cpmg6_X.units = "ms";
 	cpmg6_X.size = echoes[6];
-	cpmg6_X.points = D2_X(cpmg6_X.size, TEs[6],6);
+	cpmg6_X.TE = TEs[6];
+	cpmg6_X.TW = TWs[6]*1000;
+	cpmg6_X.TD = (D2_act_enb~ == 3 ? TDs[6] : 0)
+	cpmg6_X.points = D2_X(cpmg6_X.size, cpmg6_X.TE,6);
 
 	@argument cpmg7_X = { "Временные отсчёты эхо в последовательности КПМГ7" }
 	cpmg7_X.units = "ms";
-	cpmg7_X.size = echoes[7];	
-	cpmg7_X.points = D2_X(cpmg7_X.size, TEs[7],7);
+	cpmg7_X.size = echoes[7];
+	cpmg7_X.TE = TEs[7];
+	cpmg7_X.TW = TWs[7]*1000;
+	cpmg7_X.TD = (D2_act_enb~ == 3 ? TDs[7] : 0)
+	cpmg7_X.points = D2_X(cpmg7_X.size, cpmg7_X.TE,7);
 
 	@argument cpmg8_X = { "Временные отсчёты эхо в последовательности КПМГ8" }
 	cpmg8_X.units = "ms";
 	cpmg8_X.size = echoes[8];
-	cpmg8_X.points = D2_X(cpmg8_X.size, TEs[8],8);
+	cpmg8_X.TE = TEs[8];
+	cpmg8_X.TW = TWs[8]*1000;
+	cpmg8_X.TD = (D2_act_enb~ == 3 ? TDs[8] : 0)
+	cpmg8_X.points = D2_X(cpmg8_X.size, cpmg8_X.TE,8);
 
 	@argument cpmg9_X = { "Временные отсчёты эхо в последовательности КПМГ9" }
 	cpmg9_X.units = "ms";
 	cpmg9_X.size = echoes[9];
-	cpmg9_X.points = D2_X(cpmg9_X.size, TEs[9],9);
+	cpmg9_X.TE = TEs[9];
+	cpmg9_X.TW = TWs[9]*1000;
+	cpmg9_X.TD = (D2_act_enb~ == 3 ? TDs[9] : 0)
+	cpmg9_X.points = D2_X(cpmg9_X.size, cpmg9_X.TE,9);
 
 	@argument cpmg10_X = { "Временные отсчёты эхо в последовательности КПМГ10" }
 	cpmg10_X.units = "ms";
 	cpmg10_X.size = echoes[10];
-	cpmg10_X.points = D2_X(cpmg10_X.size, TEs[10],10);
+	cpmg10_X.TE = TEs[10];
+	cpmg10_X.TW = TWs[10]*1000;
+	cpmg10_X.TD = (D2_act_enb~ == 3 ? TDs[10] : 0)
+	cpmg10_X.points = D2_X(cpmg10_X.size, cpmg10_X.TE,10);
 	
 	@argument clay_X = { "Временные отсчёты эхо в последовательности CLAY КПМГ" }
 	clay_X.units = "ms";
 	clay_X.size = echoes_clay~;
-	clay_X.points = cpmg_X(clay_X.size, tau_clay~);
+	clay_X.TE = tau_clay~;
+	clay_X.TW = to_clay~;
+	clay_X.points = cpmg_X(clay_X.size, clay_X.TE);
 
 	@argument solid_X = { "Временные отсчёты эхо в последовательности SOLID ECHO" }
 	solid_X.units = "ms";
 	solid_X.size = 1;
+	solid_X.TE = tau_solid~;
+	solid_X.TW = TWs[1]*1000;
 	solid_X.points = [2*tau_solid~/1000];
 
 
@@ -540,7 +568,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_001]
 	@proc STD_ECHO = { "ECHO" }
 	#begin(STD_ECHO)
-		INS_NS_SGN_UPP_PRE3(6, 0, emul_state, noise, 1, sn, 1, k_fe)                                  
+		INS_NS_SGN_UPP_PRE3(6, 0, emul, noise, 1, sn, 1, k_fe)                                  
 		INS_NO_OP(0, 0)
 	#end
 	 
@@ -549,7 +577,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_002]
 	@proc CLAY_ECHO = { "CLAY ECHO" }
 	#begin(CLAY_ECHO)
-		INS_NS_SGN_UPP_PRE3(6, 0, emul_state, 1, echoes_clay, sn, 0, k_fe)                                  
+		INS_NS_SGN_UPP_PRE3(6, 0, emul, 1, echoes_clay, sn, 0, k_fe)                                  
 		INS_NO_OP(0, 0)
 	#end
 
@@ -558,7 +586,7 @@ main.description = "Стандартная активация T2, Двойная активация, Активация глин,
 	// [Package_002a]
 	@proc SOLID_ECHO = { "SOLID ECHO" }
 	#begin(SOLID_ECHO)
-		INS_NS_SGN_UPP_PRE3(6, 0, emul_state, 1, 2, sn, 0, k_se)                                  
+		INS_NS_SGN_UPP_PRE3(6, 0, emul, 1, 2, sn, 0, k_se)                                  
 		INS_NO_OP(0, 0)
 	#end
 	

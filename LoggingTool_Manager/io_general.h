@@ -4,6 +4,7 @@
 //#include "stdint.h"
 
 #include <QString>
+#include <QVector>
 
 
 typedef signed __int8     int8_t;
@@ -319,8 +320,11 @@ struct ToolChannel
 		meas_frq = _meas_freq;
 		sample_freq = _sample_freq;		
 		field_gradient = _field_gradient;
+
+		//calibration_state = false;
 	}	
 
+public:
 	uint8_t channel_id;				// id канала
 	QString data_type;				// тип данных (яћ–, гамма-каротаж и т.п.)
 	uint8_t frq_set_num;			// номер набора частот
@@ -339,6 +343,44 @@ struct ToolChannel
 	double meas_frq;				// частота, на которой провод€тс€ измерени€
 	double sample_freq;				// частота дискретизации (дл€ яћ–)	
 	double field_gradient;			// градиент магнитного пол€
+
+private:
+	//bool calibration_state;			// откалиброваны или не откалиброваны данные яћ– по данному каналу
+	QVector<double> calibration_store;// хранилище данных дл€ калибровки
+
+public:
+	//void setCalibrated(bool state) { calibration_state = state; }
+	//bool isCalibrated() { return calibration_state; }
+	
+	void addCalibrationData(double val) { calibration_store.append(val); }
+	bool calibrationStoreIsEmpty() { return calibration_store.isEmpty(); }
+	void clearCalibrationStore() { calibration_store.clear(); }
+	double mean90()
+	{
+		double S = 0;
+
+		if (!calibration_store.isEmpty())
+		{
+			int store_size = calibration_store.size();
+			QVector<double> temp(store_size);
+			memcpy(temp.data(), calibration_store.data(), store_size*sizeof(double));
+			qSort(temp);
+
+			double _max = temp.last();			
+			int N = 0;
+			for (int j = 0; j < temp.count(); j++)
+			{
+				if (temp.data()[j] >= 0.90*_max) 
+				{
+					S = S + temp.data()[j];
+					N += 1;
+				}
+			}
+			if (N > 0) S = S/N;			
+		}
+
+		return S;
+	}
 };
 
 

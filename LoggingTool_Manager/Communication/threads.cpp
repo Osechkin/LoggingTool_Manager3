@@ -952,7 +952,7 @@ void COMCommander::onDataAvailable()
 				COM_Message *msg = new COM_Message(new MsgHeader(gf_data));
 				msg_incomming->copyCOMMsg(msg);
 
-				emit COM_message(msg, 0);				
+				emit COM_message(msg, 0);
 				unlock_COM_Msg();
 
 				executeServiceMsg(msg_incomming);

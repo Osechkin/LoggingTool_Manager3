@@ -118,7 +118,7 @@ public:
 	QList<QVector<double>* > *getDataXList() { return xdata_list; }
 	QList<QVector<double>* > *getDataYList() { return ydata_list; }
 
-	void setKERNParameters(bool _calibr_state, double _core_diameter, double _standard_porosity, double _standard_diameter);
+	//void setKERNParameters(bool _calibr_state, double _core_diameter, double _standard_porosity, double _standard_diameter);
 	void addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::DataType dt);
 	void clearAll();
 	void closeLoggingCurveList() { cur_index = -1; }	
@@ -145,15 +145,13 @@ private:
 	LoggingData::DataType data_type;
 	QString data_title;
 	LoggingData *log_container;
-	//ToolChannel *tool_channel;
-
-	QVector<double> calibration_store;
-	//double calibr_normalize_coef;		
+	
+	/*QVector<double> calibration_store;	
 	double core_diameter;
-	bool calibration_state;
-	//bool already_normalized;	// считаем по новому расчитанному коэффициенту calibr_normalize_coef или по channel->normalize_coef1 
+	bool calibration_state;	
 	double standard_porosity;	
 	double standard_diameter;	// диаметер калибровочного образца
+	*/
 
 	QList<QHBoxLayout*> hbox_list;
 	QVBoxLayout *legend_vlout;
@@ -221,6 +219,7 @@ public:
 	QList<LoggingPlot*> *getLoggingPlotList() { return &logging_plot_list; }
 	QList<QwtPlot*> *getQwtPlotList() { return &qwtplot_list; }
 	static int getDataTypeId(QString str, bool *res);
+	bool isCalibrationON() { return calibration_state; }
 
 private:
 	Ui::LoggingWidget ui;
@@ -233,7 +232,7 @@ private:
 	QList<LoggingData*> data_containers;
 	QVector<ToolChannel*> tool_channels;
 
-	bool calibration_state;
+	bool calibration_state;		// откалиброваны/не откалиброваны результаты яћ– измерений на калибровочный образец
 	double core_diameter;
 	double standard_porosity;
 	double standard_core_diameter;
@@ -244,6 +243,7 @@ private:
 	void replotLegends();	
 	bool getMinMaxValues(const QVector<double> *vec, double &min_value, double &max_value);	
 	bool isVisibleChannel(ToolChannel *channel, uint8_t comm_id = 0);
+	bool calcCalibrationCoeff(DataSet *ds, ToolChannel *channel, double &calibr_coef);
 
 private slots:
 	void setDataType(int index);
@@ -251,8 +251,7 @@ private slots:
 	void rescaleAllDepths(void *qwtplot_obj);
 	void setRezoomAll(const QRectF &rect);
 	//void setDepthScale();
-	void searchAllData();
-	void clearAllData();
+	void searchAllData();	
 	void setDepthFrom(double from);
 	void setDepthTo(double to);
 	void scaleDataIn();
@@ -267,8 +266,10 @@ public slots:
 	void setCoreDiameter(double val) { core_diameter = val; }
 	void setStandardPorosity(double val) { standard_porosity = val; }
 	void setStandardCoreDiameter(double val) { standard_core_diameter = val; }
+	void clearAllData();
 
 signals:
+	void new_calibration_coef_toCfg(double, ToolChannel*);
 	void new_calibration_coef(double, ToolChannel*);
 
 };

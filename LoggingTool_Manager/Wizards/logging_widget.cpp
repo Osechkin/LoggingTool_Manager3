@@ -528,8 +528,8 @@ void LoggingWidget::setConnections()
 		connect(logging_plot, SIGNAL(plot_rescaled(void*)), this, SLOT(rescaleAllPlots(void*)));
 		connect(logging_plot, SIGNAL(vertical_axis_panned(void*)), this, SLOT(rescaleAllDepths(void*)));
 		connect(logging_plot->getInversePlotZoomer(), SIGNAL(zoomed(const QRectF&)), this, SLOT(setRezoomAll(const QRectF&)));
-		//connect(logging_plot, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SIGNAL(new_calibration_coef(double, ToolChannel*))); save new calibr coefficient to the tool.cfg file. Temporary reactivated
-		connect(logging_plot, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SLOT(calibrateNMRData(double, ToolChannel*)));
+		//connect(logging_plot, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SIGNAL(new_calibration_coef_toCfg(double, ToolChannel*))); save new calibr coefficient to the tool.cfg file. Temporary deactivated
+		//connect(logging_plot, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SLOT(calibrateNMRData(double, ToolChannel*)));
 	}
 
 	//connect(ui.tbtDapth, SIGNAL(clicked()), this, SLOT(setDepthScale()));
@@ -927,6 +927,13 @@ void LoggingWidget::clearAllData()
 		depth_data->clear();
 		data->clear();
 	}
+		
+	for (int j = 0; j < tool_channels.count(); j++)
+	{
+		ToolChannel *tool_channel = tool_channels[j];
+		tool_channel->clearCalibrationStore();
+		//tool_channel->setCalibrated(false);
+	}
 }
 
 void LoggingWidget::setDepthFrom(double from)
@@ -1234,7 +1241,13 @@ void LoggingWidget::addDataSets(DataSets _dss)
 						{
 							if (dt == LoggingData::NMRBins_Probe1) 
 							{
-								logging_plot->setKERNParameters(calibration_state, core_diameter, standard_porosity, standard_core_diameter);
+								//logging_plot->setKERNParameters(calibration_state, core_diameter, standard_porosity, standard_core_diameter);
+								double calibr_coeff = 0;
+								if (calcCalibrationCoeff(ds, tool_channel, calibr_coeff)) 
+								{
+									calibrateNMRData(calibr_coeff, tool_channel);
+									emit new_calibration_coef(calibr_coeff, tool_channel);
+								}								
 							}
 							logging_plot->addDataSet(ds, tool_channel, dt);
 							replotLegends();
@@ -1252,6 +1265,42 @@ void LoggingWidget::addDataSets(DataSets _dss)
 	}
 }
 
+bool LoggingWidget::calcCalibrationCoeff(DataSet *ds, ToolChannel *channel, double &calibr_coef)
+{	
+	bool res = false;
+
+	//if (channel->isCalibrated()) 
+	if (calibration_state)
+	{
+		double sum = 0;
+		for (int i = 0; i < ds->getXData()->size(); i++)
+		{		
+			double y = ds->getYData()->at(i);
+			sum += y;
+
+		}
+		channel->addCalibrationData(sum);
+	}
+	else
+	{
+		if (!channel->calibrationStoreIsEmpty())
+		{
+			double S = channel->mean90();
+			if (S > 0 && core_diameter > 0) 
+			{				
+				double Pcalibr = standard_porosity;
+				double Dcalibr = standard_core_diameter;
+				calibr_coef = (Pcalibr/S)*(Dcalibr*Dcalibr/core_diameter/core_diameter);
+
+				res = true;
+			}	
+			channel->clearCalibrationStore();
+		}		
+	}
+
+	return res;
+}
+
 void LoggingWidget::calibrateNMRData(double calibr_coef, ToolChannel *channel)
 {
 	foreach (LoggingPlot *logging_plot, logging_plot_list)
@@ -1265,9 +1314,11 @@ void LoggingWidget::calibrateNMRData(double calibr_coef, ToolChannel *channel)
 			switch (data_type)
 			{
 			case LoggingData::NMRBins_Probe1:
+			case LoggingData::NMRBins_Probe2:
+			case LoggingData::NMRBins_Probe3:
 				{
 					int cur_index = 0;
-					if (ydata_list->isEmpty())
+					if (!ydata_list->isEmpty())
 					{
 						QVector<double> *y_mphs = ydata_list->at(cur_index++);
 						for (int j = 0; j < y_mphs->size(); j++)
@@ -1301,11 +1352,10 @@ void LoggingWidget::calibrateNMRData(double calibr_coef, ToolChannel *channel)
 					break;
 				}
 			default: break;
-			}
-
-			channel->normalize_coef1 = calibr_coef;
+			}			
 		}
 	}	
+	channel->normalize_coef1 = calibr_coef;
 }
 
 void LoggingWidget::setDataType(int index)
@@ -1602,6 +1652,7 @@ void LoggingPlot::setDataType(LoggingData::DataType dt, LoggingData *dcont)
 	data_type = dt;
 }
 
+/*
 void LoggingPlot::setKERNParameters(bool _calibr_state, double _core_diameter, double _standard_porosity, double _standard_diameter)
 {
 	calibration_state = _calibr_state;
@@ -1609,6 +1660,7 @@ void LoggingPlot::setKERNParameters(bool _calibr_state, double _core_diameter, d
 	standard_porosity = _standard_porosity;
 	standard_diameter = _standard_diameter;
 }
+*/
 
 void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::DataType dt)
 {	
@@ -1660,9 +1712,8 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 			}
 			double mphi = mbvi + mffi;
 			double mphs = mffi + mcbw + mbvi;
-						
-			//if (!already_normalized) calibr_normalize_coef = channel->normalize_coef1;
-			if (calibration_state) calibration_store.append(sum);
+			
+			/*if (calibration_state) calibration_store.append(sum);
 			else
 			{
 				if (!calibration_store.isEmpty())
@@ -1686,36 +1737,11 @@ void LoggingPlot::addDataSet(DataSet *ds, ToolChannel *channel, LoggingData::Dat
 						double Dcalibr = standard_diameter;
 						double calibr_normalize_coef = (Pcalibr/S)*(Dcalibr*Dcalibr/core_diameter/core_diameter);
 								
-						emit new_calibration_coef(calibr_normalize_coef, channel);
-
-						/*QVector<double> *y_mphs = ydata_list->at(cur_index+1);
-						for (int j = 0; j < y_mphs->size(); j++)
-						{
-							y_mphs->data()[j] = y_mphs->data()[j] / channel->normalize_coef1 * calibr_normalize_coef;
-						}
-						QVector<double> *y_mphi = ydata_list->at(cur_index+2);
-						for (int j = 0; j < y_mphi->size(); j++)
-						{
-							y_mphi->data()[j] = y_mphi->data()[j] / channel->normalize_coef1 * calibr_normalize_coef;
-						}
-						QVector<double> *y_mffi = ydata_list->at(cur_index+3);
-						for (int j = 0; j < y_mffi->size(); j++)
-						{
-							y_mffi->data()[j] = y_mffi->data()[j] / channel->normalize_coef1 * calibr_normalize_coef;
-						}
-
-						channel->normalize_coef1 = calibr_normalize_coef; */
-
-						//already_normalized = true;
-						//emit new_calibration_coef(calibr_normalize_coef, channel);	// удалил временно. Обеспечить запись не в rern.cfg, а в файл данных
+						emit new_calibration_coef(calibr_normalize_coef, channel);									
 					}	
 					calibration_store.clear();
-				}
-				else 
-				{
-					//if (!already_normalized) calibr_normalize_coef = channel->normalize_coef1;
-				}
-			}
+				}				
+			}*/
 
 			if (processing_relax.porosity_on)
 			{
@@ -2257,9 +2283,8 @@ void LoggingPlot::clearAll()
 
 	legend_frame->repaint();
 
-	calibration_store.clear();
+	//calibration_store.clear();
 	//calibr_normalize_coef = 1.0;
-	//already_normalized = false;
 	
 	cur_index = -1;
 }

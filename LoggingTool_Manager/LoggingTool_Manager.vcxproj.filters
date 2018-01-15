@@ -371,15 +371,6 @@
     <ClCompile Include="Dialogs\depth_server_dialog.cpp">
       <Filter>Source Files\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="Communication\cdiag_data_manager.cpp">
-      <Filter>Source Files\Communication</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_cdiag_data_manager.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_cdiag_data_manager.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
     <ClCompile Include="GeneratedFiles\Debug\moc_cdiag_server_dialog.cpp">
       <Filter>Generated Files\Debug</Filter>
     </ClCompile>
@@ -708,9 +699,6 @@
     </CustomBuild>
     <CustomBuild Include="Dialogs\depth_server_dialog.h">
       <Filter>Header Files\Dialogs</Filter>
-    </CustomBuild>
-    <CustomBuild Include="Communication\cdiag_data_manager.h">
-      <Filter>Header Files\Communication</Filter>
     </CustomBuild>
     <CustomBuild Include="Dialogs\cdiag_server_dialog.ui">
       <Filter>Form Files\Dialogs</Filter>

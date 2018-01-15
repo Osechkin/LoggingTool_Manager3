@@ -412,4 +412,210 @@ private:
     int cnt;
 };*/
 
+
+// Ring buffer for fast data receiving and decoding
+#define RBUF_SIZE		32
+
+class RING_BUFFER
+{
+public:
+	RING_BUFFER(int _max_len)
+	{
+		max_len = _max_len;		
+		flush();
+	}
+
+	// Flush the ring buffer
+	void flush()
+	{
+		memset(&data[0], 0x0, RBUF_SIZE*sizeof(uint8_t));
+		tail = 0;
+		head = 0;
+		cnt = 0;
+	}
+
+	// Clears the ring buffer 
+	// But doesn't fill in the buffer by zeros !
+	void clear()
+	{
+		tail = 0;
+		head = 0;
+		cnt = 0;
+	}
+
+	// Check if the ring buffer is empty
+	bool empty()
+	{
+		return cnt == 0;
+	}
+
+	// Check if the ring buffer is full
+	bool full()
+	{
+		return cnt == max_len;
+	}
+
+	// Returns the number of bytes in the ring buffer
+	int count()
+	{
+		return cnt;
+	}
+
+	// Put a byte to the ring buffer.
+	// Returns false if the ring buffer is full
+	void put(uint8_t v, bool *ok = 0)
+	{
+		data[tail] = v;	
+
+		bool is_full = full();
+		if (!is_full)
+		{			
+			cnt++;
+			if (tail < max_len-1) tail++;
+			else tail = 0;	
+			*ok = 1;
+		}
+		else 
+		{
+			if (tail < max_len-1) tail++;
+			else tail = 0;
+			if (head < max_len-1) head++;
+			else head = 0;	
+			*ok = 0;
+		}			
+	}
+
+	// Put N bytes to the ring buffer.
+	// Returns false if the ring buffer has not enough space
+	void put_bytes(uint8_t *_data, int N, bool *ok = 0)
+	{		
+		for (int i = 0; i < N; i++)
+		{
+			uint8_t v = _data[i];
+			put(v, ok);
+		}
+	}
+		
+	// Returns first byte from the head of the ring buffer.
+	// If the buffer is empty then returns zero (check buffer size before using!)
+	uint8_t get(bool *ok = 0)
+	{
+		if (cnt == 0) 
+		{
+			*ok = 0;
+			return 0;
+		}
+
+		uint8_t v = data[head];
+		if (head == max_len-1) head = 0;
+		else head++;
+		--cnt;
+
+		*ok = 1;
+		return v;
+	}
+
+	// Returns last byte entered to the ring buffer.
+	// If the buffer is empty then returns zero (check buffer size before using!)
+	uint8_t get_last(bool *ok = 0)
+	{
+		if (cnt == 0) 
+		{
+			*ok = 0;
+			return 0;
+		}
+
+		int index = tail-1;
+		if (index < 0) index = max_len-1;
+
+		uint8_t v = data[index];
+		tail = index;
+		--cnt;
+
+		*ok = 1;
+		return v;
+	}
+
+	// Returns all data from the ring buffer
+	// Array _data must be initialized before using !
+	void get_all(uint8_t *_data, bool *ok = 0)
+	{
+		if (cnt == 0) 
+		{
+			*ok = 0;			
+			return;
+		}
+
+		if (tail > head)
+		{
+			memcpy(_data, &data[head], cnt*sizeof(uint8_t));
+		}
+		else
+		{
+			int len1 = max_len - head;
+			memcpy(_data, &data[head], len1*sizeof(uint8_t));
+			int len2 = cnt - len1;
+			memcpy(_data+len1, &data[0], len2*sizeof(uint8_t));
+		}
+
+		*ok = 1;
+		clear();
+	}
+
+	// Returns N data bytes from the ring buffer
+	// Array _data must be initialized before using !
+	void get_bytes(uint8_t *_data, int N, bool *ok = 0)
+	{
+		if (cnt == 0 || cnt < N)
+		{
+			*ok = 0;
+			return;
+		}
+
+		for (int i = 0; i < N; i++)
+		{
+			_data[i] = get(ok);
+		}
+	}
+
+	// Returns an element number index (head has number 0)
+	// If index > cnt then returns 0 and *ok = 0
+	uint8_t at(int pos, bool *ok = 0)
+	{
+		if (pos > cnt-1) 
+		{
+			*ok = 0;
+			return 0;
+		}
+
+		int index = head + pos;
+		if (index >= max_len) index -= max_len;	
+
+		return data[index];
+	}
+
+	// Returns first element in the ring buffer
+	uint8_t first()
+	{
+		return data[head];
+	}
+
+	// Returns last element in the ring buffer
+	uint8_t last()
+	{
+		int index = tail-1;
+		if (index < 0) index = max_len-1;
+
+		return data[index];
+	}
+
+private:
+	uint8_t data[RBUF_SIZE];	// ring data store
+	int head;
+	int tail;
+	int cnt;
+	int max_len;
+};
+
+
 #endif // IO_CONTAINERS_H

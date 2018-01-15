@@ -278,7 +278,8 @@ private slots:
 	void setExpSchedulerFinished();
 	void setExpSchedulerStarted();
 
-	void saveNewCalibrCoefficient(double val, ToolChannel *channel);
+	void saveNewCalibrCoefficientToCfg(double val, ToolChannel *channel);	// сохранить новый калибровочный коэффициент в файл tool.cfg
+	void saveNewCalibrCoefficient(double val, ToolChannel *channel);		// сохранить новый калибровочный коэффициент в файл данных
 
 private:
 	void loadToolsSettings();

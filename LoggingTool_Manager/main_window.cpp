@@ -44,6 +44,16 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {		
+	/*bool ok;
+	RING_BUFFER ring_buff(8);
+	uint8_t arr[5] = { 1, 2, 3, 4, 5 };
+	ring_buff.put(0, &ok);
+	ring_buff.put_bytes(&arr[0], 5, &ok);
+	ring_buff.put_bytes(&arr[0], 5, &ok);
+	ring_buff.get_bytes(&arr[0], 3, &ok);
+	ring_buff.get_bytes(&arr[0], 5, &ok);
+	*/
+
 	loadToolsSettings();
 	current_tool_settings = NULL;	
 	current_tool_was_applied = false;
@@ -613,6 +623,7 @@ void MainWindow::setConnections()
 	connect(com_commander, SIGNAL(device_data_timed_out(uint32_t)), msg_processor, SLOT(reportNoResponse(uint32_t)));
 	connect(com_commander, SIGNAL(msg_state(int, int)), nmrtoolLinker, SLOT(showMsgTrafficReport(int, int)));
 
+	connect(logging_widget, SIGNAL(new_calibration_coef_toCfg(double, ToolChannel*)), this, SLOT(saveNewCalibrCoefficientToCfg(double, ToolChannel*)));
 	connect(logging_widget, SIGNAL(new_calibration_coef(double, ToolChannel*)), this, SLOT(saveNewCalibrCoefficient(double, ToolChannel*)));
 
 	connect(tcp_data_manager, SIGNAL(get_data(const QString&, int)), this, SLOT(sendDataToNetClients(const QString&, int)));
@@ -2328,6 +2339,7 @@ void MainWindow::startNMRTool(bool flag)
 	//delete save_data_file;
 	//save_data_file = NULL;	
 
+	logging_widget->clearAllData();
 	expScheduler->start();
 	startExperiment(true);
 }
@@ -4601,7 +4613,7 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		memo += QString("\n\n");
 
 		memo += "[Format]\n";
-		memo += QString("Version = %1\n").arg("1.0");
+		memo += QString("Version = %1\n").arg("2.0");
 		memo += QString("DecimalSymbol = %1\n").arg(".");
 		memo += QString("DataSeparator = %1\n").arg(" ");
 		memo += QString("DataSetSeparator = %1\n").arg(";");
@@ -4624,7 +4636,25 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		}	
 		memo += QString("\n\n");
 
-		 // Channels & settings
+		memo += QString("[Sequence]\n");
+		memo += QString("Name = %1\n").arg(cur_seq->name);
+		memo += QString("Author = %1\n").arg(cur_seq->author);
+		memo += QString("\n\n");
+
+		
+		// if autocalibration is on, then Channel data and experimental data are saved after the autocalibration period is expired.
+		// For this goal DataX, DataY and DataColumns are collected to temp. QString buffer.
+
+		/*static QString temp_memo = "";
+		if (logging_widget->isCalibrationON())
+		{
+
+		}
+		else
+		{
+
+		}*/
+		// Channels & settings
 		for (int i = 0; i < tool_channels.count(); i++)
 		{
 			ToolChannel *channel = tool_channels[i];
@@ -4666,10 +4696,6 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 			memo += QString("\n\n");
 		}
 		
-		memo += QString("[Sequence]\n");
-		memo += QString("Name = %1\n").arg(cur_seq->name);
-		memo += QString("Author = %1\n").arg(cur_seq->author);
-		memo += QString("\n\n");
 		
 		QString str_quantity = "                ";	// 16 spaces
 		memo += QString("[ScannedQuantity]\n");
@@ -4743,7 +4769,7 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 					ds_name = "'" + dn_list.first() + "#" + toAlignedString(5, dn_list.last().toInt()) + "'   ";					
 
 					int ds_name_len = ds_name.length();
-					QString str_ds_name = QString(" ").repeated(ds_name_len);
+					QString str_ds_name = QString(" ").repeated(ds_name_len-1);
 					str_ds_name.replace(0,13, "#DATASET_NAME");
 					memo += str_ds_name;	
 
@@ -4837,7 +4863,7 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 					ds_name = dn_list.first() + "#" + toAlignedString(5, dn_list.last().toInt());
 					memo += "'" + ds_name + "'   ";
 										
-					//memo += toAlignedSpacedString(comm_id, 13, " ");				// for #DATA_TYPE
+					memo += toAlignedSpacedString(comm_id, 13, " ");				// for #DATA_TYPE
 					memo += toAlignedSpacedString(ds->getChannelId(), 11, " ");		// for #CHANNEL
 					memo += toAlignedSpacedString(ds->getGroupIndex(), 15, " ");	// for #GROUP_INDEX
 					memo += toAlignedSpacedString(ds->getDataNum(), 12, " ");		// for #DATA_NUM
@@ -5789,7 +5815,7 @@ void MainWindow::sdspIsActivated(bool flag)
 	if (flag && sdsp_index >= 0) ui->tabWidget->setCurrentIndex(sdsp_index);	
 }
 
-void MainWindow::saveNewCalibrCoefficient(double val, ToolChannel *channel)
+void MainWindow::saveNewCalibrCoefficientToCfg(double val, ToolChannel *channel)
 {
 	for (int i = 0; i < tools_settings.count(); i++)
 	{
@@ -5809,6 +5835,23 @@ void MainWindow::saveNewCalibrCoefficient(double val, ToolChannel *channel)
 			}			
 		}
 	}	
+}
+
+void MainWindow::saveNewCalibrCoefficient(double val, ToolChannel *channel)
+{
+	QString file_name = expScheduler->getDataFile();
+	QSettings data_file(file_name, QSettings::IniFormat, this);
+
+	for (int j = 0; j < tool_channels.count(); j++)
+	{
+		ToolChannel *_channel = tool_channels[j];		
+		if (_channel->channel_id == channel->channel_id)
+		{
+			//QString channel_rec = QString("channel#%1/normalize_coef1").arg(channel->channel_id);
+			//data_file.setValue(channel_rec, val);
+			return;
+		}
+	}
 }
 
 

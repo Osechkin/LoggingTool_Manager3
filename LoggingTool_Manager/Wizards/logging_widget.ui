@@ -119,10 +119,16 @@
              <double>100000.000000000000000</double>
             </property>
             <property name="singleStep">
-             <double>10.000000000000000</double>
+             <double>0.100000000000000</double>
             </property>
             <property name="numButtons">
-             <number>1</number>
+             <number>2</number>
+            </property>
+            <property name="stepButton2">
+             <number>100</number>
+            </property>
+            <property name="stepButton3">
+             <number>1000</number>
             </property>
             <property name="wrapping">
              <bool>false</bool>
@@ -180,10 +186,16 @@
              <double>100000.000000000000000</double>
             </property>
             <property name="singleStep">
-             <double>10.000000000000000</double>
+             <double>0.100000000000000</double>
             </property>
             <property name="numButtons">
-             <number>1</number>
+             <number>2</number>
+            </property>
+            <property name="stepButton2">
+             <number>100</number>
+            </property>
+            <property name="stepButton3">
+             <number>1000</number>
             </property>
            </widget>
           </item>
@@ -354,7 +366,6 @@
               <property name="frameShadow">
                <enum>QFrame::Plain</enum>
               </property>
-              <zorder>frame_first</zorder>
              </widget>
             </item>
             <item row="0" column="0" rowspan="2">

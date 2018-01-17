@@ -414,12 +414,18 @@ private:
 
 
 // Ring buffer for fast data receiving and decoding
-#define RBUF_SIZE		32
+#define RBUF_SIZE		512
 
 class RING_BUFFER
 {
 public:
-	RING_BUFFER(int _max_len)
+	RING_BUFFER(int _max_len = RBUF_SIZE)
+	{
+		init(_max_len);
+	}
+
+	// Initialize the ring buffer with _max_len
+	void init(int _max_len)
 	{
 		max_len = _max_len;		
 		flush();

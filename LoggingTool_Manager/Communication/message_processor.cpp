@@ -480,9 +480,7 @@ void MsgProcessor::receiveMsgFromCOMComander(COM_Message *_msg, uint32_t _uid)
 				{
 					SmartArr arr = _msg->getMsgHeader()->getShortData();
 					unsigned char device_id = (arr.data[1]);
-					//treatIncommingData(_uid);
-					//unlockMsg();
-
+					
 					emit apply_tool_id(device_id);
 					
 					treatIncommingData(_uid);

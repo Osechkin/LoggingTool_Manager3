@@ -79,6 +79,7 @@ private:
 	void initMsgSettings();
 	//int findMsgHeader(QUEUE<uint8_t>* _queue);
 	int findMsgHeader(QUEUE<uint8_t>* _queue, COM_Message *_msg);
+	int findMsgHeader(RING_BUFFER &_ring, COM_Message *_msg);
 	int checkMsgHeader(COM_Message *_msg);
 	void searchMsgHeader(QUEUE<uint8_t> *_queue, QByteArray &str);
 	void searchMsgHeader2(QUEUE<uint8_t> *_queue, QByteArray &str);
@@ -110,7 +111,9 @@ private:
 private:
 	MainWindow *main_win;
 
-	QByteArray prebuff;							// первичеый буффер, куда складываются символы из COM-порта (используется при ожидании заголовков только)
+	//QByteArray prebuff;							// первичеый буффер, куда складываются символы из COM-порта (используется при ожидании заголовков только)
+	RING_BUFFER data_buff;
+	
 	QUEUE<uint8_t> *head_q;
 	QUEUE<uint8_t> *body_q;
 	COM_Message* msg_critical;					// критически важное сообщение, которое должно быть послано вне очереди
@@ -150,6 +153,8 @@ private:
 	volatile MultyState msg_packet_state;	// состояние приема очередного пакета сообщения (msg_body)
 	volatile MultyState incom_msg_state;	// состояние всего принимаемого сообщения
 	volatile int pack_counter;				// счетчик приходящих пакетов принимаемого сообщения
+
+	volatile bool session_state;			// сеанс связи начался/закончился
 
 	int thread_id;
 	
@@ -191,6 +196,9 @@ signals:
 	void store_COM_message(COM_Message*);	
 	void device_data_timed_out(uint32_t _uid);
 	//void device_data_timed_out(DeviceData*);
+
+	void session_started();
+	void session_finished();
 };
 
 

@@ -220,6 +220,7 @@ private:
 	DataTypeList data_type_list_File;	// список данных для экспорта во внешний файл
 		
 	bool default_comm_settings_on;
+	bool autocalibration_state;			// состояние автокалибровки (для NMR_Kern): закончилась/не закончилась (или не начиналась вовсе)
 	
 private slots:    
 	void connectToNMRTool(bool flag);   

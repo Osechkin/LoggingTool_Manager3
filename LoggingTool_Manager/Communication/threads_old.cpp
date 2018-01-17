@@ -218,9 +218,10 @@ void COMCommander::sendCOMMsg(COM_Message *msg)
 		if (msg->getIOStatus() == COM_Message::SENT)
 		{
 			int packet_delay = main_win->getCommSettings()->packet_delay;
+			qDebug() << msg->getPackets().count() << msg->getPackets().first()->getPacketLen();
 			for (int i = 0; i < msg->getPackets().count(); i++)
 			{
-				Sleep(100);
+				Sleep(20);
 
 				SmartArr arr;
 				msg->getPacketRawData(&arr, i);				
@@ -285,6 +286,7 @@ void COMCommander::treatCOMData(COM_Message *_msg)
 }
 
 
+/*
 void COMCommander::searchMsgHeader(QUEUE<uint8_t> *_queue, QByteArray &str)
 {
 	//QString str_data = "";
@@ -318,6 +320,47 @@ void COMCommander::searchMsgHeader(QUEUE<uint8_t> *_queue, QByteArray &str)
 			uint8_t ch = str[i];
 			//str_data += QString::number(ch) + " ";	
 
+			if (ch == STOP_BYTE && _queue->count() == HEADER_LEN)
+			{
+				incom_msg_state = STARTED;	
+				break;
+			}
+			else _queue->put(ch);
+		}
+		//qDebug() << "started: " << str_data; 
+	}
+}
+*/
+
+void COMCommander::searchMsgHeader(QUEUE<uint8_t> *_queue, QByteArray &str)
+{	
+	if (msg_header_state == NOT_DEFINED)
+	{				
+		for (int i = 0; i < str.count(); i++) 
+		{
+			uint8_t ch = str[i];
+			
+			if (ch == START_BYTE)
+			{
+				msg_header_state = STARTED;		
+				_queue->clear();
+				msg_timer->start(msg_header_delay);
+			}
+			else if (ch == STOP_BYTE && _queue->count() == HEADER_LEN)
+			{
+				incom_msg_state = STARTED;	
+				break;
+			}
+			else _queue->put(ch);
+		}
+		//qDebug() << "not defined: " << str_data; 
+	}
+	else if (msg_header_state == STARTED)
+	{
+		for (int i = 0; i < str.count(); i++) 
+		{
+			uint8_t ch = str[i];
+			
 			if (ch == STOP_BYTE && _queue->count() == HEADER_LEN)
 			{
 				incom_msg_state = STARTED;	
@@ -422,7 +465,7 @@ void COMCommander::onDataAvailable()
 		{
 			byte_shifts[i] = byte_shifts[i]/test_hdr_info.pack_len - 1;
 		}
-				
+
 		QList<QVector<uint8_t> > test_packs; 
 		for (int i = 0; i < test_hdr_info.pack_count; i++)
 		{
@@ -451,7 +494,7 @@ void COMCommander::onDataAvailable()
 			MsgPacket *pack = test_msg->getPackets()[index];
 			QVector<uint8_t> pack_block(pack->getBlockMap().len);
 			memcpy(pack_block.data(), pack->getBlockMap().data.get(), pack->getBlockMap().len);
-			
+
 			int pre_errors = 0;
 			for (int j = 0; j < pack_block.count(); j++) 
 			{
@@ -494,7 +537,7 @@ void COMCommander::onDataAvailable()
 
 		test_msg->setIOStatus(COM_Message::COMPLETED);
 		test_msg->setStored(true);
-		
+
 		emit COM_message(test_msg, 0);
 	}
 #endif
@@ -504,9 +547,7 @@ void COMCommander::onDataAvailable()
 	QByteArray str = COM_port->readAll();
 
 	if (!str.isEmpty())
-	{
-		//prebuff += str;
-
+	{		
 		if (msg_header_state < FINISHED)
 		{
 			searchMsgHeader(head_q, str);
@@ -518,23 +559,19 @@ void COMCommander::onDataAvailable()
 				treatCOMData(msg_incomming);
 			}
 		}
-						
+
 		if (incom_msg_state == FINISHED)
 		{
 			// если заголовок служебного сообщения (а значит и все служебное сообщение) успешно принят и декодирован
 			if (msg_incomming->getMsgHeader()->getStartMarker() == MTYPE_SERVICE)
-			{				
+			{
 				msg_incomming->setIOStatus(COM_Message::COMPLETED);
-				//msg_incomming->setStored(true);
-
-				//emit store_COM_message(msg_incomming);
-				//emit COM_message(msg_incomming, 0);
-
+				
 				lock_COM_Msg();
 				COM_Message *msg = new COM_Message(new MsgHeader(gf_data));
 				msg_incomming->copyCOMMsg(msg);
-				
-				emit COM_message(msg, 0);				
+
+				emit COM_message(msg, 0);
 				unlock_COM_Msg();
 
 				executeServiceMsg(msg_incomming);
@@ -546,9 +583,6 @@ void COMCommander::onDataAvailable()
 			if (msg_incomming->getMsgHeader()->getStartMarker() == MTYPE_SHORT)
 			{				
 				msg_incomming->setIOStatus(COM_Message::COMPLETED);
-				
-				//msg_incomming->setStored(true);
-				//emit store_COM_message(msg_incomming);
 
 				uint32_t dev_data_uid = 0;
 				if (!sent_device_data_queue.empty())
@@ -558,13 +592,13 @@ void COMCommander::onDataAvailable()
 				}
 				COM_Message *msg = new COM_Message(new MsgHeader(gf_data));
 				msg_incomming->copyCOMMsg(msg);
-				
+
 				lock_COM_Msg();
 				emit COM_message(msg, dev_data_uid); 
 				unlock_COM_Msg();
 
 				executeShortMsg(msg_incomming);
-				
+
 				head_q->clear();				
 				msg_header_state = NOT_DEFINED;
 				incom_msg_state = NOT_DEFINED;				
@@ -580,12 +614,12 @@ void COMCommander::onDataAvailable()
 					DeviceData *device_data = sent_device_data_queue.at(0);		
 					uid = device_data->uid;
 				}
-				
+
 				COM_Message *msg = new COM_Message(new MsgHeader(gf_data));
 				msg_incomming->copyCOMMsg(msg);
 
 				emit COM_message(msg, uid);
-				
+
 				//responseMultypackHeader(msg_incomming, uid);	
 
 				// --- responseMultypackHeader(msg_incomming, uid) -----
@@ -596,11 +630,11 @@ void COMCommander::onDataAvailable()
 				hdr_info.id = msg_incomming->getMsgHeader()->getSessionId();
 				hdr_info.srv_data.alloc(SRV_DATA_LEN);
 				hdr_info.srv_data.data[0] = HEADER_OK;
-								
+
 				MsgHeader *hdr = new MsgHeader(&hdr_info, gf_data);
 				COM_Message *msg_hdr_ok = new COM_Message(hdr);
 				msg_hdr_ok->setIOStatus(COM_Message::COMPLETED);
-				
+
 				last_request_msg.start_marker = MTYPE_SHORT;
 				last_request_msg.w_addr = PC_MAIN;
 				last_request_msg.r_addr = NMR_TOOL;
@@ -610,7 +644,7 @@ void COMCommander::onDataAvailable()
 
 				msleep(1);				// нужна, т.к. программа на DSP не успевает перейти в режим ожидания сообщения HEADER_OK
 				sendCOMMsg(msg_hdr_ok);	
-				
+
 				int pack_len = msg_incomming->getMsgHeader()->getPackLen();
 				int pack_count = msg_incomming->getMsgHeader()->getPackCount();
 				int pack_delays = main_win->getCommSettings()->packet_delay * (pack_count - 1);
@@ -620,15 +654,15 @@ void COMCommander::onDataAvailable()
 
 				lock_COM_Msg();
 				emit COM_message(msg_hdr_ok, uid);
-				
+
 				body_q->clear();
 				byte_shifts.clear();
 				incom_msg_state = PACKS_STARTED;
-				
+
 				byte_counter = 0;
 				pack_started = false;
 				pack_stoped = false;
-				
+
 				unlock_COM_Msg();
 			}	
 		}
@@ -636,7 +670,7 @@ void COMCommander::onDataAvailable()
 		else if (incom_msg_state == FAILED )
 		{				
 			msg_incomming->clearCOMMsg();
-			
+
 			head_q->clear();
 			body_q->clear();
 			msg_header_state = NOT_DEFINED;
@@ -665,13 +699,13 @@ void COMCommander::onDataAvailable()
 			unsigned long packs_len = (unsigned long)msg_incomming->getMsgHeader()->getPackLen();
 
 			searchPackets(str, msg_incomming, body_q, &byte_shifts);
-			
+
 			int sz = body_q->count();
 			if (sz == 0) 
 			{
 				return;
 			}
-			
+
 			if (sz >= packs_count*packs_len) incom_msg_state = PACKS_FINISHED;					
 		}
 
@@ -700,18 +734,18 @@ void COMCommander::onDataAvailable()
 			if (!res)
 			{
 				qDebug() << "Bad decoding of multypack message !";
-				
+
 				msg_incomming->clearCOMMsg();
-				
+
 				body_q->clear();
 				head_q->clear();
-				
+
 				incom_msg_state = NOT_DEFINED;
 				msg_header_state = NOT_DEFINED;
 
 				return;
 			}
-			
+
 			if (!byte_shifts.isEmpty())
 			{
 				for (int i = 0; i < byte_shifts.count(); i++)
@@ -724,9 +758,6 @@ void COMCommander::onDataAvailable()
 			}
 
 			msg_incomming->setIOStatus(COM_Message::COMPLETED);
-			
-			//msg_incomming->setStored(true);
-			//emit store_COM_message(msg_incomming);
 
 			uint32_t dev_data_uid = 0;	
 			if (!sent_device_data_queue.empty())
@@ -801,135 +832,172 @@ void COMCommander::onDataAvailable()
 
 void COMCommander::onDataAvailable()
 {
-	static QList<int> byte_shifts;
-
-#ifdef MSG_TEST
-	QString fileName = QApplication::applicationDirPath() + "/incomming_msg_test.txt";
-	QFile file(fileName); 
-	if (!file.open(QIODevice::ReadOnly)) 
-	{ 
-		qDebug() << tr("Cannot open file 'incomming_msg_test.txt' for reading"); 
-		return; 
-	} 
-
-	while (!file.atEnd())
-	{
-		QByteArray barr = file.readLine();
-
-		QString all_text = QString::fromLocal8Bit(barr);
-		if (all_text.size() < 2) continue;
-
-		QStringList qhead = all_text.split("  ").first().split(" ");
-		QStringList qbody = all_text.split("  ").at(1).split(" ");
-
-		MsgHeader test_header();
-		MsgHeaderInfo test_hdr_info;
-		test_hdr_info.start_marker = qhead[0].toUInt();
-		test_hdr_info.w_addr = qhead[1].toUInt() & 0x0F;	
-		test_hdr_info.r_addr = (qhead[1].toUInt() & 0xF0) >> 4;
-		test_hdr_info.id = qhead[2].toUInt();
-		test_hdr_info.pack_count = qhead[3].toUInt();
-		test_hdr_info.pack_len = qhead[4].toUInt();
-		test_hdr_info.block_len = qhead[5].toUInt();
-		test_hdr_info.err_count = qhead[6].toUInt();
-		test_hdr_info.crc = qhead[7].toUInt();
-
-		MsgHeader *test_hdr = new MsgHeader(&test_hdr_info, gf_data);
-		COM_Message *test_msg = new COM_Message(test_hdr);
-
-		QByteArray barr_qbody;
-		for (int i = 0; i < qbody.count(); i++) barr_qbody.append(qbody[i].toUInt());
-		QUEUE<uint8_t> test_body_q;
-		searchPackets(barr_qbody, test_msg, &test_body_q, &byte_shifts);
-		for (int i = 0; i < byte_shifts.count(); i++) 
+	QByteArray str = COM_port->readAll();
+	if (!session_state)										// если сеанс связи еще не начался (ждем сигнал о начале сеанса связи)
+	{			
+		for (int i = 0; i < str.count(); i++) 
 		{
-			byte_shifts[i] = byte_shifts[i]/test_hdr_info.pack_len - 1;
-		}
-
-		QList<QVector<uint8_t> > test_packs; 
-		for (int i = 0; i < test_hdr_info.pack_count; i++)
-		{
-			QVector<uint8_t> pack_vec(test_hdr_info.pack_len);
-			for (int j = 0; j < test_hdr_info.pack_len; j++)
+			uint8_t ch = str[i];
+			if (ch == START_BYTE && incom_msg_state == NOT_DEFINED)		// пришел стартовый байт нового служебного сообщения
 			{
-				//pack_vec.data()[j] = (uint8_t)(qbody[i*test_hdr_info.pack_len + j].toUInt());
-				if (i*test_hdr_info.pack_len + j < test_body_q.count()) pack_vec.data()[j] = (uint8_t)(test_body_q.at(i*test_hdr_info.pack_len + j));
+				data_buff.clear();							
+				incom_msg_state = STARTED;
+				msg_timer->start(msg_header_delay);
 			}
-			test_packs.push_back(pack_vec);
-		}
-
-		QList<QVector<uint8_t> > test_block_data; 
-		bool res = decodePackets(&test_body_q, test_msg);
-		for (int i = 0; i < test_msg->getPackets().count(); i++)
-		{
-			MsgPacket *test_pack = test_msg->getPackets().at(i);
-			QVector<uint8_t> test_block(test_pack->getBlockMap().len);
-			memcpy(test_block.data(), test_pack->getBlockMap().data.get(), test_pack->getBlockMap().len);
-			test_block_data.push_back(test_block);
-		}
-
-		for (int i = 0; i < byte_shifts.count(); i++)
-		{
-			int index = byte_shifts[i];
-			MsgPacket *pack = test_msg->getPackets()[index];
-			QVector<uint8_t> pack_block(pack->getBlockMap().len);
-			memcpy(pack_block.data(), pack->getBlockMap().data.get(), pack->getBlockMap().len);
-
-			int pre_errors = 0;
-			for (int j = 0; j < pack_block.count(); j++) 
+			else if (ch == STOP_BYTE && incom_msg_state == STARTED)		// достигнут стоповый байт входного сообщения
 			{
-				if (pack_block.data()[j] == DATA_STATE_FAIL) pre_errors++;
-			}
-
-			int shift_begin = -1;		// номер блока, с которого начался сдвиг
-			int j = pack_block.count()-1;
-			while (pack_block[j] == DATA_STATE_FAIL && j >= 0) 
-			{
-				shift_begin = j--; 
-			}
-			if (shift_begin >= 0)
-			{
-				SmartArr byte_arr = pack->getByteArray();
-				int pos1 = shift_begin*test_hdr_info.block_len;
-				int len1 = byte_arr.len - pos1 - 1;
-				memcpy(byte_arr.data.get()+pos1, byte_arr.data.get()+pos1+1, len1*sizeof(uint8_t));
-				SmartArr res_data_arr(pack->getPacketLen() - 2*pack->getErrsCount()*pack->getBlockCount());	
-				SmartArr bad_map_arr(pack->getBlockCount());				
-				SmartArr res_byte_arr(pack->getPacketLen());
-				SmartArr res_rs_arr(2*pack->getErrsCount()*pack->getBlockCount());
-				decodePackByteArray(byte_arr, test_hdr_info.block_len, gf_data, res_byte_arr, res_data_arr, res_rs_arr, bad_map_arr);
-
-				int post_errors = 0;
-				for (int j = 0; j < bad_map_arr.len; j++) 
+				if (data_buff.count() == HEADER_LEN)		// входное служебное сообщение успешно доставлено в PC_Main (лежит в data_buff) 
 				{
-					uint8_t state = bad_map_arr.data.get()[j];
-					if (state == DATA_STATE_FAIL) post_errors++;
+					//incom_msg_state = FINISHED;
+					int res = findMsgHeader(data_buff, msg_incomming);
+					if (res == E_RS_OK)
+					{
+						res = checkMsgHeader(msg_incomming);
+						if (res == E_MSG_OK)
+						{				
+							if (msg_incomming->getMsgType() == MTYPE_SERVICE && msg_incomming->getCmd() == NMRTOOL_IS_READY)
+							{
+								msg_incomming->setIOStatus(COM_Message::COMPLETED);
+								incom_msg_state = FINISHED;
+
+								lock_COM_Msg();
+								COM_Message *msg = new COM_Message(new MsgHeader(gf_data));
+								msg_incomming->copyCOMMsg(msg);
+
+								emit COM_message(msg, 0);
+								unlock_COM_Msg();
+
+								executeServiceMsg(msg_incomming);								
+								
+								incom_msg_state = NOT_DEFINED;
+								emit msg_state(0,1);	// сообщение раскодировано успешно: 0 - число нераскодированных блоков; 1 - общее число блоков
+								emit session_started();
+							}
+							
+
+							
+						}
+						else
+						{
+							qDebug() << "bad msg header !";
+							msg_header_state = FAILED;
+							incom_msg_state = FAILED;
+
+							emit msg_state(1,1);	// заголовок не был раскодирован успешно
+
+							qDebug() << "msg id: " << _msg->getSessionId() << " bad data: " << _msg->getIOStatus();
+							QString out_str = "";
+							MsgProcessor::showBadMessageAsText(_msg, out_str);
+							emit bad_COM_message(out_str);
+						}
+
+						head_q->clear();
+						msg_timer->stop();
+						return;
+					}
+					else if (res == E_RS_NOTFOUND)
+					{
+						msg_header_state = FAILED;
+						incom_msg_state = FAILED;
+
+						emit msg_state(1,1);		// заголовок не был раскодирован успешно
+					}
+					else if (res == E_RS_FATAL)
+					{
+						msg_header_state = FAILED;
+						incom_msg_state = FAILED;
+
+						emit msg_state(1,1);		// заголовок не был раскодирован успешно
+					}
+					head_q->clear();
+
+					emit session_started();
+					return;
 				}
-				if (post_errors < pre_errors)
+				else if (data_buff.count() > HEADER_LEN)	// расстояние между стартовым и стоповым байтами слишком большое (вклинился посторонний байт/байты)
 				{
-					memcpy(pack->getByteArray().data.get(), res_byte_arr.data.get(), res_byte_arr.len*sizeof(uint8_t));
-					memcpy(pack->getDataArray().data.get(), res_data_arr.data.get(), res_data_arr.len*sizeof(uint8_t));					
-					memcpy(pack->getRecData().data.get(), res_rs_arr.data.get(), res_rs_arr.len*sizeof(uint8_t));
-					memcpy(pack->getBlockMap().data.get(), bad_map_arr.data.get(), bad_map_arr.len*sizeof(uint8_t));
+					data_buff.clear();
+					incom_msg_state = FAILED;
+					//emit new_msg_status();
+				}
+			}
+			else if (ch =! STOP_BYTE && incom_msg_state == STARTED)
+			{
+				data_buff.put(ch);
+				if (data_buff.count() > HEADER_LEN)			// data_buff заполнен на HEADER_LEN, но стоповый байт не пришел (вклинился посторонний байт/байты)
+				{
+					data_buff.clear();
+					incom_msg_state = FAILED;
+					//emit new_msg_status();
 				}				
 			}
 		}
-
-		test_msg->setIOStatus(COM_Message::COMPLETED);
-		test_msg->setStored(true);
-
-		emit COM_message(test_msg, 0);
 	}
-#endif
+	else   // если поступили байты во время открытого сеанса связи
+	{
+		for (int i = 0; i < str.count(); i++) 
+		{
+			uint8_t ch = str[i];
+			if (ch == START_BYTE && incom_msg_state == NOT_DEFINED)		// пришел стартовый байт нового служебного сообщения
+			{
+				data_buff.clear();							
+				incom_msg_state = STARTED;				
+			}
+			else if (ch == STOP_BYTE && incom_msg_state == STARTED)		// достигнут стоповый байт входного сообщения
+			{
+				if (data_buff.count() == HEADER_LEN)		// входное служебное сообщение успешно доставлено в PC_Main (лежит в data_buff) 
+				{
+					incom_msg_state = FINISHED;
+					emit new_msg_status();
+					return;
+				}				
+			}
+			else if (ch =! STOP_BYTE && incom_msg_state == STARTED)
+			{
+				data_buff.put(ch);
+				if (data_buff.count() > HEADER_LEN)			// data_buff заполнен на HEADER_LEN, но стоповый байт не пришел (вклинился посторонний байт/байты)
+				{
+					data_buff.clear();
+					incom_msg_state = FAILED;
+					emit new_msg_status();
+				}				
+			}
+		}
+	}
+			
+			
+		
+
+		if (msg_header_state == NOT_DEFINED)
+		{				
+			
+			//qDebug() << "not defined: " << str_data; 
+		}
+		else if (msg_header_state == STARTED)
+		{
+			for (int i = 0; i < str.count(); i++) 
+			{
+				uint8_t ch = str[i];
+
+				if (ch == STOP_BYTE && _queue->count() == HEADER_LEN)
+				{
+					incom_msg_state = STARTED;	
+					break;
+				}
+				else _queue->put(ch);
+			}
+			//qDebug() << "started: " << str_data; 
+		}
+	}
+
+	static QList<int> byte_shifts;
 
 	com_data_ready = true;
 
 	QByteArray str = COM_port->readAll();
 
 	if (!str.isEmpty())
-	{
-		//prebuff += str;
-
+	{		
 		if (msg_header_state < FINISHED)
 		{
 			searchMsgHeader(head_q, str);
@@ -946,18 +1014,14 @@ void COMCommander::onDataAvailable()
 		{
 			// если заголовок служебного сообщения (а значит и все служебное сообщение) успешно принят и декодирован
 			if (msg_incomming->getMsgHeader()->getStartMarker() == MTYPE_SERVICE)
-			{				
+			{
 				msg_incomming->setIOStatus(COM_Message::COMPLETED);
-				//msg_incomming->setStored(true);
-
-				//emit store_COM_message(msg_incomming);
-				//emit COM_message(msg_incomming, 0);
 
 				lock_COM_Msg();
 				COM_Message *msg = new COM_Message(new MsgHeader(gf_data));
 				msg_incomming->copyCOMMsg(msg);
 
-				emit COM_message(msg, 0);				
+				emit COM_message(msg, 0);
 				unlock_COM_Msg();
 
 				executeServiceMsg(msg_incomming);
@@ -969,9 +1033,6 @@ void COMCommander::onDataAvailable()
 			if (msg_incomming->getMsgHeader()->getStartMarker() == MTYPE_SHORT)
 			{				
 				msg_incomming->setIOStatus(COM_Message::COMPLETED);
-
-				//msg_incomming->setStored(true);
-				//emit store_COM_message(msg_incomming);
 
 				uint32_t dev_data_uid = 0;
 				if (!sent_device_data_queue.empty())
@@ -1147,9 +1208,6 @@ void COMCommander::onDataAvailable()
 			}
 
 			msg_incomming->setIOStatus(COM_Message::COMPLETED);
-
-			//msg_incomming->setStored(true);
-			//emit store_COM_message(msg_incomming);
 
 			uint32_t dev_data_uid = 0;	
 			if (!sent_device_data_queue.empty())
@@ -1408,6 +1466,72 @@ int COMCommander::findMsgHeader(QUEUE<uint8_t>* _queue, COM_Message *_msg)
 	return res;
 }
 
+int COMCommander::findMsgHeader(RING_BUFFER &_ring, COM_Message *_msg)
+{
+	int cnt = _ring.count();
+	if (cnt != HEADER_LEN) return E_RS_LEN;
+	
+	uint8_t arr[HEADER_LEN];
+	_ring.get_bytes(&arr[0], HEADER_LEN);
+
+	GFPoly *dist = GFPoly_alloc();
+	dist->data = &arr[0];
+	dist->power = HEADER_LEN-1;
+
+	GF_Data *_gf_data = _msg->getGFData();
+	GF *gf = _gf_data->gf;
+	int index = _gf_data->index_hdr;
+	GFPoly *g = _gf_data->gf_polys[index];
+
+	GFPoly *dec = GFPoly_alloc();
+	GFPoly_self_inv(dist);
+	int res = RS_decode(dist,g,gf,dec);
+	if (res == E_RS_FATAL || res == E_RS_NOTFOUND)
+	{		
+		if (dec->power != NoD) GFPoly_destroy(dec);
+		free(dist);
+		free(dec);
+
+		QString str_err = "";
+		for (int i = 0; i < HEADER_LEN; i++)
+		{
+			str_err += QString::number(arr[i]) + " ";			
+		}
+		qDebug() << "err_header: " + str_err; 
+
+		return res;
+	}
+	clearCOMMsg(_msg);
+	MsgHeader *_msg_header = _msg->getMsgHeader();	
+	GFPoly_self_inv(dec);
+
+	MsgHeaderInfo _msg_info; 
+	_msg_info.start_marker = dec->data[0];
+	_msg_info.w_addr = (dec->data[1] & 0x0F);
+	_msg_info.r_addr = (dec->data[1] & 0xF0) >> 4;
+	_msg_info.id = dec->data[2];
+	_msg_info.pack_count = dec->data[3];
+	_msg_info.pack_len = dec->data[4];
+	_msg_info.block_len = dec->data[5];
+	_msg_info.err_count = dec->data[6];
+	_msg_info.crc = dec->data[7];
+	_msg_info.setSrvData(dec->data+3, SRV_DATA_LEN);
+
+	_msg_header->fillAllData(&_msg_info);
+	GFPoly_self_inv(dist);
+	memcpy(_msg_header->getByteArray().data.get(), dist->data, HEADER_LEN*sizeof(uint8_t));
+	memcpy(_msg_header->getRecData().data.get(), dist->data+HEAD_INFO_LEN, SRV_DATA_LEN*sizeof(uint8_t));
+	_msg->setSessionId(_msg_info.id);
+	_msg->setWriter(_msg_info.w_addr);
+	_msg->setReader(_msg_info.r_addr);
+
+	GFPoly_destroy(dec);
+	free(dist);
+	free(dec);
+
+	return res;
+}
+
 
 int COMCommander::checkMsgHeader(COM_Message *_msg)
 {
@@ -1421,7 +1545,7 @@ int COMCommander::checkMsgHeader(COM_Message *_msg)
 	uint8_t arr[HEAD_INFO_LEN-1];
 	if (type == MTYPE_MULTYPACK)			// обыкновенное многопакетное (от 1 и больше) сообщение
 	{
-		if ( _msg_header->getErrsCount() > MAX_REC_ERRS) return E_MSG_REC_LEN;				// количество исправляемых ошибок не может быть > MAX_REC_ERRS
+		if ( _msg_header->getErrsCount() > MAX_REC_ERRS) return E_MSG_REC_LEN;						// количество исправляемых ошибок не может быть > MAX_REC_ERRS
 		if ( 2*(_msg_header->getErrsCount()) >= _msg_header->getPackLen() ) return E_MSG_LEN;		// длина всего тела сообщения должна быть больше длины проверочной части
 		
 		arr[0] = _msg_header->getStartMarker();
@@ -1475,7 +1599,7 @@ void COMCommander::executeServiceMsg(COM_Message *_msg)
 	uint8_t incomming_id = _msg->getMsgHeader()->getSessionId();
 
 	bool proger_started = (byte0 & 0x4);		// интервальный программатор ПЛИС был запущен командой proger_start()
-	bool seq_finished = (byte0 & 0x8);		// закончилась или нет последовательность в программаторе ПЛИС командой COM_STOP
+	bool seq_finished = (byte0 & 0x8);		    // закончилась или нет последовательность в программаторе ПЛИС командой COM_STOP
 	
 	//if (seq_finished || !proger_started) nmrtool_state = false;
 	//if (!proger_started) nmrtool_state = false;
@@ -1659,7 +1783,8 @@ void COMCommander::executeServiceMsg(COM_Message *_msg)
 					}
 
 					int data_len = pos;
-					int pack_len = estimateBestPackLen(data_len, comm_settings->block_length, 2*comm_settings->errs_count);
+					int pack_len = main_win->getCommSettings()->packet_length;
+					if (main_win->getCommSettings()->packlen_autoadjust) pack_len = estimateBestPackLen(data_len, comm_settings->block_length, 2*comm_settings->errs_count);
 					int pack_count = (int)ceil(data_len/(double)pack_len);
 										
 					hdr_info.block_len = comm_settings->block_length;
@@ -2006,7 +2131,8 @@ void COMCommander::decodePackByteArray(SmartArr byte_arr, int block_len, GF_Data
 	}	
 }
 
-int COMCommander::estimateBestPackLen(int data_len, int block_len, int rs_part_len)
+
+/*int COMCommander::estimateBestPackLen(int data_len, int block_len, int rs_part_len)
 {
 	int pack_count = 1;
 	int max_len = 0;
@@ -2037,6 +2163,27 @@ int COMCommander::estimateBestPackLen(int data_len, int block_len, int rs_part_l
 	
 	return res;
 }
+*/
+
+
+int COMCommander::estimateBestPackLen(int data_len, int block_len, int rs_part_len)
+{
+	int blocks = ceil((double)data_len/(block_len-rs_part_len));
+	int full_data_len = blocks*block_len;
+			
+	bool ready = false;
+	int pack_len = floor(254.0/block_len)*block_len;
+	int new_pack_len = pack_len;
+	int pack_count = ceil((double)full_data_len/(new_pack_len-PACK_INFO_LEN-1));
+	while (pack_count*(new_pack_len-PACK_INFO_LEN-1) - full_data_len > 0)
+	{
+		pack_len = new_pack_len;
+		new_pack_len -= block_len;
+	}
+
+	return pack_len;
+}
+
 
 
 void COMCommander::executeMultyPackMsg(COM_Message *_msg, uint32_t _uid, bool res)
@@ -2071,6 +2218,7 @@ void COMCommander::executeMultyPackMsg(COM_Message *_msg, uint32_t _uid, bool re
 	emit COM_message(msg, _uid);
 	unlock_COM_Msg();
 }
+
 
 void COMCommander::clearCOMMsg(COM_Message *_msg)
 {
@@ -2202,6 +2350,7 @@ void COMCommander::timeClocked()
 	}
 }
 
+/*
 void COMCommander::lifeTimeElapsed()
 {
 	if (incom_msg_state == STARTED || incom_msg_state == PACKS_STARTED) 
@@ -2216,7 +2365,14 @@ void COMCommander::lifeTimeElapsed()
 	
 	else return;
 }
+*/
 
+void COMCommander::lifeTimeElapsed()
+{	
+	data_buff.clear();
+	incom_msg_state = TIMED_OUT;	
+	emit new_msg_status();
+}
 
 void COMCommander::showBadMessageAsText(COM_Message *msg, QString &text)
 {

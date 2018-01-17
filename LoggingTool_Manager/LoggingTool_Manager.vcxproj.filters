@@ -380,15 +380,6 @@
     <ClCompile Include="Dialogs\cdiag_server_dialog.cpp">
       <Filter>Source Files\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="Communication\threads.cpp">
-      <Filter>Source Files\Communication</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_threads.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_threads.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
     <ClCompile Include="Communication\message_class.cpp">
       <Filter>Source Files\Communication</Filter>
     </ClCompile>
@@ -526,6 +517,15 @@
     </ClCompile>
     <ClCompile Include="Wizards\freq_autoadjust_wizard.cpp">
       <Filter>Source Files\Wizards</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_threads.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_threads.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="Communication\threads.cpp">
+      <Filter>Source Files\Communication</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -706,9 +706,6 @@
     <CustomBuild Include="Dialogs\cdiag_server_dialog.h">
       <Filter>Header Files\Dialogs</Filter>
     </CustomBuild>
-    <CustomBuild Include="Communication\threads.h">
-      <Filter>Header Files\Communication</Filter>
-    </CustomBuild>
     <CustomBuild Include="Dialogs\depth_scale_dialog.ui">
       <Filter>Form Files\Dialogs</Filter>
     </CustomBuild>
@@ -795,6 +792,9 @@
     </CustomBuild>
     <CustomBuild Include="Wizards\freq_autoadjust_wizard.ui">
       <Filter>Form Files\Wizards</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Communication\threads.h">
+      <Filter>Header Files\Communication</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

@@ -48,6 +48,8 @@ void Clocker::stopThread()
 }
 
 
+int COMCommander::msg_req_delay = MSG_REQ_DELAY;	// added 5.07.2018
+
 COMCommander::COMCommander(MainWindow *main_win, QObject *parent)
 {
 	thread_id = thid++;
@@ -170,6 +172,20 @@ void COMCommander::initMsgSettings()
 	sdsp_req_delay = SDSP_REQ_DELAY;
 }
 
+// Added 5.07.2018 --------------------------
+void COMCommander::setMsgReqDelay(int _value)
+{
+	if (_value > 0) msg_req_delay = _value;
+	else 
+	{
+		bool ok;
+		QSettings *app_settings = main_win->getAppSettings();
+		if (app_settings->contains("MessageSettings/MsgReqDelay")) msg_req_delay = app_settings->value("MessageSettings/MsgReqDelay").toInt(&ok); else ok = false;
+		if (!ok) msg_req_delay = MSG_REQ_DELAY;
+	}
+}
+// ------------------------------------------
+
 
 void COMCommander::storeCOMMsg(COM_Message* _msg)
 {
@@ -204,6 +220,12 @@ void COMCommander::sendCOMMsg(COM_Message *msg)
 		{
 			SmartArr arr;
 			msg->getHeaderRawData(&arr);
+			/*QString out_str;
+			for (int k = 0; k < arr.len; k++)
+			{
+				out_str += QString::number(arr.data.get()[k]) + " ";
+			}
+			qDebug() << out_str;*/
 			Sleep(20);
 
 			//COM_port->write((char*)(arr.data), arr.len);
@@ -224,7 +246,13 @@ void COMCommander::sendCOMMsg(COM_Message *msg)
 				Sleep(20);
 
 				SmartArr arr;
-				msg->getPacketRawData(&arr, i);				
+				msg->getPacketRawData(&arr, i);		
+				/*QString out_str;
+				for (int k = 0; k < arr.len; k++)
+				{
+					out_str += QString::number(arr.data.get()[k]) + " ";
+				}
+				qDebug() << out_str;*/
 				COM_port->write((char*)(arr.data.get()), arr.len);				
 				arr.destroy();
 			}		

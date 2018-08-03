@@ -7,6 +7,7 @@
 #include <QMessageBox>
 #include <QMutex>
 #include <QMutexLocker>
+#include <QtMultimedia/QSound>
 
 #include "main_window.h"
 
@@ -23,6 +24,7 @@
 #include "Dialogs/about_dialog.h"
 #include "Dialogs/processing_settings_dialog.h"
 #include "Dialogs/export_settings_dialog.h"
+#include "Dialogs/experiment_settings_dialog.h"
 #include "Dialogs/export_toOil_dialog.h"
 #include "Dialogs/depth_server_dialog.h"
 #include "Dialogs/tools_dialog.h"
@@ -39,7 +41,6 @@
 #include "DMDeconv/DMDeconv.h"
 
 #include "Common/profiler.h"
-
 
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -252,7 +253,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_sequenceProc->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
 	//dock_sequenceProc->setMinimumWidth(350);
 	sequenceProc = new SequenceWizard(app_settings, dock_sequenceProc);	
-	sequenceProc->setMinimumWidth(400);
+	sequenceProc->setMinimumWidth(300);
 	sequenceProc->resize(500, sequenceProc->height());
 	QFont font_proc = sequenceProc->getUI()->lblSeqFile->font();
 	font_proc.setBold(false);
@@ -278,7 +279,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_sdspProc->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
 	//dock_sequenceProc->setMinimumWidth(350);
 	sdspProc = new SDSPWizard(app_settings, dock_sdspProc);	
-	sdspProc->setMinimumWidth(400);
+	sdspProc->setMinimumWidth(300);
 	sdspProc->resize(500, sdspProc->height());
 	QFont font_sdsp_proc = sdspProc->getUI()->lblSeqFile->font();
 	font_sdsp_proc.setBold(false);
@@ -300,6 +301,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	dock_expScheduler->setFont(fontManager);
 	dock_expScheduler->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::NoDockWidgetArea);
 	expScheduler = new SchedulerWizard(sequenceProc, depthTemplate, nmrtoolLinker, clocker, dock_expScheduler);	
+	expScheduler->setMinimumWidth(300);
+	expScheduler->resize(500, sdspProc->height());
 	expScheduler->setJSeqList(sequenceProc->getSeqFileList());
 	//expScheduler->setJSeqFile(sequenceProc->getJSeqFile());
 	dock_expScheduler->setWidget(expScheduler);    
@@ -343,6 +346,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	relax_widget = new RelaxationWidget(ui->tabDataViewer, app_settings);
 		
 	osc_widget = new OscilloscopeWidget(ui->tabOscilloscope, app_settings, tool_channels);
+	//ui->tabOscilloscope->setVisible(false);
 	//ui->tabOscilloscope->setContentsMargins(1,1,1,1);
 
 	monitoring_widget = new MonitoringWidget(app_settings, ui->tabMonitoring);
@@ -356,6 +360,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	grlout_sdsp->addWidget(sdsp_widget, 0, 0, 1, 1);
 
 	logging_widget = new LoggingWidget(tool_channels, ui->tabLogging); 
+	QSizePolicy size_policy = logging_widget->sizePolicy();
+	size_policy.setHorizontalPolicy(QSizePolicy::Expanding);
+	logging_widget->setSizePolicy(size_policy);
+
 	double core_d = 0.10; 
 	double core_porosity = 30;
 	double core_diameter = 0.10;
@@ -409,6 +417,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	initExperimentBar();
 	initStatusBar();
 	initSaveDataAttrs();
+	initExperimentSettings();
 	initDataTypes();
 	initExperimentalInfo();
 		
@@ -434,7 +443,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 	//setDefaultCommSettings(true);
 	default_comm_settings_on = false;
-	nmrtoolLinker->setDefaultCommSettingsState(default_comm_settings_on);
+	nmrtoolLinker->setDefaultCommSettingsState(default_comm_settings_on);	
 }
 
 MainWindow::~MainWindow()
@@ -596,6 +605,7 @@ void MainWindow::setActions()
 	ui->a_SaveAllSettings->setIcon(QIcon(":/images/save_settings.png"));		
 	ui->a_Processing->setIcon(QIcon(":/images/settings2.png"));
 	ui->a_DataFile_Settings->setIcon(QIcon(":/images/export_data.png"));
+	ui->a_Experiment_Settings->setIcon(QIcon(":/images/experiment_settings.png"));
 }
 
 void MainWindow::setConnections()
@@ -615,6 +625,7 @@ void MainWindow::setConnections()
 	connect(ui->a_StepMotor, SIGNAL(triggered()), this, SLOT(setStepMotorCOMSettings()));
 	connect(ui->a_Change_Tool, SIGNAL(triggered()), this, SLOT(changeLoggingTool()));
 	connect(ui->a_DataFile_Settings, SIGNAL(triggered()), this, SLOT(setDataFileSettings()));
+	connect(ui->a_Experiment_Settings, SIGNAL(triggered()), this, SLOT(setExperimentSettings()));
 	
 	connect(dock_RxTxControl, SIGNAL(dockLocationChanged(Qt::DockWidgetArea)), rxtxControl, SLOT(changeLocation(Qt::DockWidgetArea)));
 	connect(dock_RFPulseControl, SIGNAL(dockLocationChanged(Qt::DockWidgetArea)), rfpulseControl, SLOT(changeLocation(Qt::DockWidgetArea)));
@@ -677,6 +688,7 @@ void MainWindow::setConnections()
 	connect(expScheduler, SIGNAL(started()), this, SLOT(setExpSchedulerStarted()));
 	connect(expScheduler, SIGNAL(calibration_started()), logging_widget, SLOT(startCalibration()));
 	connect(expScheduler, SIGNAL(calibration_finished()), logging_widget, SLOT(finishCalibration()));
+	connect(expScheduler, SIGNAL(new_msg_req_delay(int)), com_commander, SLOT(setMsgReqDelay(int)));		// added 5.07.2018
 
 	connect(clocker, SIGNAL(clock()), com_commander, SLOT(timeClocked()));	
 	connect(this, SIGNAL(stop_clocker()), clocker, SLOT(stopThread()));
@@ -1145,6 +1157,8 @@ void MainWindow::applyToolSettings()
 		QString tab_name = widget->objectName();
 		if (tab_name == "tabSDSP" || tab_name == "SDSPWidget") ui->tabWidget->removeTab(index);
 		if (tab_name == "tabMonitoring") ui->tabWidget->removeTab(index);	
+		//if (tab_name == "tabOscilloscope") ui->tabWidget->removeTab(index);	
+		//if (tab_name == "tabDataViewer") ui->tabWidget->removeTab(index);	
 	}
 
 	QStringList tab_widgets = current_tool.tab_widgets;
@@ -1569,6 +1583,39 @@ double MainWindow::getDepthDisplacement(uint8_t _channel_id, QVector<ToolChannel
 	return x;
 }
 
+bool MainWindow::findSounds(QString &finish_sound)
+{
+	finish_sound = "";
+	if (app_settings->contains("Sounds/FinishExperiment")) finish_sound = app_settings->value("Sounds/FinishExperiment").toString();
+	
+	QString path = QDir::currentPath() + "/Sounds";
+	QDir dir(path);	
+	QStringList file_list = dir.entryList(QDir::Files | QDir::NoSymLinks);	
+	for (int i = 0; i < file_list.count(); i++)
+	{
+		file_list[i] = path + "/" + file_list[i];
+	}
+	for (int i = file_list.count()-1; i >= 0; --i)
+	{
+
+		if (file_list[i].split(".").last().toLower() != QString("wav")) 
+		{
+			file_list.removeAt(i);
+		}
+	}
+	
+	if (finish_sound.isEmpty() && !file_list.isEmpty()) finish_sound = file_list.first();
+	
+	if (!file_list.contains(finish_sound) && !file_list.isEmpty()) finish_sound = file_list.first();
+	
+	if (!finish_sound.isEmpty()) 
+	{		
+		app_settings->setValue("Sounds/FinishExperiment", finish_sound);
+	}
+
+	return !finish_sound.isEmpty();
+}
+
 
 void MainWindow::saveCOMSettings(COM_PORT *com_port, QString objName)
 {
@@ -1916,6 +1963,85 @@ void MainWindow::initSaveDataAttrs()
 	experiment_id = 0;
 }
 
+void MainWindow::initExperimentSettings()
+{	
+	if (app_settings->contains("ExperimentSettings/WellUID")) exper_attrs.well_UID = app_settings->value("ExperimentSettings/WellUID").toString();
+	else 
+	{
+		exper_attrs.well_UID = "";
+		app_settings->setValue("ExperimentSettings/WellUID", exper_attrs.well_UID);
+	}
+
+	if (app_settings->contains("ExperimentSettings/WellName")) exper_attrs.well_name = app_settings->value("ExperimentSettings/WellName").toString();
+	else 
+	{
+		exper_attrs.well_name = "";
+		app_settings->setValue("ExperimentSettings/WellName", exper_attrs.well_name);
+	}
+	
+	if (app_settings->contains("ExperimentSettings/Field")) exper_attrs.field_name = app_settings->value("ExperimentSettings/Field").toString();
+	else 
+	{
+		exper_attrs.field_name = "";
+		app_settings->setValue("ExperimentSettings/Field", exper_attrs.field_name);
+	}
+	
+	if (app_settings->contains("ExperimentSettings/Location")) exper_attrs.location = app_settings->value("ExperimentSettings/Location").toString();
+	else 
+	{
+		exper_attrs.location = "";
+		app_settings->setValue("ExperimentSettings/Location", exper_attrs.location);
+	}
+	
+	if (app_settings->contains("ExperimentSettings/Province")) exper_attrs.province = app_settings->value("ExperimentSettings/Province").toString();
+	else 
+	{
+		exper_attrs.province = "";
+		app_settings->setValue("ExperimentSettings/Province", exper_attrs.province);
+	}
+
+	if (app_settings->contains("ExperimentSettings/Country")) exper_attrs.country = app_settings->value("ExperimentSettings/Country").toString();
+	else 
+	{
+		exper_attrs.country = "Russia";
+		app_settings->setValue("ExperimentSettings/Country", exper_attrs.country);
+	}
+	
+	if (app_settings->contains("ExperimentSettings/ServiceCompany")) exper_attrs.service_company = app_settings->value("ExperimentSettings/ServiceCompany").toString();
+	else 
+	{
+		exper_attrs.service_company = "TNG group";
+		app_settings->setValue("ExperimentSettings/ServiceCompany", exper_attrs.service_company);
+	}
+
+	if (app_settings->contains("ExperimentSettings/Company")) exper_attrs.company = app_settings->value("ExperimentSettings/Company").toString();
+	else 
+	{
+		exper_attrs.company = "";
+		app_settings->setValue("ExperimentSettings/Company", exper_attrs.company);
+	}
+
+	if (app_settings->contains("ExperimentSettings/Operator")) exper_attrs.oper = app_settings->value("ExperimentSettings/Operator").toString();
+	else 
+	{
+		exper_attrs.oper = "";
+		app_settings->setValue("ExperimentSettings/Operator", exper_attrs.oper);
+	}
+	
+	if (app_settings->contains("Tool/Type")) exper_attrs.tool = app_settings->value("Tool/Type").toString();
+	else exper_attrs.tool = "";
+		
+	exper_attrs.date = QDate::currentDate();	
+
+	if (app_settings->contains("ExperimentSettings/DontShowAgain")) exper_attrs.dont_show_again = app_settings->value("ExperimentSettings/DontShowAgain").toBool();
+	else 
+	{
+		exper_attrs.dont_show_again = false;
+		app_settings->setValue("ExperimentSettings/DontShowAgain", exper_attrs.dont_show_again);
+	}
+	
+}
+
 void MainWindow::initDataTypes()
 {
 	data_type_list_Oil.append(DataType(DT_NS_FID_ORG, GET_STRING(DT_NS_FID_ORG), false, "FID noise data from ADC (UINT16)"));
@@ -2137,7 +2263,43 @@ void MainWindow::setDataFileSettings()
 		app_settings->setValue("SaveDataSettings/Prefix", save_data_attrs.prefix);			
 		app_settings->setValue("SaveDataSettings/Postfix", save_data_attrs.postfix);
 		app_settings->setValue("SaveDataSettings/Extension", save_data_attrs.extension);
+
+		//app_settings->setValue("ExperimentSettings/WellUID", well_UID);
 	}
+}
+
+bool MainWindow::setExperimentSettings()
+{
+	ExperimentSettingsDialog dlg(app_settings, exper_attrs.dont_show_again);
+	if (dlg.exec())
+	{
+		exper_attrs.well_UID = dlg.getWellUID();
+		exper_attrs.well_name = dlg.getWellName();
+		exper_attrs.field_name = dlg.getFieldName();
+		exper_attrs.location = dlg.getLocation();
+		exper_attrs.province = dlg.getProvince();
+		exper_attrs.country = dlg.getCountry();
+		exper_attrs.service_company = dlg.getServiceCompany();
+		exper_attrs.company = dlg.getCompany();
+		exper_attrs.oper = dlg.getOperator();
+		exper_attrs.tool = dlg.getTool();
+		exper_attrs.date = dlg.getDate();
+		exper_attrs.dont_show_again = dlg.getDontShowAgain();
+
+		app_settings->setValue("ExperimentSettings/WellUID", exper_attrs.well_UID);
+		app_settings->setValue("ExperimentSettings/WellName", exper_attrs.well_name);
+		app_settings->setValue("ExperimentSettings/Field", exper_attrs.field_name);
+		app_settings->setValue("ExperimentSettings/Location", exper_attrs.location);
+		app_settings->setValue("ExperimentSettings/Province", exper_attrs.province);
+		app_settings->setValue("ExperimentSettings/Country", exper_attrs.country);
+		app_settings->setValue("ExperimentSettings/ServiceCompany", exper_attrs.service_company);
+		app_settings->setValue("ExperimentSettings/Company", exper_attrs.company);
+		app_settings->setValue("ExperimentSettings/Operator", exper_attrs.oper);
+		app_settings->setValue("ExperimentSettings/DontShowAgain", exper_attrs.dont_show_again);		
+	}
+	else return false;
+
+	return true;
 }
 
 void MainWindow::resetCommSettings()
@@ -2189,9 +2351,15 @@ void MainWindow::setSequenceStatus(SeqStatus status)
 	}
 }
 
+
 void MainWindow::setExpSchedulerFinished()
 {
 	setCmdResult(NMRTOOL_STOP, ConnectionState::State_OK);
+	QString finish_sound = "";
+	if (findSounds(finish_sound))
+	{
+		QSound::play(finish_sound);
+	}
 }
 
 void MainWindow::setExpSchedulerStarted()
@@ -2201,6 +2369,14 @@ void MainWindow::setExpSchedulerStarted()
 
 void MainWindow::connectToNMRTool(bool flag)
 {		
+	/*QVector<double> x,y;
+	x << 1 << 2 << 3;
+	y << 1 << 4 << 9;
+	QVector<uint8_t> bad_v;
+	bad_v << 1 << 1 << 1;
+	DataSet *ds = new DataSet(1, 64, &x, &y, &bad_v);
+	exportData(DataSets() << ds, QList<QVector<uint8_t> >() << QVector<uint8_t>(), QList<QVector<double> >() << QVector<double>());*/
+
 	if (!flag) 
 	{
 		a_connect->setChecked(true);		
@@ -2285,7 +2461,7 @@ void MainWindow::startNMRTool(bool flag)
 */
 
 void MainWindow::startNMRTool(bool flag)
-{	
+{		
 	if (!flag) 
 	{
 		a_start->setChecked(true);
@@ -2330,6 +2506,17 @@ void MainWindow::startNMRTool(bool flag)
 		a_apply_prg->setChecked(false);
 		a_start->setChecked(false);
 		return;
+	}
+
+	if (!exper_attrs.dont_show_again)
+	{
+		if (!setExperimentSettings()) 
+		{
+			int ret = QMessageBox::warning(this, "Warning!", tr("Experiment was stopped!"), QMessageBox::Ok);	
+			a_apply_prg->setChecked(false);
+			a_start->setChecked(false);
+			return;
+		}
 	}
 
 	data_set_windows.clear();
@@ -4611,10 +4798,23 @@ void MainWindow::exportData(DataSets &dss, QList<QVector<uint8_t> > &gap, QList<
 		memo = "[Description]\n";
 		memo += QString("Device = %1\n").arg(current_tool.type);
 		memo += QString("DeviceUId = %1\n").arg(current_tool.id);
-		memo += QString("Object = %1\n").arg("Скважина X");
+		/*memo += QString("Object = %1\n").arg("Скважина X");
 		memo += QString("Company = %1\n").arg("КФУ");
 		memo += QString("Experiment = %1\n").arg("");
 		memo += QString("Operator = %1\n").arg("");			
+		memo += QString("DateTime = %1\n").arg(ctime_str);*/
+		memo += QString("Object = %1, %2, %3, %4, %5, %6\n").arg(exper_attrs.well_name).arg(exper_attrs.well_UID).arg(exper_attrs.field_name).arg(exper_attrs.location).arg(exper_attrs.province).arg(exper_attrs.country);
+		/*memo += QString("UNIQUE WELL ID = %1\n").arg(exper_attrs.well_UID);
+		memo += QString("WELL = %1\n").arg(exper_attrs.well_name);
+		memo += QString("FIELD = %1\n").arg(exper_attrs.field_name);
+		memo += QString("LOCATION = %1\n").arg(exper_attrs.location);	
+		memo += QString("PROVINCE = %1\n").arg(exper_attrs.province);
+		memo += QString("COUNTRY = %1\n").arg(exper_attrs.country);*/
+		memo += QString("Company = %1, %2\n").arg(exper_attrs.company).arg(exper_attrs.service_company);
+		/*memo += QString("SERVICE COMPANY = %1\n").arg(exper_attrs.service_company);
+		memo += QString("COMPANY = %1\n").arg(exper_attrs.company);*/
+		memo += QString("Operator = %1\n").arg(exper_attrs.oper);
+		//memo += QString("DATE = %1\n").arg(exper_attrs.date.toString());
 		memo += QString("DateTime = %1\n").arg(ctime_str);
 		memo += QString("\n\n");
 

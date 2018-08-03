@@ -90,6 +90,7 @@
         <file>images/play_end.png</file>
         <file>images/play_back.png</file>
         <file>images/open.png</file>
+        <file>images/experiment_settings.png</file>
     </qresource>
     <qresource prefix="/text_files">
         <file>sequence_datatypes.txt</file>

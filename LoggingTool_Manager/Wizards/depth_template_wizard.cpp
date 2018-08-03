@@ -1,6 +1,8 @@
 #include <QIcon>
 #include <QTimer>
 #include <QMessageBox>
+#include <QApplication>
+#include <QDesktopWidget>
 
 #include "tools_general.h"
 
@@ -16,6 +18,21 @@ DepthTemplateWizard::DepthTemplateWizard(QSettings *_settings, COM_PORT *com_por
 	ui->setupUi(this);
 	this->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Expanding);
 			
+	QDesktopWidget *d = QApplication::desktop();
+	int cur_x = d->width();     // returns desktop width
+	int cur_y = d->height();    // returns desktop height
+	int fontSize = 10;
+	int iconSize = 24;
+	if (cur_x < 1920) 
+	{
+		fontSize = 9;
+		iconSize = 16;
+	}
+	QFont font = this->font();	
+	font.setPointSize(fontSize);
+	ui->cboxDepthMeter->setFont(font);
+	ui->lblDepthMeter->setFont(font);
+
 	app_settings = _settings;
 
 	connectionWidget = new ImpulsConnectionWidget(this);

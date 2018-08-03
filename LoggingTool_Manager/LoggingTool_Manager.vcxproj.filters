@@ -527,6 +527,15 @@
     <ClCompile Include="Communication\threads.cpp">
       <Filter>Source Files\Communication</Filter>
     </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_experiment_settings_dialog.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_experiment_settings_dialog.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="Dialogs\experiment_settings_dialog.cpp">
+      <Filter>Source Files\Dialogs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="main_window.h">
@@ -796,6 +805,12 @@
     <CustomBuild Include="Communication\threads.h">
       <Filter>Header Files\Communication</Filter>
     </CustomBuild>
+    <CustomBuild Include="Dialogs\experiment_settings_dialog.ui">
+      <Filter>Form Files\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Dialogs\experiment_settings_dialog.h">
+      <Filter>Header Files\Dialogs</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_main_window.h">
@@ -952,6 +967,9 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_freq_autoadjust_wizard.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_experiment_settings_dialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>

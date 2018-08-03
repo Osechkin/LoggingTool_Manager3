@@ -492,19 +492,25 @@ void NMRToolLinker::applyProcPrg(QVector<uint8_t> &proc_prg, QVector<uint8_t> &p
 	DeviceData *device_data = new DeviceData(DATA_PROC, "Send new program for FPGA to NMR Tool...", id);
 	
 	QVector<double> *prg_data = new QVector<double>(proc_prg.count());
+	//QString prg_str;
 	for (int i = 0; i < prg_data->size(); i++)
 	{
 		prg_data->data()[i] = (double)proc_prg[i];
+		//prg_str.append(QString::number(proc_prg[i]) + ", ");
 	}
+	//qDebug() << prg_str;
 	device_data->fields->at(0)->code = DATA_PROC;
 	device_data->fields->at(0)->value = prg_data;
 	//msg_container.append(device_data);
 
 	QVector<double> *instr_data = new QVector<double>(proc_instr.count());
+	//QString instr_str;
 	for (int i = 0; i < instr_data->size(); i++)
 	{
 		instr_data->data()[i] = (double)proc_instr[i];
+		//instr_str.append(QString::number(proc_instr[i]) + ", ");
 	}
+	//qDebug() << instr_str;
 	device_data->fields->at(1)->code = FPGA_PRG;
 	device_data->fields->at(1)->value = instr_data;
 	msg_container.append(device_data);

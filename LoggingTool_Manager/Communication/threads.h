@@ -156,10 +156,12 @@ private:
 	bool interleaving_out;					// применение перемешивани€ (interleaving) дл€ выходных данных
 	bool on_break;							// показатель необходимости прервать выполнение операций.
 
-	int msg_header_delay;					// врем€ ожидани€ конца заголовка сообщений (ms)
-	int msg_req_delay;						// ¬рем€ ожидани€ отклика на отправленное сообщение (ms)
+	int msg_header_delay;					// врем€ ожидани€ конца заголовка сообщений (ms)	
 	int msg_life_time;						// "¬рем€ жизни" сообщени€. Ќеобходимо дл€ удалени€ сообщений, которые так и не были отправлены	
 	int sdsp_req_delay;						// врем€ ожидани€ отклика на сообщение, отправленное в SDSP в режиме диагностики
+
+public:
+	static int msg_req_delay;				// ¬рем€ ожидани€ отклика на отправленное сообщение (ms) - made static variable 5.07.2018
 
 private:
 	void showBadMessageAsText(COM_Message *msg, QString &text);
@@ -171,6 +173,7 @@ public slots:
 	void breakAllActions(); //{ on_break = true; }
 	void stopThread() { is_running = false; }
 	void sendToSDSP(QByteArray& arr);
+	void setMsgReqDelay(int _value);		// Added 5.07.2018
 
 private slots:
 	void timeClocked();

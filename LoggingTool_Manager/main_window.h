@@ -71,7 +71,9 @@ private:
 	void initCOMSettings(COM_PORT *com_port, QString objName);
 	void saveCOMSettings(COM_PORT *com_port, QString objName);
 	void initSaveDataAttrs();
+	void initExperimentSettings();
 	void initDataTypes();
+	bool findSounds(QString &finish_sound);
 	bool setupCOMPort(COM_PORT *com_port, QString _port_name);
 	bool findAvailableCOMPort(COM_PORT *com_port);    
 	void createTabs();
@@ -208,6 +210,7 @@ private:
 	SeqStatus sdsp_sequence_status;
 
 	DataSave save_data_attrs;
+	ExperimentSettings exper_attrs;
 	//QFile *save_data_file;
 	//bool start_data_export;				// индикатор необходимости открыть новый файл для экспорта измеренных данных
 	int experiment_id;					// номер эксперимента. Увеличивается на 1 при каждом запуске измерений по кнопке "Start Sequence"
@@ -249,6 +252,7 @@ private slots:
 	void startExperiment(bool flag);
 	void setExperimentalInfo();
 	void setDataFileSettings();
+	bool setExperimentSettings();
 	void setDefaultCommSettings(bool state); // { default_comm_settings_on = state; }
 	void resetCommSettings();
 

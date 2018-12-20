@@ -811,6 +811,9 @@
     <CustomBuild Include="Dialogs\experiment_settings_dialog.h">
       <Filter>Header Files\Dialogs</Filter>
     </CustomBuild>
+    <CustomBuild Include="Widgets\hold_down_widget.ui">
+      <Filter>Form Files\Widgets</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_main_window.h">
@@ -970,6 +973,9 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_experiment_settings_dialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_hold_down_widget.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>

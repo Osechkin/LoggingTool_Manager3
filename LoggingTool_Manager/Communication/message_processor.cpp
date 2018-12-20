@@ -316,7 +316,7 @@ void MsgProcessor::showAllAsText(COM_Message *msg)
 	default: 
 		{
 			writer_str = " ";
-			colors_str << "black" << "black";
+			colors_str << "black" << "black" << "black";
 		}
 	}
 
